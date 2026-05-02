@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#1C2B3A"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="NYSOA BTP"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<title>NYSOA BTP</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --or:#E8631A;--or-light:#FDF0E8;--or-dark:#B84E12;
+  --sl:#1C2B3A;--slm:#2D4155;--sll:#3D5570;
+  --bg:#F4F2ED;--surface:#FFFFFF;--border:#E2DDD6;
+  --text:#1A1A1A;--muted:#6B6560;--hint:#A09B95;
+  --r:12px;--rl:18px;
+  --safe-bottom:env(safe-area-inset-bottom,16px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif}
+#app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;background:var(--bg);position:relative}
+
+/* HEADER */
+.header{background:var(--sl);color:#fff;padding:52px 20px 16px;flex-shrink:0}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.logo{font-size:20px;font-weight:700;letter-spacing:-0.5px}
+.logo span{color:var(--or)}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--or);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff}
+.greeting{font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:4px}
+.date-str{font-size:12px;color:rgba(255,255,255,0.4)}
+
+/* KPI STRIP */
+.kpi-strip{display:flex;gap:10px;padding:16px 16px 0;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.kpi-strip::-webkit-scrollbar{display:none}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;flex-shrink:0;min-width:120px}
+.kpi-l{font-size:11px;color:var(--muted);margin-bottom:5px}
+.kpi-v{font-size:20px;font-weight:700;color:var(--text);line-height:1}
+.kpi-s{font-size:10px;color:var(--hint);margin-top:4px}
+
+/* SCROLL AREA */
+.scroll{flex:1;overflow-y:auto;padding:14px 16px calc(var(--safe-bottom) + 70px);display:flex;flex-direction:column;gap:12px;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+
+/* SECTION HEADER */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sec-title{font-size:13px;font-weight:600;color:var(--text)}
+.sec-link{font-size:12px;color:var(--or);background:none;border:none;cursor:pointer;font-family:inherit;padding:0}
+
+/* CHANTIER CARDS */
+.ch-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px;cursor:pointer;transition:transform 0.1s,box-shadow 0.1s;position:relative;overflow:hidden}
+.ch-card:active{transform:scale(0.98)}
+.ch-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--or)}
+.ch-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.ch-nom{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
+.ch-client{font-size:11px;color:var(--muted);margin-top:2px}
+.s-pill{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;white-space:nowrap}
+.s-ec{background:#EAF3DE;color:#2D5A0E}
+.s-ep{background:#FAEEDA;color:#7A4A0A}
+.s-te{background:#E6F1FB;color:#1A4F8A}
+.prog-track{height:5px;background:#EDE9E4;border-radius:3px;overflow:hidden;margin:8px 0}
+.prog-fill{height:100%;border-radius:3px;background:var(--or)}
+.ch-meta{display:flex;gap:14px;font-size:11px;color:var(--hint)}
+.ch-budget{font-size:12px;color:var(--muted);margin-bottom:4px}
+.ch-budget strong{color:var(--text)}
+
+/* JOURNAL ROWS */
+.j-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.j-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border)}
+.j-row:last-child{border:none}
+.j-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.j-info{flex:1;min-width:0}
+.j-des{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.j-sub{font-size:10px;color:var(--hint);margin-top:1px}
+.j-mt{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap}
+
+/* STAT DONUT area */
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.stat-lbl{font-size:11px;color:var(--muted);margin-bottom:6px}
+.stat-v{font-size:18px;font-weight:700;color:var(--text)}
+.stat-s{font-size:10px;color:var(--hint);margin-top:3px}
+.bar-mini{height:4px;background:#EDE9E4;border-radius:2px;margin-top:8px;overflow:hidden}
+.bar-mini-fill{height:100%;border-radius:2px;background:var(--or)}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 0 calc(var(--safe-bottom));z-index:100}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:6px 4px;font-family:inherit}
+.nav-icon{font-size:20px;line-height:1}
+.nav-lbl{font-size:10px;color:var(--hint);font-weight:500}
+.nav-item.on .nav-lbl{color:var(--or)}
+
+/* NAV ICON SVG */
+.ni{width:22px;height:22px;stroke:var(--hint);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-item.on .ni{stroke:var(--or)}
+
+/* PAGE SECTIONS */
+.page{display:none;flex-direction:column;height:100%}
+.page.on{display:flex}
+
+/* DETAIL SHEET (slide up) */
+.sheet{position:fixed;inset:0;z-index:200;pointer-events:none;display:flex;align-items:flex-end}
+.sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 0.3s}
+.sheet-panel{background:var(--surface);border-radius:22px 22px 0 0;width:100%;max-width:430px;margin:0 auto;padding:0 0 calc(var(--safe-bottom) + 16px);transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);max-height:85vh;overflow-y:auto;position:relative;z-index:1}
+.sheet.open{pointer-events:all}
+.sheet.open .sheet-backdrop{background:rgba(0,0,0,0.45)}
+.sheet.open .sheet-panel{transform:translateY(0)}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 16px}
+.sheet-head{padding:0 20px 12px;border-bottom:1px solid var(--border)}
+.sheet-nom{font-size:17px;font-weight:700;color:var(--text)}
+.sheet-client{font-size:12px;color:var(--muted);margin-top:2px}
+.sheet-body{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.det-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.det-row:last-child{border:none}
+.det-l{color:var(--muted)}
+.det-v{font-weight:600;color:var(--text)}
+.cta-btn{background:var(--or);color:#fff;border:none;border-radius:12px;width:100%;padding:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px}
+.cta-btn:active{background:var(--or-dark)}
+
+/* ACHATS */
+.achat-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer}
+.achat-row:last-child{border:none}
+.achat-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.achat-info{flex:1;min-width:0}
+.achat-lib{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.achat-sub{font-size:10px;color:var(--hint);margin-top:1px}
+.achat-right{text-align:right;flex-shrink:0}
+.achat-mt{font-size:12px;font-weight:700;color:var(--text)}
+.achat-st{font-size:9px;padding:2px 6px;border-radius:8px;margin-top:2px;display:inline-block}
+
+/* PERSONNEL */
+.agent-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.agent-row:last-child{border:none}
+.ag-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.ag-info{flex:1;min-width:0}
+.ag-nom{font-size:13px;font-weight:600;color:var(--text)}
+.ag-spec{font-size:11px;color:var(--muted);margin-top:1px}
+.ag-reste{font-size:11px;font-weight:600;text-align:right;flex-shrink:0}
+
+/* FAB */
+.fab{position:fixed;right:20px;bottom:calc(var(--safe-bottom) + 80px);width:52px;height:52px;background:var(--or);border-radius:50%;border:none;box-shadow:0 4px 16px rgba(232,99,26,0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:50;transition:transform 0.1s}
+.fab:active{transform:scale(0.93)}
+.fab svg{stroke:#fff;width:22px;height:22px;fill:none;stroke-width:2.5;stroke-linecap:round}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- PAGE: DASHBOARD -->
+  <div class="page on" id="p-home">
+    <div class="header">
+      <div class="header-top">
+        <div class="logo">NYSOA <span>BTP</span></div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:11px;color:rgba(255,255,255,0.45)" id="hdate"></div>
+          <div class="avatar">JR</div>
+        </div>
+      </div>
+      <div class="greeting">Bonjour, bonne journée sur les chantiers</div>
+    </div>
+
+    <div class="kpi-strip">
+      <div class="kpi"><div class="kpi-l">Chantiers actifs</div><div class="kpi-v">4</div><div class="kpi-s">3 en cours · 1 en pause</div></div>
+      <div class="kpi"><div class="kpi-l">Budget engagé</div><div class="kpi-v">847M</div><div class="kpi-s">Ar total</div></div>
+      <div class="kpi"><div class="kpi-l">Achats à valider</div><div class="kpi-v" style="color:var(--or)">12</div><div class="kpi-s">5 CEO · 7 DAF</div></div>
+      <div class="kpi"><div class="kpi-l">Personnel actif</div><div class="kpi-v">38</div><div class="kpi-s">6 journaliers</div></div>
+    </div>
+
+    <div class="scroll">
+      <div>
+        <div class="sec-head"><div class="sec-title">Chantiers</div><button class="sec-link" onclick="goPage('p-chantiers')">Voir tout →</button></div>
+        <div style="display:flex;flex-direction:column;gap:8px" id="ch-list"></div>
+      </div>
+
+      <div>
+        <div class="sec-head"><div class="sec-title">Journal récent</div><button class="sec-link" onclick="goPage('p-journal')">Tout voir →</button></div>
+        <div class="j-card" id="journal-list"></div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-lbl">Ce mois (Ar)</div>
+          <div class="stat-v">38,2M</div>
+          <div class="stat-s">↑ 12% vs mars</div>
+          <div class="bar-mini"><div class="bar-mini-fill" style="width:62%"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Avancement moyen</div>
+          <div class="stat-v">67%</div>
+          <div class="stat-s">4 chantiers</div>
+          <div class="bar-mini"><div class="bar-mini-fill" style="width:67%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: CHANTIERS -->
+  <div class="page" id="p-chantiers">
+    <div class="header" style="padding-top:52px">
+      <div class="header-top"><div class="logo">NYSOA <span>BTP</span></div><div class="avatar">JR</div></div>
+      <div class="greeting" style="font-size:15px;font-weight:600;color:#fff;margin:0">Tous les chantiers</div>
+    </div>
+    <div class="scroll">
+      <div style="display:flex;flex-direction:column;gap:8px" id="ch-list-full"></div>
+    </div>
+    <button class="fab" title="Nouveau chantier">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+  <!-- PAGE: JOURNAL -->
+  <div class="page" id="p-journal">
+    <div class="header" style="padding-top:52px">
+      <div class="header-top"><div class="logo">NYSOA <span>BTP</span></div><div class="avatar">JR</div></div>
+      <div class="greeting" style="font-size:15px;font-weight:600;color:#fff;margin:0">Journal des dépenses</div>
+    </div>
+    <div class="scroll">
+      <div class="j-card" id="journal-full"></div>
+    </div>
+    <button class="fab" title="Nouvelle écriture">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+  <!-- PAGE: ACHATS -->
+  <div class="page" id="p-achats">
+    <div class="header" style="padding-top:52px">
+      <div class="header-top"><div class="logo">NYSOA <span>BTP</span></div><div class="avatar">JR</div></div>
+      <div class="greeting" style="font-size:15px;font-weight:600;color:#fff;margin:0">Achats & commandes</div>
+    </div>
+    <div class="scroll">
+      <div>
+        <div class="sec-head"><div class="sec-title">À valider · CEO</div></div>
+        <div class="j-card" id="achats-ceo"></div>
+      </div>
+      <div>
+        <div class="sec-head"><div class="sec-title">À approuver · DAF</div></div>
+        <div class="j-card" id="achats-daf"></div>
+      </div>
+      <div>
+        <div class="sec-head"><div class="sec-title">Livrés récemment</div></div>
+        <div class="j-card" id="achats-livres"></div>
+      </div>
+    </div>
+    <button class="fab" title="Nouvelle demande d'achat">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+  <!-- PAGE: PERSONNEL -->
+  <div class="page" id="p-personnel">
+    <div class="header" style="padding-top:52px">
+      <div class="header-top"><div class="logo">NYSOA <span>BTP</span></div><div class="avatar">JR</div></div>
+      <div class="greeting" style="font-size:15px;font-weight:600;color:#fff;margin:0">Personnel</div>
+    </div>
+    <div class="scroll">
+      <div class="j-card" id="pers-list"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item on" id="nav-home" onclick="goPage('p-home');setNav(this)">
+      <svg class="ni" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="nav-lbl">Accueil</span>
+    </button>
+    <button class="nav-item" id="nav-ch" onclick="goPage('p-chantiers');setNav(this)">
+      <svg class="ni" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+      <span class="nav-lbl">Chantiers</span>
+    </button>
+    <button class="nav-item" id="nav-jo" onclick="goPage('p-journal');setNav(this)">
+      <svg class="ni" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span class="nav-lbl">Journal</span>
+    </button>
+    <button class="nav-item" id="nav-ac" onclick="goPage('p-achats');setNav(this)">
+      <svg class="ni" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+      <span class="nav-lbl">Achats</span>
+    </button>
+    <button class="nav-item" id="nav-pe" onclick="goPage('p-personnel');setNav(this)">
+      <svg class="ni" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      <span class="nav-lbl">Personnel</span>
+    </button>
+  </nav>
+
+  <!-- DETAIL SHEET -->
+  <div class="sheet" id="detail-sheet" onclick="closeSheet(event)">
+    <div class="sheet-backdrop"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="ch-top" style="margin-bottom:0">
+          <div><div class="sheet-nom" id="sh-nom">—</div><div class="sheet-client" id="sh-client">—</div></div>
+          <div id="sh-pill"></div>
+        </div>
+      </div>
+      <div class="sheet-body" id="sh-body"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+const chantiers = [
+  {id:1, nom:'Résidence Ivandry', client:'M. Rakoto', budget:320000000, depense:187000000, avancement:62, statut:'EN_COURS', debut:'Jan 2026', fin:'Déc 2026', personnel:14, achats:8, adresse:'Ivandry, Antananarivo'},
+  {id:2, nom:'Bureaux Analakely', client:'SOGEMA SA', budget:180000000, depense:162000000, avancement:89, statut:'EN_COURS', debut:'Fév 2025', fin:'Juin 2026', personnel:9, achats:3, adresse:'Analakely, Antananarivo'},
+  {id:3, nom:'Entrepôt Tana-Zone', client:'Import-Export MADA', budget:210000000, depense:71000000, avancement:34, statut:'EN_PAUSE', debut:'Mar 2026', fin:'Mar 2027', personnel:8, achats:4, adresse:'Zone Industrielle, Tana'},
+  {id:4, nom:'Villas Ambohidratrimo', client:'Coop Habitat', budget:137000000, depense:47000000, avancement:41, statut:'EN_COURS', debut:'Avr 2026', fin:'Fév 2027', personnel:7, achats:5, adresse:'Ambohidratrimo'},
+];
+
+const journal = [
+  {date:'08/04', des:'Sakafo: Bricotech + avance', ch:'Bureaux Analakely', cat:'SAKAFO', mt:11000, col:'#3B6D11'},
+  {date:'08/04', des:'Frais: Mvola sakafo', ch:'Bricotech', cat:'MOBILE MONEY', mt:300, col:'#185FA5'},
+  {date:'28/03', des:'Salaire: Bricotech sem. 23/03', ch:'Bureaux Analakely', cat:'SALAIRE', mt:195000, col:'#E8631A'},
+  {date:'21/03', des:'Salaire: Lava et Nata sem. 16/03', ch:'Bureaux Analakely', cat:'SALAIRE', mt:90000, col:'#E8631A'},
+  {date:'17/03', des:'Achat: Spatule peinture', ch:'Bureaux Analakely', cat:'FONCT.', mt:12000, col:'#888780'},
+  {date:'14/03', des:'Salaire: Noely et Faniry sem 09', ch:'Bureaux Analakely', cat:'SALAIRE', mt:142000, col:'#E8631A'},
+  {date:'07/03', des:'Antoka: Roger solde Bricotech', ch:'Bureaux Analakely', cat:'ANTOKA', mt:400000, col:'#BA7517'},
+  {date:'28/02', des:'Achat: Paiement MAX plomberie', ch:'Résidence Ivandry', cat:'APPROVISIONNEMENT', mt:1118000, col:'#185FA5'},
+  {date:'21/02', des:'Antoka: Vonjy Placo solde', ch:'Bureaux Analakely', cat:'ANTOKA', mt:352500, col:'#BA7517'},
+  {date:'14/02', des:'Achat: Ciment CEM II 50 sacs', ch:'Résidence Ivandry', cat:'APPROVISIONNEMENT', mt:720000, col:'#185FA5'},
+];
+
+const achats = [
+  {lib:'Fer à béton 12mm (40 barres)', ch:'Résidence Ivandry', f:'Q. Miorintsoa', mt:1020000, statut:'VALIDE_CEO', col:'#3B6D11', bg:'#EAF3DE'},
+  {lib:'Placo plâtre + fourrure (Tulear)', ch:'Entrepôt Tana-Zone', f:'Bricotech', mt:3565200, statut:'VALIDE_CEO', col:'#3B6D11', bg:'#EAF3DE'},
+  {lib:'Latis bois 6 unités', ch:'Entrepôt Tana-Zone', f:'Batiland', mt:219000, statut:'VALIDE_CEO', col:'#3B6D11', bg:'#EAF3DE'},
+  {lib:'Mastique + antirouille', ch:'Villas Ambohidratrimo', f:'Q. Mora Entana', mt:141000, statut:'APPROUVE_DAF', col:'#BA7517', bg:'#FAEEDA'},
+  {lib:'Disques tronçonneuse 180', ch:'Résidence Ivandry', f:'Q. Antsapanimahazo', mt:8000, statut:'APPROUVE_DAF', col:'#BA7517', bg:'#FAEEDA'},
+  {lib:'Baguette soudure', ch:'Résidence Ivandry', f:'Quincaillerie Ravaka', mt:34000, statut:'APPROUVE_DAF', col:'#BA7517', bg:'#FAEEDA'},
+  {lib:'Ciment CEM II (50 sacs)', ch:'Résidence Ivandry', f:'Est Andriamihaja', mt:720000, statut:'LIVRE', col:'#185FA5', bg:'#E6F1FB'},
+  {lib:'Gasoil 2,14L — groupe électro', ch:'Bureaux Analakely', f:'Jovenna', mt:10000, statut:'LIVRE', col:'#185FA5', bg:'#E6F1FB'},
+];
+
+const agents = [
+  {nom:'Roger', spec:'Maçonnerie', ch:'Bricotech Magasin', reste:100000, col:'#E6F1FB', tc:'#185FA5'},
+  {nom:'Vonjy Placo', spec:'Plafonnage', ch:'Bricotech Magasin', reste:22500, col:'#EAF3DE', tc:'#3B6D11'},
+  {nom:'Eric Soudeur', spec:'Ouvrage métallique', ch:'Mahafaly', reste:0, col:'#FDF0E8', tc:'#E8631A'},
+  {nom:'Mampianina', spec:'Ouvr. métallique', ch:'Bricotech', reste:114000, col:'#F1EFE8', tc:'#5F5E5A'},
+  {nom:'Lova', spec:'Maçonnerie', ch:'Dépôt', reste:900000, col:'#FAEEDA', tc:'#BA7517'},
+  {nom:'Vonjy Journalier', spec:'Maçonnerie', ch:'Dépôt', reste:350000, col:'#EAF3DE', tc:'#3B6D11'},
+  {nom:'Tafika', spec:'Carrelage', ch:'Visy Gasy', reste:4000000, col:'#FCEBEB', tc:'#A32D2D'},
+  {nom:'Avotra', spec:'Électricité', ch:'Fianara', reste:250000, col:'#E6F1FB', tc:'#185FA5'},
+  {nom:'Roger Peintre', spec:'Peinture', ch:'Fianara', reste:2000000, col:'#FAEEDA', tc:'#BA7517'},
+];
+
+// ── HELPERS ───────────────────────────────────────────────────
+const fmt = n => new Intl.NumberFormat('fr-MG').format(Math.round(n));
+const stMap = {EN_COURS:'En cours',EN_PAUSE:'En pause',TERMINE:'Terminé',ANNULE:'Annulé'};
+const stCls = {EN_COURS:'s-ec',EN_PAUSE:'s-ep',TERMINE:'s-te',ANNULE:'s-ec'};
+const acSt = {VALIDE_CEO:'Validé CEO',APPROUVE_DAF:'Appr. DAF',LIVRE:'Livré',DEMANDE:'Demande',REJETE:'Rejeté'};
+
+function initials(nom){return nom.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();}
+
+// ── RENDER ────────────────────────────────────────────────────
+function renderChantierCard(c, onclick){
+  const pct = Math.round(c.depense/c.budget*100);
+  return `<div class="ch-card" onclick="${onclick}">
+    <div class="ch-top">
+      <div><div class="ch-nom">${c.nom}</div><div class="ch-client">${c.client}</div></div>
+      <div class="s-pill ${stCls[c.statut]}">${stMap[c.statut]}</div>
+    </div>
+    <div class="ch-budget">Dépensé : <strong>${fmt(c.depense)} Ar</strong> / ${fmt(c.budget)} Ar</div>
+    <div class="prog-track"><div class="prog-fill" style="width:${c.avancement}%"></div></div>
+    <div class="ch-meta"><span>↗ ${c.avancement}%</span><span>Début ${c.debut}</span><span>${c.personnel} agents</span></div>
+  </div>`;
+}
+
+document.getElementById('ch-list').innerHTML = chantiers.slice(0,3).map((c,i)=>renderChantierCard(c,`openSheet(${i})`)).join('');
+document.getElementById('ch-list-full').innerHTML = chantiers.map((c,i)=>renderChantierCard(c,`openSheet(${i})`)).join('');
+
+function renderJRow(d){
+  return `<div class="j-row">
+    <div class="j-dot" style="background:${d.col}"></div>
+    <div class="j-info"><div class="j-des">${d.des}</div><div class="j-sub">${d.ch} · ${d.date}</div></div>
+    <div class="j-mt">${fmt(d.mt)} Ar</div>
+  </div>`;
+}
+document.getElementById('journal-list').innerHTML = journal.slice(0,5).map(renderJRow).join('');
+document.getElementById('journal-full').innerHTML = journal.map(renderJRow).join('');
+
+function renderAchat(a){
+  return `<div class="achat-row">
+    <div class="achat-ico" style="background:${a.bg}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${a.col}" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+    </div>
+    <div class="achat-info"><div class="achat-lib">${a.lib}</div><div class="achat-sub">${a.ch} · ${a.f}</div></div>
+    <div class="achat-right"><div class="achat-mt">${fmt(a.mt)} Ar</div><div class="achat-st" style="background:${a.bg};color:${a.col}">${acSt[a.statut]}</div></div>
+  </div>`;
+}
+document.getElementById('achats-ceo').innerHTML = achats.filter(a=>a.statut==='VALIDE_CEO').map(renderAchat).join('');
+document.getElementById('achats-daf').innerHTML = achats.filter(a=>a.statut==='APPROUVE_DAF').map(renderAchat).join('');
+document.getElementById('achats-livres').innerHTML = achats.filter(a=>a.statut==='LIVRE').map(renderAchat).join('');
+
+document.getElementById('pers-list').innerHTML = agents.map(a=>{
+  const resteCol = a.reste===0?'#3B6D11':a.reste>500000?'#A32D2D':'#BA7517';
+  return `<div class="agent-row">
+    <div class="ag-av" style="background:${a.col};color:${a.tc}">${initials(a.nom)}</div>
+    <div class="ag-info"><div class="ag-nom">${a.nom}</div><div class="ag-spec">${a.spec} · ${a.ch}</div></div>
+    <div class="ag-reste" style="color:${resteCol}">${a.reste===0?'Soldé':fmt(a.reste)+' Ar'}</div>
+  </div>`;
+}).join('');
+
+// Date
+const d=new Date();
+document.getElementById('hdate').textContent=d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+
+// ── NAVIGATION ────────────────────────────────────────────────
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+function setNav(el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('on'));
+  el.classList.add('on');
+}
+
+// ── SHEET ─────────────────────────────────────────────────────
+function openSheet(idx){
+  const c=chantiers[idx];
+  document.getElementById('sh-nom').textContent=c.nom;
+  document.getElementById('sh-client').textContent=c.client+' · '+c.adresse;
+  document.getElementById('sh-pill').innerHTML=`<div class="s-pill ${stCls[c.statut]}">${stMap[c.statut]}</div>`;
+  const reste=c.budget-c.depense;
+  const resteCol=reste<0?'#A32D2D':'#2D5A0E';
+  document.getElementById('sh-body').innerHTML=`
+    <div class="det-row"><div class="det-l">Budget initial</div><div class="det-v">${fmt(c.budget)} Ar</div></div>
+    <div class="det-row"><div class="det-l">Dépensé</div><div class="det-v">${fmt(c.depense)} Ar</div></div>
+    <div class="det-row"><div class="det-l">Budget restant</div><div class="det-v" style="color:${resteCol}">${fmt(reste)} Ar</div></div>
+    <div class="det-row"><div class="det-l">Avancement</div><div class="det-v">${c.avancement}%</div></div>
+    <div class="det-row"><div class="det-l">Début · Fin prévue</div><div class="det-v">${c.debut} → ${c.fin}</div></div>
+    <div class="det-row"><div class="det-l">Personnel actif</div><div class="det-v">${c.personnel} agents</div></div>
+    <div class="det-row"><div class="det-l">Achats en cours</div><div class="det-v">${c.achats} commandes</div></div>
+    <div class="prog-track" style="margin:4px 0 12px"><div class="prog-fill" style="width:${c.avancement}%"></div></div>
+    <button class="cta-btn" onclick="closeSheet()">Voir le journal complet →</button>
+  `;
+  document.getElementById('detail-sheet').classList.add('open');
+}
+function closeSheet(e){
+  if(!e||e.target===document.querySelector('.sheet-backdrop')||e.currentTarget===document.getElementById('detail-sheet')){
+    if(e&&e.target!==document.querySelector('.sheet-backdrop')&&e.currentTarget===document.getElementById('detail-sheet')&&e.target!==e.currentTarget) return;
+    document.getElementById('detail-sheet').classList.remove('open');
+  }
+}
+document.querySelector('.sheet-backdrop').addEventListener('click',()=>document.getElementById('detail-sheet').classList.remove('open'));
+
+// ── SERVICE WORKER ────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').then(r=>console.log('SW ok',r.scope)).catch(e=>console.log('SW error',e));
+  });
+}
+</script>
+</body>
+</html>
