@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#1C2B3A"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="NYSOA BTP"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<title>NYSOA BTP</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --or:#E8631A;--or-light:#FDF0E8;--or-dark:#B84E12;
+  --sl:#1C2B3A;--slm:#2D4155;--sll:#3D5570;
+  --bg:#F4F2ED;--surface:#FFFFFF;--border:#E2DDD6;
+  --text:#1A1A1A;--muted:#6B6560;--hint:#A09B95;
+  --success:#2D7A3A;--success-bg:#EAF3DE;
+  --warning:#BA7517;--warning-bg:#FAEEDA;
+  --danger:#A32D2D;--danger-bg:#FCEAEA;
+  --info:#185FA5;--info-bg:#E6F1FB;
+  --r:12px;--rl:18px;
+  --safe-bottom:env(safe-area-inset-bottom,16px);
+  --safe-top:env(safe-area-inset-top,0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif}
+#app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;background:var(--bg);position:relative}
+
+/* HEADER */
+.header{background:var(--sl);color:#fff;padding:calc(var(--safe-top) + 44px) 20px 16px;flex-shrink:0}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.logo{font-size:20px;font-weight:700;letter-spacing:-0.5px}
+.logo span{color:var(--or)}
+.header-actions{display:flex;align-items:center;gap:10px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--or);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;cursor:pointer}
+.icon-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.1);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.icon-btn svg{stroke:rgba(255,255,255,0.7);fill:none;width:18px;height:18px;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.greeting{font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:2px}
+.date-str{font-size:12px;color:rgba(255,255,255,0.35)}
+
+/* SEARCH BAR */
+.search-bar{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.1);border-radius:10px;padding:8px 12px;margin:10px 0 0;border:1px solid rgba(255,255,255,0.1)}
+.search-bar svg{stroke:rgba(255,255,255,0.45);fill:none;width:16px;height:16px;stroke-width:1.8;flex-shrink:0}
+.search-bar input{background:none;border:none;outline:none;color:#fff;font-size:13px;flex:1;font-family:inherit}
+.search-bar input::placeholder{color:rgba(255,255,255,0.35)}
+
+/* KPI STRIP */
+.kpi-strip{display:flex;gap:10px;padding:14px 16px 0;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.kpi-strip::-webkit-scrollbar{display:none}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;flex-shrink:0;min-width:115px}
+.kpi-l{font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.03em}
+.kpi-v{font-size:20px;font-weight:700;color:var(--text);line-height:1}
+.kpi-s{font-size:10px;color:var(--hint);margin-top:4px}
+.kpi.alert .kpi-v{color:var(--or)}
+
+/* SCROLL AREA */
+.scroll{flex:1;overflow-y:auto;padding:14px 16px calc(var(--safe-bottom) + 72px);display:flex;flex-direction:column;gap:14px;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+
+/* SECTION HEADER */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sec-title{font-size:13px;font-weight:600;color:var(--text)}
+.sec-link{font-size:12px;color:var(--or);background:none;border:none;cursor:pointer;font-family:inherit;padding:0;font-weight:500}
+
+/* TABS */
+.tabs{display:flex;gap:0;background:var(--border);border-radius:10px;padding:3px;flex-shrink:0;margin:0 16px 2px}
+.tab{flex:1;background:none;border:none;font-family:inherit;font-size:12px;font-weight:500;color:var(--muted);padding:7px 4px;border-radius:8px;cursor:pointer;transition:all 0.15s}
+.tab.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+
+/* FILTER CHIPS */
+.chips{display:flex;gap:6px;padding:8px 16px 0;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.chips::-webkit-scrollbar{display:none}
+.chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.15s}
+.chip.on{background:var(--sl);color:#fff;border-color:var(--sl)}
+
+/* CHANTIER CARDS */
+.ch-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px;cursor:pointer;transition:transform 0.1s,box-shadow 0.1s;position:relative;overflow:hidden}
+.ch-card:active{transform:scale(0.98)}
+.ch-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--or)}
+.ch-card.pause::before{background:var(--warning)}
+.ch-card.termine::before{background:var(--success)}
+.ch-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.ch-nom{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
+.ch-client{font-size:11px;color:var(--muted);margin-top:2px}
+.s-pill{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;white-space:nowrap}
+.s-ec{background:var(--success-bg);color:var(--success)}
+.s-ep{background:var(--warning-bg);color:var(--warning)}
+.s-te{background:var(--info-bg);color:var(--info)}
+.s-an{background:#F1EFEB;color:var(--hint)}
+.prog-track{height:5px;background:#EDE9E4;border-radius:3px;overflow:hidden;margin:8px 0}
+.prog-fill{height:100%;border-radius:3px;background:var(--or);transition:width 0.4s}
+.ch-meta{display:flex;gap:14px;font-size:11px;color:var(--hint)}
+.ch-budget{font-size:12px;color:var(--muted);margin-bottom:4px}
+.ch-budget strong{color:var(--text)}
+
+/* JOURNAL ROWS */
+.j-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.j-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s}
+.j-row:last-child{border:none}
+.j-row:active{background:#F7F5F0}
+.j-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.j-info{flex:1;min-width:0}
+.j-des{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.j-sub{font-size:10px;color:var(--hint);margin-top:1px}
+.j-right{text-align:right;flex-shrink:0}
+.j-mt{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap}
+.j-cat{font-size:9px;color:var(--hint);margin-top:2px;text-transform:uppercase;letter-spacing:0.05em}
+
+/* DATE GROUP HEADER */
+.date-group{font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:0.06em;padding:4px 2px}
+
+/* STAT CARDS */
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.stat-lbl{font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em}
+.stat-v{font-size:18px;font-weight:700;color:var(--text)}
+.stat-s{font-size:10px;color:var(--hint);margin-top:3px}
+.stat-s.up{color:var(--success)}
+.stat-s.dn{color:var(--danger)}
+.bar-mini{height:4px;background:#EDE9E4;border-radius:2px;margin-top:8px;overflow:hidden}
+.bar-mini-fill{height:100%;border-radius:2px;background:var(--or)}
+
+/* ACHATS */
+.achat-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s}
+.achat-row:last-child{border:none}
+.achat-row:active{background:#F7F5F0}
+.achat-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.achat-info{flex:1;min-width:0}
+.achat-lib{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.achat-sub{font-size:10px;color:var(--hint);margin-top:1px}
+.achat-right{text-align:right;flex-shrink:0}
+.achat-mt{font-size:12px;font-weight:700;color:var(--text)}
+.achat-st{font-size:9px;padding:2px 6px;border-radius:8px;margin-top:2px;display:inline-block;font-weight:600}
+
+/* BADGE URGENCE */
+.badge-urgence{display:inline-flex;align-items:center;gap:4px;background:var(--danger-bg);color:var(--danger);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;margin-bottom:8px}
+
+/* PERSONNEL */
+.agent-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s}
+.agent-row:last-child{border:none}
+.agent-row:active{background:#F7F5F0}
+.ag-av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.ag-info{flex:1;min-width:0}
+.ag-nom{font-size:13px;font-weight:600;color:var(--text)}
+.ag-spec{font-size:11px;color:var(--muted);margin-top:1px}
+.ag-right{text-align:right;flex-shrink:0}
+.ag-reste{font-size:11px;font-weight:600}
+.ag-ch{font-size:10px;color:var(--hint);margin-top:2px}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 0 calc(var(--safe-bottom));z-index:100}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:6px 4px;font-family:inherit;position:relative}
+.nav-badge{position:absolute;top:2px;right:calc(50% - 18px);width:16px;height:16px;background:var(--danger);border-radius:50%;font-size:9px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface)}
+.nav-lbl{font-size:10px;color:var(--hint);font-weight:500}
+.nav-item.on .nav-lbl{color:var(--or)}
+.ni{width:22px;height:22px;stroke:var(--hint);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-item.on .ni{stroke:var(--or)}
+
+/* PAGE SECTIONS */
+.page{display:none;flex-direction:column;height:100%}
+.page.on{display:flex}
+
+/* DETAIL SHEET (slide up) */
+.sheet{position:fixed;inset:0;z-index:200;pointer-events:none;display:flex;align-items:flex-end}
+.sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 0.3s}
+.sheet-panel{background:var(--surface);border-radius:22px 22px 0 0;width:100%;max-width:430px;margin:0 auto;padding:0 0 calc(var(--safe-bottom) + 16px);transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);max-height:88vh;overflow-y:auto;position:relative;z-index:1}
+.sheet.open{pointer-events:all}
+.sheet.open .sheet-backdrop{background:rgba(0,0,0,0.45)}
+.sheet.open .sheet-panel{transform:translateY(0)}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 16px}
+.sheet-head{padding:0 20px 14px;border-bottom:1px solid var(--border)}
+.sheet-nom{font-size:17px;font-weight:700;color:var(--text)}
+.sheet-client{font-size:12px;color:var(--muted);margin-top:2px}
+.sheet-body{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.det-section-title{font-size:11px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:0.06em;padding-bottom:6px;border-bottom:1px solid var(--border);margin-top:4px}
+.det-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F4F2ED;font-size:13px}
+.det-row:last-child{border:none}
+.det-l{color:var(--muted)}
+.det-v{font-weight:600;color:var(--text)}
+.cta-btn{background:var(--or);color:#fff;border:none;border-radius:12px;width:100%;padding:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;transition:background 0.15s}
+.cta-btn:active{background:var(--or-dark)}
+.cta-btn.secondary{background:var(--sl);margin-top:0}
+.cta-btn.secondary:active{background:var(--slm)}
+.cta-row{display:flex;gap:8px}
+.cta-row .cta-btn{font-size:13px;padding:12px}
+
+/* FAB */
+.fab{position:fixed;right:20px;bottom:calc(var(--safe-bottom) + 80px);width:54px;height:54px;background:var(--or);border-radius:50%;border:none;box-shadow:0 4px 20px rgba(232,99,26,0.45);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:50;transition:transform 0.1s,box-shadow 0.1s}
+.fab:active{transform:scale(0.92);box-shadow:0 2px 10px rgba(232,99,26,0.3)}
+.fab svg{stroke:#fff;width:22px;height:22px;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* FORMULAIRE SHEET */
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+.form-input{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;font-family:inherit;color:var(--text);outline:none;transition:border 0.15s;width:100%}
+.form-input:focus{border-color:var(--or)}
+.form-select{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;font-family:inherit;color:var(--text);outline:none;width:100%;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A09B95' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.form-select:focus{border-color:var(--or)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-hint{font-size:10px;color:var(--hint);margin-top:1px}
+
+/* LOADING SKELETON */
+.skel{background:linear-gradient(90deg,#EDE9E4 25%,#E4E0DA 50%,#EDE9E4 75%);background-size:200% 100%;animation:skel-anim 1.4s infinite;border-radius:6px}
+@keyframes skel-anim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* EMPTY STATE */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:48px 24px;text-align:center}
+.empty-ico{width:64px;height:64px;background:var(--bg);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.empty-ico svg{stroke:var(--hint);fill:none;width:28px;height:28px;stroke-width:1.5}
+.empty-title{font-size:15px;font-weight:600;color:var(--text)}
+.empty-sub{font-size:13px;color:var(--hint)}
+
+/* TOAST */
+.toast{position:fixed;top:calc(var(--safe-top) + 16px);left:50%;transform:translateX(-50%) translateY(-80px);background:var(--sl);color:#fff;border-radius:12px;padding:10px 20px;font-size:13px;font-weight:500;z-index:999;transition:transform 0.3s;max-width:calc(430px - 40px);width:calc(100% - 40px);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.2)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--success)}
+.toast.error{background:var(--danger)}
+
+/* SETTINGS PAGE */
+.settings-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.settings-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+.settings-row:last-child{border:none}
+.settings-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.settings-ico svg{fill:none;width:18px;height:18px;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.settings-info{flex:1}
+.settings-lbl{font-size:13px;font-weight:500;color:var(--text)}
+.settings-sub{font-size:11px;color:var(--hint);margin-top:1px}
+.settings-chevron{stroke:var(--hint);fill:none;width:16px;height:16px;stroke-width:2;flex-shrink:0}
+
+/* SYNC STATUS */
+.sync-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.12);border-radius:20px;padding:3px 10px;font-size:10px;color:rgba(255,255,255,0.6)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#5DB85A}
+.sync-dot.offline{background:#BA7517;animation:pulse-warn 1.5s infinite}
+@keyframes pulse-warn{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* RAPPORT SUMMARY */
+.rapport-card{background:var(--sl);border-radius:var(--rl);padding:16px 18px;color:#fff}
+.rapport-title{font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em}
+.rapport-rows{display:flex;flex-direction:column;gap:8px}
+.rapport-row{display:flex;justify-content:space-between;font-size:13px}
+.rapport-row-l{color:rgba(255,255,255,0.6)}
+.rapport-row-v{font-weight:600;color:#fff}
+.rapport-total{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.15);font-size:14px;font-weight:700}
+.rapport-total-l{color:rgba(255,255,255,0.8)}
+.rapport-total-v{color:var(--or)}
+
+/* PROGRESS RING */
+.progress-ring-wrap{display:flex;flex-direction:column;align-items:center;gap:4px}
+.progress-ring{transform:rotate(-90deg)}
+.progress-ring-bg{fill:none;stroke:#EDE9E4;stroke-width:6}
+.progress-ring-fill{fill:none;stroke:var(--or);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset 0.6s}
+.ring-label{font-size:11px;font-weight:700;color:var(--text)}
+.ring-sub{font-size:9px;color:var(--hint)}
+
+/* CHANTIER GRID */
+.ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ch-mini{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px;cursor:pointer;transition:transform 0.1s}
+.ch-mini:active{transform:scale(0.96)}
+.ch-mini-dot{width:8px;height:8px;border-radius:50%;margin-bottom:8px}
+.ch-mini-nom{font-size:12px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:4px}
+.ch-mini-av{font-size:20px;font-weight:700;color:var(--text)}
+.ch-mini-sub{font-size:10px;color:var(--hint)}
+
+/* ANIMATION */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp 0.3s ease both}
+
+/* CONNEXION INDICATOR */
+.offline-banner{background:var(--warning-bg);border-bottom:1px solid var(--warning);padding:8px 16px;font-size:12px;color:var(--warning);display:none;align-items:center;gap:6px;flex-shrink:0}
+.offline-banner.show{display:flex}
+.offline-banner svg{fill:none;stroke:var(--warning);width:14px;height:14px;stroke-width:2;flex-shrink:0}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- OFFLINE BANNER -->
+  <div class="offline-banner" id="offline-banner">
+    <svg viewBox="0 0 24 24"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.56 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>
+    Mode hors-ligne · Données locales
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PAGE: DASHBOARD                         -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="page on" id="p-home">
+    <div class="header">
+      <div class="header-top">
+        <div class="logo">NYSOA <span>BTP</span></div>
+        <div class="header-actions">
+          <div class="sync-pill" id="sync-status"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">Synchronisé</span></div>
+          <div class="avatar" onclick="goPage('p-settings');setNav(null)">JR</div>
+        </div>
+      </div>
+      <div class="greeting" id="home-greeting">Bonjour, bonne journée</div>
+      <div class="date-str" id="hdate"></div>
+    </div>
+
+    <div class="kpi-strip">
+      <div class="kpi"><div class="kpi-l">Chantiers actifs</div><div class="kpi-v" id="kpi-chantiers">4</div><div class="kpi-s" id="kpi-ch-sub">3 en cours · 1 en pause</div></div>
+      <div class="kpi alert"><div class="kpi-l">À valider</div><div class="kpi-v" id="kpi-valider">12</div><div class="kpi-s">achats en attente</div></div>
+      <div class="kpi"><div class="kpi-l">Budget engagé</div><div class="kpi-v" id="kpi-budget">847M</div><div class="kpi-s">Ar total</div></div>
+      <div class="kpi"><div class="kpi-l">Personnel</div><div class="kpi-v" id="kpi-pers">38</div><div class="kpi-s">6 journaliers</div></div>
+    </div>
+
+    <div class="scroll">
+
+      <!-- SECTION: Chantiers -->
+      <div>
+        <div class="sec-head">
+          <div class="sec-title">Chantiers en cours</div>
+          <button class="sec-link" onclick="goPage('p-chantiers');setNav(document.getElementById('nav-ch'))">Voir tout →</button>
+        </div>
+        <div class="ch-grid" id="ch-grid-home"></div>
+      </div>
+
+      <!-- SECTION: Rapport mensuel -->
+      <div class="rapport-card" id="rapport-home">
+        <div class="rapport-title">Synthèse — <span id="rapport-mois">Mai 2026</span></div>
+        <div class="rapport-rows">
+          <div class="rapport-row"><span class="rapport-row-l">Achats & matériaux</span><span class="rapport-row-v" id="rp-achats">—</span></div>
+          <div class="rapport-row"><span class="rapport-row-l">Salaires & antoka</span><span class="rapport-row-v" id="rp-salaires">—</span></div>
+          <div class="rapport-row"><span class="rapport-row-l">Frais divers</span><span class="rapport-row-v" id="rp-divers">—</span></div>
+        </div>
+        <div class="rapport-total"><span class="rapport-total-l">Total mois</span><span class="rapport-total-v" id="rp-total">—</span></div>
+      </div>
+
+      <!-- SECTION: Journal récent -->
+      <div>
+        <div class="sec-head">
+          <div class="sec-title">Journal récent</div>
+          <button class="sec-link" onclick="goPage('p-journal');setNav(document.getElementById('nav-jo'))">Tout voir →</button>
+        </div>
+        <div class="j-card" id="journal-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PAGE: CHANTIERS                         -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="page" id="p-chantiers">
+    <div class="header">
+      <div class="header-top">
+        <div class="logo">NYSOA <span>BTP</span></div>
+        <div class="header-actions">
+          <button class="icon-btn" onclick="openNewChantierSheet()">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div class="avatar" onclick="goPage('p-settings');setNav(null)">JR</div>
+        </div>
+      </div>
+      <div class="greeting" style="font-size:15px;font-weight:600;color:#fff;margin:0">Tous les chantiers</div>
+    </div>
+    <div class="chips" id="ch-filter-chips">
+      <div class="chip on" onclick="filterChantiers('ALL',this)">Tous</div>
+      <div class="chip" onclick="filterChantiers('EN_COURS',this)">En cours</div>
+      <div class="chip" onclick="filterChantiers('EN_PAUSE',this)">En pause</div>
+      <div class="chip" onclick="filterChantiers('TERMINE',this)">Terminés</div>
+    </div>
+    <div class="scroll" style="padding-top:10px">
+      <div style="display:flex;flex-direction:column;gap:8px" id="ch-list-full"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PAGE: JOURNAL                           -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="page" id="p-journal">
+    <div class="header">
+      <div class="header-top">
+        <div class="logo">NYSOA <span>BTP</span></div>
+        <div class="header-actions">
+          <button class="icon-btn" onclick="openNewEcritureSheet()">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div class="avatar" onclick="goPage('p-settings');setNav(null)">JR</div>
+        </div>
+      </div>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Rechercher une écriture…" oninput="filterJournal(this.value)" id="journal-search"/>
+      </div>
+    </div>
+    <div class="chips" id="journal-filter-chips">
+      <div class="chip on" onclick="filterJournalCat('ALL',this)">Tout</div>
+      <div class="chip" onclick="filterJournalCat('SALAIRE',this)">Salaires</div>
+      <div class="chip" onclick="filterJournalCat('APPROVISIONNEMENT',this)">Approvisionnement</div>
+      <div class="chip" onclick="filterJournalCat('ANTOKA',this)">Antoka</div>
+      <div class="chip" onclick="filterJournalCat('FONCT',this)">Divers</div>
+    </div>
+    <div class="scroll" style="padding-top:10px" id="journal-full-scroll">
+      <div id="journal-full"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PAGE: ACHATS                            -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="page" id="p-achats">
+    <div class="header">
+      <div class="header-top">
+        <div class="logo">NYSOA <span>BTP</span></div>
+        <div class="header-actions">
+          <button class="icon-btn" onclick="openNewAchatSheet()">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div class="avatar" onclick="goPage('p-settings');setNav(null)">JR</div>
+        </div>
+      </div>
+      <div class="greeting" style="font-size:15px;font-weight:600;color:#fff;margin:0">Achats & commandes</div>
+    </div>
+    <div class="tabs" style="margin-top:12px">
+      <button class="tab on" onclick="showAchatTab('pending',this)">En attente</button>
+      <button class="tab" onclick="showAchatTab('valide',this)">Validés CEO</button>
+      <button class="tab" onclick="showAchatTab('livre',this)">Livrés</button>
+    </div>
+    <div class="scroll" style="padding-top:10px">
+      <div id="achats-pending">
+        <div id="badge-urgence-zone"></div>
+        <div class="sec-head"><div class="sec-title">À valider · CEO</div></div>
+        <div class="j-card" id="achats-ceo"></div>
+        <div class="sec-head" style="margin-top:14px"><div class="sec-title">À approuver · DAF</div></div>
+        <div class="j-card" id="achats-daf"></div>
+      </div>
+      <div id="achats-valide" style="display:none">
+        <div class="j-card" id="achats-valide-list"></div>
+      </div>
+      <div id="achats-livre" style="display:none">
+        <div class="j-card" id="achats-livres"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PAGE: PERSONNEL                         -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="page" id="p-personnel">
+    <div class="header">
+      <div class="header-top">
+        <div class="logo">NYSOA <span>BTP</span></div>
+        <div class="header-actions">
+          <button class="icon-btn" onclick="openNewAgentSheet()">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <div class="avatar" onclick="goPage('p-settings');setNav(null)">JR</div>
+        </div>
+      </div>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Rechercher un agent…" oninput="filterPersonnel(this.value)"/>
+      </div>
+    </div>
+    <div class="chips" id="pers-filter-chips">
+      <div class="chip on" onclick="filterPersonnelCh('ALL',this)">Tous</div>
+    </div>
+    <div class="scroll" style="padding-top:10px">
+      <div class="j-card" id="pers-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PAGE: SETTINGS / PROFIL                 -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="page" id="p-settings">
+    <div class="header">
+      <div class="header-top">
+        <button class="icon-btn" onclick="goPage('p-home');setNav(document.getElementById('nav-home'))">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="logo">NYSOA <span>BTP</span></div>
+        <div style="width:36px"></div>
+      </div>
+      <div class="greeting" style="font-size:15px;font-weight:600;color:#fff;margin:0">Paramètres</div>
+    </div>
+    <div class="scroll" style="padding-top:14px">
+
+      <!-- Profil utilisateur -->
+      <div class="settings-section">
+        <div class="settings-row" style="cursor:default">
+          <div class="ag-av" style="background:var(--or-light);color:var(--or);width:48px;height:48px;font-size:16px">JR</div>
+          <div class="settings-info">
+            <div class="settings-lbl" style="font-size:15px">Jean-René</div>
+            <div class="settings-sub">Directeur des travaux · Admin</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUPABASE CONFIG -->
+      <div>
+        <div class="sec-title" style="margin-bottom:8px;padding:0 4px">🔗 Base de données</div>
+        <div class="settings-section">
+          <div class="settings-row" onclick="openSupabaseSheet()">
+            <div class="settings-ico" style="background:var(--success-bg)">
+              <svg viewBox="0 0 24 24" style="stroke:var(--success)"><path d="M4 4l16 16M4 20L20 4"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div class="settings-info">
+              <div class="settings-lbl">Connexion Supabase</div>
+              <div class="settings-sub" id="sb-status-lbl">Non configuré · Données locales</div>
+            </div>
+            <svg class="settings-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="settings-row" onclick="forceSyncData()">
+            <div class="settings-ico" style="background:var(--info-bg)">
+              <svg viewBox="0 0 24 24" style="stroke:var(--info)"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+            </div>
+            <div class="settings-info">
+              <div class="settings-lbl">Synchroniser maintenant</div>
+              <div class="settings-sub">Dernière sync : <span id="last-sync">jamais</span></div>
+            </div>
+            <svg class="settings-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODULES -->
+      <div>
+        <div class="sec-title" style="margin-bottom:8px;padding:0 4px">Modules actifs</div>
+        <div class="settings-section">
+          <div class="settings-row" style="cursor:default">
+            <div class="settings-ico" style="background:#EAF3DE"><svg viewBox="0 0 24 24" style="stroke:#2D7A3A"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div>
+            <div class="settings-info"><div class="settings-lbl">Chantiers</div><div class="settings-sub">Suivi avancement & budget</div></div>
+            <span style="font-size:11px;background:#EAF3DE;color:#2D7A3A;border-radius:6px;padding:2px 8px;font-weight:600">Actif</span>
+          </div>
+          <div class="settings-row" style="cursor:default">
+            <div class="settings-ico" style="background:#E6F1FB"><svg viewBox="0 0 24 24" style="stroke:#185FA5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="settings-info"><div class="settings-lbl">Journal des dépenses</div><div class="settings-sub">Écritures & catégorisation</div></div>
+            <span style="font-size:11px;background:#EAF3DE;color:#2D7A3A;border-radius:6px;padding:2px 8px;font-weight:600">Actif</span>
+          </div>
+          <div class="settings-row" style="cursor:default">
+            <div class="settings-ico" style="background:#FAEEDA"><svg viewBox="0 0 24 24" style="stroke:#BA7517"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div>
+            <div class="settings-info"><div class="settings-lbl">Achats & commandes</div><div class="settings-sub">Circuit CEO → DAF → Livraison</div></div>
+            <span style="font-size:11px;background:#EAF3DE;color:#2D7A3A;border-radius:6px;padding:2px 8px;font-weight:600">Actif</span>
+          </div>
+          <div class="settings-row" style="cursor:default">
+            <div class="settings-ico" style="background:#F1EFE8"><svg viewBox="0 0 24 24" style="stroke:#5F5E5A"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+            <div class="settings-info"><div class="settings-lbl">Personnel & paie</div><div class="settings-sub">Agents, journaliers, soldes</div></div>
+            <span style="font-size:11px;background:#EAF3DE;color:#2D7A3A;border-radius:6px;padding:2px 8px;font-weight:600">Actif</span>
+          </div>
+          <div class="settings-row">
+            <div class="settings-ico" style="background:#F8F1FF"><svg viewBox="0 0 24 24" style="stroke:#7B5EA7"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+            <div class="settings-info"><div class="settings-lbl">Tableau de bord analytique</div><div class="settings-sub">Rapports, graphes, exports</div></div>
+            <span style="font-size:11px;background:#F8F1FF;color:#7B5EA7;border-radius:6px;padding:2px 8px;font-weight:600">Bientôt</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- VERSION -->
+      <div style="text-align:center;font-size:11px;color:var(--hint);padding:8px 0">
+        NYSOA BTP PWA · v0.3.0 · Supabase prêt
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- BOTTOM NAV                              -->
+  <!-- ═══════════════════════════════════════ -->
+  <nav class="bottom-nav">
+    <button class="nav-item on" id="nav-home" onclick="goPage('p-home');setNav(this)">
+      <svg class="ni" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="nav-lbl">Accueil</span>
+    </button>
+    <button class="nav-item" id="nav-ch" onclick="goPage('p-chantiers');setNav(this)">
+      <svg class="ni" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+      <span class="nav-lbl">Chantiers</span>
+    </button>
+    <button class="nav-item" id="nav-jo" onclick="goPage('p-journal');setNav(this)">
+      <svg class="ni" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span class="nav-lbl">Journal</span>
+    </button>
+    <button class="nav-item" id="nav-ac" onclick="goPage('p-achats');setNav(this)">
+      <svg class="ni" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+      <span class="nav-lbl">Achats</span>
+      <div class="nav-badge" id="badge-achats">5</div>
+    </button>
+    <button class="nav-item" id="nav-pe" onclick="goPage('p-personnel');setNav(this)">
+      <svg class="ni" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      <span class="nav-lbl">Personnel</span>
+    </button>
+  </nav>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SHEET: DETAIL CHANTIER                  -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="sheet" id="detail-sheet" onclick="closeSheet('detail-sheet',event)">
+    <div class="sheet-backdrop"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="ch-top" style="margin-bottom:0">
+          <div><div class="sheet-nom" id="sh-nom">—</div><div class="sheet-client" id="sh-client">—</div></div>
+          <div id="sh-pill"></div>
+        </div>
+      </div>
+      <div class="sheet-body" id="sh-body"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SHEET: NOUVELLE ÉCRITURE                -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="sheet" id="ecriture-sheet" onclick="closeSheet('ecriture-sheet',event)">
+    <div class="sheet-backdrop"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-nom">Nouvelle écriture</div>
+        <div class="sheet-client">Journal des dépenses</div>
+      </div>
+      <div class="sheet-body">
+        <div class="form-group">
+          <label class="form-label">Chantier</label>
+          <select class="form-select" id="fe-chantier">
+            <option value="">Sélectionner…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input class="form-input" id="fe-desc" type="text" placeholder="Ex: Salaire Roger sem. 45"/>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Montant (Ar)</label>
+            <input class="form-input" id="fe-mt" type="number" inputmode="numeric" placeholder="0"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Catégorie</label>
+            <select class="form-select" id="fe-cat">
+              <option value="SALAIRE">Salaire</option>
+              <option value="ANTOKA">Antoka</option>
+              <option value="APPROVISIONNEMENT">Approvisionnement</option>
+              <option value="FONCT">Divers / Fonctionnement</option>
+              <option value="MOBILE_MONEY">Mobile Money</option>
+              <option value="SAKAFO">Sakafo</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input class="form-input" id="fe-date" type="date"/>
+        </div>
+        <button class="cta-btn" onclick="saveEcriture()">Enregistrer l'écriture</button>
+        <button class="cta-btn secondary" onclick="closeSheet('ecriture-sheet')">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SHEET: NOUVELLE DEMANDE ACHAT           -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="sheet" id="achat-sheet" onclick="closeSheet('achat-sheet',event)">
+    <div class="sheet-backdrop"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-nom">Demande d'achat</div>
+        <div class="sheet-client">Nouvelle commande</div>
+      </div>
+      <div class="sheet-body">
+        <div class="form-group">
+          <label class="form-label">Libellé</label>
+          <input class="form-input" id="fa-lib" type="text" placeholder="Ex: Ciment CEM II (50 sacs)"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Chantier</label>
+          <select class="form-select" id="fa-chantier">
+            <option value="">Sélectionner…</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Montant estimé (Ar)</label>
+            <input class="form-input" id="fa-mt" type="number" inputmode="numeric" placeholder="0"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fournisseur</label>
+            <input class="form-input" id="fa-four" type="text" placeholder="Nom fournisseur"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Urgence</label>
+          <select class="form-select" id="fa-urgence">
+            <option value="NORMALE">Normale</option>
+            <option value="URGENTE">Urgente</option>
+            <option value="TRES_URGENTE">Très urgente</option>
+          </select>
+        </div>
+        <button class="cta-btn" onclick="saveAchat()">Soumettre la demande</button>
+        <button class="cta-btn secondary" onclick="closeSheet('achat-sheet')">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SHEET: DÉTAIL AGENT                     -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="sheet" id="agent-sheet" onclick="closeSheet('agent-sheet',event)">
+    <div class="sheet-backdrop"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-nom" id="ag-sh-nom">—</div>
+        <div class="sheet-client" id="ag-sh-spec">—</div>
+      </div>
+      <div class="sheet-body" id="ag-sh-body"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SHEET: CONFIG SUPABASE                  -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="sheet" id="supabase-sheet" onclick="closeSheet('supabase-sheet',event)">
+    <div class="sheet-backdrop"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-nom">Connexion Supabase</div>
+        <div class="sheet-client">Configuration base de données</div>
+      </div>
+      <div class="sheet-body">
+        <div style="background:var(--info-bg);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--info);line-height:1.6">
+          ℹ️ Renseignez les clés de votre projet Supabase. Elles sont stockées localement et ne quittent pas votre appareil.
+        </div>
+        <div class="form-group">
+          <label class="form-label">URL du projet</label>
+          <input class="form-input" id="sb-url" type="url" placeholder="https://xxxx.supabase.co"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Anon Key (public)</label>
+          <input class="form-input" id="sb-key" type="password" placeholder="eyJhbGciOiJIUzI1NiIs…"/>
+          <div class="form-hint">Clé anon depuis Settings → API dans Supabase</div>
+        </div>
+        <button class="cta-btn" onclick="saveSupabaseConfig()">Connecter & synchroniser</button>
+        <button class="cta-btn secondary" onclick="closeSheet('supabase-sheet')">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+</div><!-- #app -->
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// MODULE: CONFIG SUPABASE (à remplir plus tard)
+// ══════════════════════════════════════════════════════════════
+const SUPABASE_CONFIG = {
+  url: localStorage.getItem('sb_url') || '',
+  key: localStorage.getItem('sb_key') || '',
+};
+let supabaseConnected = !!(SUPABASE_CONFIG.url && SUPABASE_CONFIG.key);
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: DATA LAYER (local → Supabase plus tard)
+// ══════════════════════════════════════════════════════════════
+// Quand Supabase est prêt, remplacer chaque tableau par des appels API:
+//   const { data } = await supabase.from('chantiers').select('*');
+
+const DB = {
+  chantiers: [
+    {id:1, nom:'Résidence Ivandry', client:'M. Rakoto', budget:320000000, depense:187000000, avancement:62, statut:'EN_COURS', debut:'Jan 2026', fin:'Déc 2026', personnel:14, achats:8, adresse:'Ivandry, Antananarivo'},
+    {id:2, nom:'Bureaux Analakely', client:'SOGEMA SA', budget:180000000, depense:162000000, avancement:89, statut:'EN_COURS', debut:'Fév 2025', fin:'Juin 2026', personnel:9, achats:3, adresse:'Analakely, Antananarivo'},
+    {id:3, nom:'Entrepôt Tana-Zone', client:'Import-Export MADA', budget:210000000, depense:71000000, avancement:34, statut:'EN_PAUSE', debut:'Mar 2026', fin:'Mar 2027', personnel:8, achats:4, adresse:'Zone Industrielle, Tana'},
+    {id:4, nom:'Villas Ambohidratrimo', client:'Coop Habitat', budget:137000000, depense:47000000, avancement:41, statut:'EN_COURS', debut:'Avr 2026', fin:'Fév 2027', personnel:7, achats:5, adresse:'Ambohidratrimo'},
+  ],
+  journal: [
+    {id:1, date:'2026-05-08', des:'Sakafo: Bricotech + avance', ch:'Bureaux Analakely', ch_id:2, cat:'SAKAFO', mt:11000, col:'#3B6D11'},
+    {id:2, date:'2026-05-08', des:'Frais: Mvola sakafo', ch:'Bricotech', ch_id:2, cat:'MOBILE_MONEY', mt:300, col:'#185FA5'},
+    {id:3, date:'2026-04-28', des:'Salaire: Bricotech sem. 23/03', ch:'Bureaux Analakely', ch_id:2, cat:'SALAIRE', mt:195000, col:'#E8631A'},
+    {id:4, date:'2026-04-21', des:'Salaire: Lava et Nata sem. 16/03', ch:'Bureaux Analakely', ch_id:2, cat:'SALAIRE', mt:90000, col:'#E8631A'},
+    {id:5, date:'2026-04-17', des:'Achat: Spatule peinture', ch:'Bureaux Analakely', ch_id:2, cat:'FONCT', mt:12000, col:'#888780'},
+    {id:6, date:'2026-04-14', des:'Salaire: Noely et Faniry sem 09', ch:'Bureaux Analakely', ch_id:2, cat:'SALAIRE', mt:142000, col:'#E8631A'},
+    {id:7, date:'2026-04-07', des:'Antoka: Roger solde Bricotech', ch:'Bureaux Analakely', ch_id:2, cat:'ANTOKA', mt:400000, col:'#BA7517'},
+    {id:8, date:'2026-03-28', des:'Achat: Paiement MAX plomberie', ch:'Résidence Ivandry', ch_id:1, cat:'APPROVISIONNEMENT', mt:1118000, col:'#185FA5'},
+    {id:9, date:'2026-03-21', des:'Antoka: Vonjy Placo solde', ch:'Bureaux Analakely', ch_id:2, cat:'ANTOKA', mt:352500, col:'#BA7517'},
+    {id:10, date:'2026-03-14', des:'Achat: Ciment CEM II 50 sacs', ch:'Résidence Ivandry', ch_id:1, cat:'APPROVISIONNEMENT', mt:720000, col:'#185FA5'},
+  ],
+  achats: [
+    {id:1, lib:'Fer à béton 12mm (40 barres)', ch:'Résidence Ivandry', ch_id:1, four:'Q. Miorintsoa', mt:1020000, statut:'VALIDE_CEO', col:'#3B6D11', bg:'#EAF3DE', urgence:'NORMALE'},
+    {id:2, lib:'Placo plâtre + fourrure (Tulear)', ch:'Entrepôt Tana-Zone', ch_id:3, four:'Bricotech', mt:3565200, statut:'VALIDE_CEO', col:'#3B6D11', bg:'#EAF3DE', urgence:'URGENTE'},
+    {id:3, lib:'Latis bois 6 unités', ch:'Entrepôt Tana-Zone', ch_id:3, four:'Batiland', mt:219000, statut:'VALIDE_CEO', col:'#3B6D11', bg:'#EAF3DE', urgence:'NORMALE'},
+    {id:4, lib:'Mastique + antirouille', ch:'Villas Ambohidratrimo', ch_id:4, four:'Q. Mora Entana', mt:141000, statut:'APPROUVE_DAF', col:'#BA7517', bg:'#FAEEDA', urgence:'NORMALE'},
+    {id:5, lib:'Disques tronçonneuse 180', ch:'Résidence Ivandry', ch_id:1, four:'Q. Antsapanimahazo', mt:8000, statut:'APPROUVE_DAF', col:'#BA7517', bg:'#FAEEDA', urgence:'NORMALE'},
+    {id:6, lib:'Baguette soudure', ch:'Résidence Ivandry', ch_id:1, four:'Quincaillerie Ravaka', mt:34000, statut:'APPROUVE_DAF', col:'#BA7517', bg:'#FAEEDA', urgence:'NORMALE'},
+    {id:7, lib:'Ciment CEM II (50 sacs)', ch:'Résidence Ivandry', ch_id:1, four:'Est Andriamihaja', mt:720000, statut:'LIVRE', col:'#185FA5', bg:'#E6F1FB', urgence:'NORMALE'},
+    {id:8, lib:'Gasoil 2,14L — groupe électro', ch:'Bureaux Analakely', ch_id:2, four:'Jovenna', mt:10000, statut:'LIVRE', col:'#185FA5', bg:'#E6F1FB', urgence:'NORMALE'},
+  ],
+  agents: [
+    {id:1, nom:'Roger', spec:'Maçonnerie', ch:'Bricotech Magasin', ch_id:2, reste:100000, col:'#E6F1FB', tc:'#185FA5', type:'PERMANENT'},
+    {id:2, nom:'Vonjy Placo', spec:'Plafonnage', ch:'Bricotech Magasin', ch_id:2, reste:22500, col:'#EAF3DE', tc:'#3B6D11', type:'PERMANENT'},
+    {id:3, nom:'Eric Soudeur', spec:'Ouvrage métallique', ch:'Mahafaly', ch_id:3, reste:0, col:'#FDF0E8', tc:'#E8631A', type:'SOUS_TRAITANT'},
+    {id:4, nom:'Mampianina', spec:'Ouvr. métallique', ch:'Bricotech', ch_id:2, reste:114000, col:'#F1EFE8', tc:'#5F5E5A', type:'PERMANENT'},
+    {id:5, nom:'Lova', spec:'Maçonnerie', ch:'Dépôt', ch_id:4, reste:900000, col:'#FAEEDA', tc:'#BA7517', type:'JOURNALIER'},
+    {id:6, nom:'Vonjy Journalier', spec:'Maçonnerie', ch:'Dépôt', ch_id:4, reste:350000, col:'#EAF3DE', tc:'#3B6D11', type:'JOURNALIER'},
+    {id:7, nom:'Tafika', spec:'Carrelage', ch:'Visy Gasy', ch_id:1, reste:4000000, col:'#FCEBEB', tc:'#A32D2D', type:'SOUS_TRAITANT'},
+    {id:8, nom:'Avotra', spec:'Électricité', ch:'Fianara', ch_id:4, reste:250000, col:'#E6F1FB', tc:'#185FA5', type:'PERMANENT'},
+    {id:9, nom:'Roger Peintre', spec:'Peinture', ch:'Fianara', ch_id:4, reste:2000000, col:'#FAEEDA', tc:'#BA7517', type:'PERMANENT'},
+  ],
+};
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: HELPERS
+// ══════════════════════════════════════════════════════════════
+const fmt = n => new Intl.NumberFormat('fr-MG').format(Math.round(n));
+const fmtAr = n => fmt(n) + ' Ar';
+const fmtM = n => (n >= 1000000 ? (n/1000000).toFixed(1)+'M' : n >= 1000 ? (n/1000).toFixed(0)+'k' : n) + ' Ar';
+
+const stMap = {EN_COURS:'En cours',EN_PAUSE:'En pause',TERMINE:'Terminé',ANNULE:'Annulé'};
+const stCls = {EN_COURS:'s-ec',EN_PAUSE:'s-ep',TERMINE:'s-te',ANNULE:'s-an'};
+const acSt = {VALIDE_CEO:'Validé CEO',APPROUVE_DAF:'Appr. DAF',LIVRE:'Livré',DEMANDE:'Demande',REJETE:'Rejeté'};
+const catLbl = {SALAIRE:'Salaire',ANTOKA:'Antoka',APPROVISIONNEMENT:'Appro.',FONCT:'Divers',MOBILE_MONEY:'Mobile Money',SAKAFO:'Sakafo'};
+const catCol = {SALAIRE:'#E8631A',ANTOKA:'#BA7517',APPROVISIONNEMENT:'#185FA5',FONCT:'#888780',MOBILE_MONEY:'#185FA5',SAKAFO:'#3B6D11'};
+
+function initials(nom){return nom.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();}
+
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+}
+function fmtMonthYear(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+}
+function groupByMonth(entries){
+  const groups = {};
+  entries.forEach(e=>{
+    const key = e.date.substring(0,7);
+    if(!groups[key]) groups[key]=[];
+    groups[key].push(e);
+  });
+  return groups;
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: TOAST
+// ══════════════════════════════════════════════════════════════
+function showToast(msg, type='', duration=2500){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' '+type : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=> t.classList.remove('show'), duration);
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: NAVIGATION
+// ══════════════════════════════════════════════════════════════
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+function setNav(el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('on'));
+  if(el) el.classList.add('on');
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: SHEETS
+// ══════════════════════════════════════════════════════════════
+function openSheet(id){
+  document.getElementById(id).classList.add('open');
+}
+function closeSheet(id, e){
+  if(!e || e.target.classList.contains('sheet-backdrop') || e.target===document.getElementById(id)){
+    if(e && !e.target.classList.contains('sheet-backdrop') && e.target===document.getElementById(id) && e.target!==e.currentTarget) return;
+    document.getElementById(id).classList.remove('open');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: RENDER — CHANTIERS
+// ══════════════════════════════════════════════════════════════
+function renderChantierCard(c, idx){
+  const pct = Math.round(c.depense/c.budget*100);
+  const cls = c.statut==='EN_PAUSE' ? 'ch-card pause' : c.statut==='TERMINE' ? 'ch-card termine' : 'ch-card';
+  return `<div class="${cls} fade-up" onclick="openChantierSheet(${idx})" style="animation-delay:${idx*0.05}s">
+    <div class="ch-top">
+      <div><div class="ch-nom">${c.nom}</div><div class="ch-client">${c.client}</div></div>
+      <div class="s-pill ${stCls[c.statut]}">${stMap[c.statut]}</div>
+    </div>
+    <div class="ch-budget">Dépensé : <strong>${fmt(c.depense)} Ar</strong> / ${fmt(c.budget)} Ar</div>
+    <div class="prog-track"><div class="prog-fill" style="width:${c.avancement}%"></div></div>
+    <div class="ch-meta"><span>↗ ${c.avancement}%</span><span>Début ${c.debut}</span><span>${c.personnel} agents</span></div>
+  </div>`;
+}
+
+function renderChantierMini(c, idx){
+  const dotColor = c.statut==='EN_COURS' ? 'var(--success)' : c.statut==='EN_PAUSE' ? 'var(--warning)' : 'var(--hint)';
+  return `<div class="ch-mini fade-up" onclick="openChantierSheet(${idx})" style="animation-delay:${idx*0.06}s">
+    <div class="ch-mini-dot" style="background:${dotColor}"></div>
+    <div class="ch-mini-nom">${c.nom}</div>
+    <div class="ch-mini-av">${c.avancement}%</div>
+    <div class="ch-mini-sub">${stMap[c.statut]}</div>
+  </div>`;
+}
+
+let _chFilter = 'ALL';
+function filterChantiers(filter, el){
+  _chFilter = filter;
+  document.querySelectorAll('#ch-filter-chips .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  renderChantiersFull();
+}
+function renderChantiersFull(){
+  const filtered = _chFilter==='ALL' ? DB.chantiers : DB.chantiers.filter(c=>c.statut===_chFilter);
+  document.getElementById('ch-list-full').innerHTML = filtered.length
+    ? filtered.map((c,i)=>renderChantierCard(c,DB.chantiers.indexOf(c))).join('')
+    : `<div class="empty-state"><div class="empty-ico"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div><div class="empty-title">Aucun chantier</div><div class="empty-sub">dans cette catégorie</div></div>`;
+}
+
+function openChantierSheet(idx){
+  const c = DB.chantiers[idx];
+  document.getElementById('sh-nom').textContent = c.nom;
+  document.getElementById('sh-client').textContent = c.client + ' · ' + c.adresse;
+  document.getElementById('sh-pill').innerHTML = `<div class="s-pill ${stCls[c.statut]}">${stMap[c.statut]}</div>`;
+  const reste = c.budget - c.depense;
+  const resteCol = reste < 0 ? 'var(--danger)' : 'var(--success)';
+  const pct = Math.round(c.depense/c.budget*100);
+  document.getElementById('sh-body').innerHTML = `
+    <div class="det-section-title">Budget</div>
+    <div class="det-row"><div class="det-l">Budget initial</div><div class="det-v">${fmtAr(c.budget)}</div></div>
+    <div class="det-row"><div class="det-l">Dépensé (${pct}%)</div><div class="det-v">${fmtAr(c.depense)}</div></div>
+    <div class="det-row"><div class="det-l">Restant</div><div class="det-v" style="color:${resteCol}">${fmtAr(reste)}</div></div>
+    <div class="prog-track" style="margin:0 0 8px"><div class="prog-fill" style="width:${c.avancement}%"></div></div>
+    <div class="det-section-title">Avancement & équipe</div>
+    <div class="det-row"><div class="det-l">Avancement travaux</div><div class="det-v">${c.avancement}%</div></div>
+    <div class="det-row"><div class="det-l">Début · Fin prévue</div><div class="det-v">${c.debut} → ${c.fin}</div></div>
+    <div class="det-row"><div class="det-l">Personnel actif</div><div class="det-v">${c.personnel} agents</div></div>
+    <div class="det-row"><div class="det-l">Achats en cours</div><div class="det-v">${c.achats} commandes</div></div>
+    <div class="cta-row">
+      <button class="cta-btn" onclick="closeSheet('detail-sheet');goPage('p-journal');setNav(document.getElementById('nav-jo'))">Journal →</button>
+      <button class="cta-btn secondary" onclick="closeSheet('detail-sheet')">Fermer</button>
+    </div>
+  `;
+  openSheet('detail-sheet');
+}
+
+function openNewChantierSheet(){
+  showToast('Module Nouveau chantier — bientôt disponible');
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: RENDER — JOURNAL
+// ══════════════════════════════════════════════════════════════
+let _journalFilter = 'ALL';
+let _journalSearch = '';
+
+function filterJournalCat(cat, el){
+  _journalFilter = cat;
+  document.querySelectorAll('#journal-filter-chips .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  renderJournalFull();
+}
+function filterJournal(q){
+  _journalSearch = q.toLowerCase();
+  renderJournalFull();
+}
+
+function renderJRow(d){
+  return `<div class="j-row" onclick="openJournalDetail(${d.id})">
+    <div class="j-dot" style="background:${catCol[d.cat]||d.col}"></div>
+    <div class="j-info">
+      <div class="j-des">${d.des}</div>
+      <div class="j-sub">${d.ch} · ${fmtDate(d.date)}</div>
+    </div>
+    <div class="j-right">
+      <div class="j-mt">${fmt(d.mt)} Ar</div>
+      <div class="j-cat">${catLbl[d.cat]||d.cat}</div>
+    </div>
+  </div>`;
+}
+
+function renderJournalFull(){
+  let entries = DB.journal;
+  if(_journalFilter !== 'ALL') entries = entries.filter(e=>e.cat===_journalFilter);
+  if(_journalSearch) entries = entries.filter(e=>e.des.toLowerCase().includes(_journalSearch)||e.ch.toLowerCase().includes(_journalSearch));
+
+  if(!entries.length){
+    document.getElementById('journal-full').innerHTML = `<div class="empty-state"><div class="empty-ico"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="empty-title">Aucune écriture</div><div class="empty-sub">correspondant à votre recherche</div></div>`;
+    return;
+  }
+
+  const groups = groupByMonth(entries);
+  let html = '';
+  Object.keys(groups).sort().reverse().forEach(k=>{
+    const label = fmtMonthYear(k+'-01');
+    const total = groups[k].reduce((s,e)=>s+e.mt,0);
+    html += `<div class="date-group">${label} · ${fmtAr(total)}</div>`;
+    html += `<div class="j-card">${groups[k].map(renderJRow).join('')}</div>`;
+  });
+  document.getElementById('journal-full').innerHTML = html;
+}
+
+function openJournalDetail(id){
+  const e = DB.journal.find(j=>j.id===id);
+  if(!e) return;
+  showToast(`${e.des} · ${fmtAr(e.mt)}`);
+}
+
+function openNewEcritureSheet(){
+  // Peupler le select chantier
+  const sel = document.getElementById('fe-chantier');
+  sel.innerHTML = '<option value="">Sélectionner…</option>' + DB.chantiers.map(c=>`<option value="${c.id}">${c.nom}</option>`).join('');
+  // Mettre la date du jour
+  document.getElementById('fe-date').value = new Date().toISOString().split('T')[0];
+  openSheet('ecriture-sheet');
+}
+
+function saveEcriture(){
+  const desc = document.getElementById('fe-desc').value.trim();
+  const mt = parseInt(document.getElementById('fe-mt').value) || 0;
+  const cat = document.getElementById('fe-cat').value;
+  const ch_id = parseInt(document.getElementById('fe-chantier').value);
+  const date = document.getElementById('fe-date').value;
+  if(!desc||!mt||!ch_id){showToast('Remplissez tous les champs','error');return;}
+  const ch = DB.chantiers.find(c=>c.id===ch_id);
+  const newEntry = {
+    id: Date.now(),
+    date, des: desc,
+    ch: ch ? ch.nom : '',
+    ch_id, cat, mt,
+    col: catCol[cat]||'#888780'
+  };
+  DB.journal.unshift(newEntry);
+  closeSheet('ecriture-sheet');
+  renderJournalFull();
+  document.getElementById('journal-list').innerHTML = DB.journal.slice(0,5).map(renderJRow).join('');
+  showToast('Écriture enregistrée ✓','success');
+  // TODO: await supabase.from('journal').insert(newEntry)
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: RENDER — ACHATS
+// ══════════════════════════════════════════════════════════════
+function renderAchat(a){
+  const urgBadge = a.urgence==='URGENTE' ? ' <span style="font-size:9px;background:var(--warning-bg);color:var(--warning);border-radius:4px;padding:1px 5px;font-weight:600">URGENT</span>' :
+                   a.urgence==='TRES_URGENTE' ? ' <span style="font-size:9px;background:var(--danger-bg);color:var(--danger);border-radius:4px;padding:1px 5px;font-weight:600">TRÈS URGENT</span>' : '';
+  return `<div class="achat-row" onclick="openAchatDetail(${a.id})">
+    <div class="achat-ico" style="background:${a.bg}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${a.col}" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+    </div>
+    <div class="achat-info">
+      <div class="achat-lib">${a.lib}${urgBadge}</div>
+      <div class="achat-sub">${a.ch} · ${a.four}</div>
+    </div>
+    <div class="achat-right">
+      <div class="achat-mt">${fmt(a.mt)} Ar</div>
+      <div class="achat-st" style="background:${a.bg};color:${a.col}">${acSt[a.statut]}</div>
+    </div>
+  </div>`;
+}
+
+function openAchatDetail(id){
+  const a = DB.achats.find(x=>x.id===id);
+  if(!a) return;
+  showToast(`${a.lib} · ${fmtAr(a.mt)}`);
+}
+
+function showAchatTab(tab, el){
+  document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('achats-pending').style.display = tab==='pending'?'block':'none';
+  document.getElementById('achats-valide').style.display = tab==='valide'?'block':'none';
+  document.getElementById('achats-livre').style.display = tab==='livre'?'block':'none';
+}
+
+function openNewAchatSheet(){
+  const sel = document.getElementById('fa-chantier');
+  sel.innerHTML = '<option value="">Sélectionner…</option>' + DB.chantiers.map(c=>`<option value="${c.id}">${c.nom}</option>`).join('');
+  openSheet('achat-sheet');
+}
+
+function saveAchat(){
+  const lib = document.getElementById('fa-lib').value.trim();
+  const ch_id = parseInt(document.getElementById('fa-chantier').value);
+  const mt = parseInt(document.getElementById('fa-mt').value) || 0;
+  const four = document.getElementById('fa-four').value.trim();
+  const urgence = document.getElementById('fa-urgence').value;
+  if(!lib||!ch_id||!mt){showToast('Remplissez tous les champs','error');return;}
+  const ch = DB.chantiers.find(c=>c.id===ch_id);
+  const newAchat = {
+    id: Date.now(),
+    lib, ch: ch?ch.nom:'', ch_id, four, mt,
+    statut:'DEMANDE', urgence,
+    col:'#888780', bg:'#F1EFE8'
+  };
+  DB.achats.unshift(newAchat);
+  closeSheet('achat-sheet');
+  renderAchats();
+  showToast('Demande soumise ✓','success');
+  // TODO: await supabase.from('achats').insert(newAchat)
+}
+
+function renderAchats(){
+  document.getElementById('achats-ceo').innerHTML = DB.achats.filter(a=>a.statut==='VALIDE_CEO').map(renderAchat).join('') || '<div style="padding:20px;text-align:center;font-size:12px;color:var(--hint)">Aucun achat à valider</div>';
+  document.getElementById('achats-daf').innerHTML = DB.achats.filter(a=>a.statut==='APPROUVE_DAF').map(renderAchat).join('') || '<div style="padding:20px;text-align:center;font-size:12px;color:var(--hint)">Aucun achat à approuver</div>';
+  document.getElementById('achats-livres').innerHTML = DB.achats.filter(a=>a.statut==='LIVRE').map(renderAchat).join('') || '<div style="padding:20px;text-align:center;font-size:12px;color:var(--hint)">Aucune livraison récente</div>';
+  document.getElementById('achats-valide-list').innerHTML = DB.achats.filter(a=>a.statut==='VALIDE_CEO').map(renderAchat).join('') || '<div style="padding:20px;text-align:center;font-size:12px;color:var(--hint)">Aucun</div>';
+
+  const pendingCount = DB.achats.filter(a=>a.statut==='VALIDE_CEO'||a.statut==='APPROUVE_DAF').length;
+  const badge = document.getElementById('badge-achats');
+  if(pendingCount > 0){badge.textContent=pendingCount;badge.style.display='flex';}
+  else{badge.style.display='none';}
+
+  // Badge urgence
+  const urgentes = DB.achats.filter(a=>a.urgence==='URGENTE'||a.urgence==='TRES_URGENTE');
+  document.getElementById('badge-urgence-zone').innerHTML = urgentes.length
+    ? `<div class="badge-urgence">⚡ ${urgentes.length} commande${urgentes.length>1?'s':''} urgente${urgentes.length>1?'s':''}</div>` : '';
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: RENDER — PERSONNEL
+// ══════════════════════════════════════════════════════════════
+let _persFilter = 'ALL';
+let _persSearch = '';
+
+function filterPersonnel(q){
+  _persSearch = q.toLowerCase();
+  renderPersonnel();
+}
+function filterPersonnelCh(filter, el){
+  _persFilter = filter;
+  document.querySelectorAll('#pers-filter-chips .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  renderPersonnel();
+}
+
+function renderPersonnel(){
+  let agents = DB.agents;
+  if(_persFilter !== 'ALL') agents = agents.filter(a=>a.ch_id===parseInt(_persFilter));
+  if(_persSearch) agents = agents.filter(a=>a.nom.toLowerCase().includes(_persSearch)||a.spec.toLowerCase().includes(_persSearch));
+
+  document.getElementById('pers-list').innerHTML = agents.length
+    ? agents.map(a=>{
+        const resteCol = a.reste===0 ? 'var(--success)' : a.reste>500000 ? 'var(--danger)' : 'var(--warning)';
+        return `<div class="agent-row" onclick="openAgentSheet(${a.id})">
+          <div class="ag-av" style="background:${a.col};color:${a.tc}">${initials(a.nom)}</div>
+          <div class="ag-info">
+            <div class="ag-nom">${a.nom}</div>
+            <div class="ag-spec">${a.spec}</div>
+          </div>
+          <div class="ag-right">
+            <div class="ag-reste" style="color:${resteCol}">${a.reste===0?'Soldé':fmtAr(a.reste)}</div>
+            <div class="ag-ch">${a.ch}</div>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div class="empty-state"><div class="empty-ico"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="empty-title">Aucun agent</div></div>`;
+}
+
+function openAgentSheet(id){
+  const a = DB.agents.find(x=>x.id===id);
+  if(!a) return;
+  document.getElementById('ag-sh-nom').textContent = a.nom;
+  document.getElementById('ag-sh-spec').textContent = a.spec + ' · ' + a.ch;
+  const resteCol = a.reste===0?'var(--success)':a.reste>500000?'var(--danger)':'var(--warning)';
+  const typeMap = {PERMANENT:'Permanent',JOURNALIER:'Journalier',SOUS_TRAITANT:'Sous-traitant'};
+  document.getElementById('ag-sh-body').innerHTML = `
+    <div class="det-section-title">Informations</div>
+    <div class="det-row"><div class="det-l">Spécialité</div><div class="det-v">${a.spec}</div></div>
+    <div class="det-row"><div class="det-l">Chantier actuel</div><div class="det-v">${a.ch}</div></div>
+    <div class="det-row"><div class="det-l">Type</div><div class="det-v">${typeMap[a.type]||a.type}</div></div>
+    <div class="det-section-title">Paie</div>
+    <div class="det-row"><div class="det-l">Solde restant</div><div class="det-v" style="color:${resteCol}">${a.reste===0?'Soldé ✓':fmtAr(a.reste)}</div></div>
+    <div class="cta-row">
+      <button class="cta-btn" onclick="closeSheet('agent-sheet');openNewEcritureSheet()">Enregistrer paiement</button>
+      <button class="cta-btn secondary" onclick="closeSheet('agent-sheet')">Fermer</button>
+    </div>
+  `;
+  openSheet('agent-sheet');
+}
+
+function openNewAgentSheet(){
+  showToast('Module Nouveau agent — bientôt disponible');
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: DASHBOARD HOME
+// ══════════════════════════════════════════════════════════════
+function renderHome(){
+  // KPIs
+  const actifs = DB.chantiers.filter(c=>c.statut==='EN_COURS'||c.statut==='EN_PAUSE').length;
+  const enCours = DB.chantiers.filter(c=>c.statut==='EN_COURS').length;
+  const enPause = DB.chantiers.filter(c=>c.statut==='EN_PAUSE').length;
+  document.getElementById('kpi-chantiers').textContent = actifs;
+  document.getElementById('kpi-ch-sub').textContent = `${enCours} en cours · ${enPause} en pause`;
+
+  const totalBudget = DB.chantiers.reduce((s,c)=>s+c.budget,0);
+  document.getElementById('kpi-budget').textContent = (totalBudget/1000000).toFixed(0)+'M';
+
+  const totalPers = DB.agents.length;
+  const journaliers = DB.agents.filter(a=>a.type==='JOURNALIER').length;
+  document.getElementById('kpi-pers').textContent = totalPers;
+
+  const pending = DB.achats.filter(a=>a.statut==='VALIDE_CEO'||a.statut==='APPROUVE_DAF').length;
+  document.getElementById('kpi-valider').textContent = pending;
+
+  // Chantier grid
+  document.getElementById('ch-grid-home').innerHTML = DB.chantiers.slice(0,4).map((c,i)=>renderChantierMini(c,i)).join('');
+
+  // Rapport mensuel (mois en cours)
+  const now = new Date();
+  const thisMonth = now.toISOString().substring(0,7);
+  const monthEntries = DB.journal.filter(e=>e.date.startsWith(thisMonth));
+  const salTotal = monthEntries.filter(e=>e.cat==='SALAIRE'||e.cat==='ANTOKA').reduce((s,e)=>s+e.mt,0);
+  const achTotal = monthEntries.filter(e=>e.cat==='APPROVISIONNEMENT').reduce((s,e)=>s+e.mt,0);
+  const divTotal = monthEntries.filter(e=>!['SALAIRE','ANTOKA','APPROVISIONNEMENT'].includes(e.cat)).reduce((s,e)=>s+e.mt,0);
+  const total = salTotal + achTotal + divTotal;
+  document.getElementById('rp-salaires').textContent = fmtAr(salTotal);
+  document.getElementById('rp-achats').textContent = fmtAr(achTotal);
+  document.getElementById('rp-divers').textContent = fmtAr(divTotal);
+  document.getElementById('rp-total').textContent = fmtAr(total);
+  document.getElementById('rapport-mois').textContent = now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+
+  // Journal récent
+  document.getElementById('journal-list').innerHTML = DB.journal.slice(0,5).map(renderJRow).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: SUPABASE CONFIG
+// ══════════════════════════════════════════════════════════════
+function openSupabaseSheet(){
+  document.getElementById('sb-url').value = localStorage.getItem('sb_url') || '';
+  document.getElementById('sb-key').value = localStorage.getItem('sb_key') || '';
+  openSheet('supabase-sheet');
+}
+function saveSupabaseConfig(){
+  const url = document.getElementById('sb-url').value.trim();
+  const key = document.getElementById('sb-key').value.trim();
+  if(!url||!key){showToast('URL et clé requis','error');return;}
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  SUPABASE_CONFIG.url = url;
+  SUPABASE_CONFIG.key = key;
+  supabaseConnected = true;
+  document.getElementById('sb-status-lbl').textContent = 'Connecté · ' + new URL(url).hostname;
+  closeSheet('supabase-sheet');
+  showToast('Supabase configuré ✓ Sync à venir…','success');
+  // TODO: tester la connexion et charger les données
+  // const sb = createClient(url, key);
+  // const { data } = await sb.from('chantiers').select('*');
+}
+
+function forceSyncData(){
+  if(!supabaseConnected){showToast('Configurez Supabase d\'abord','error');return;}
+  showToast('Synchronisation en cours…');
+  setTimeout(()=>{
+    document.getElementById('last-sync').textContent = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    showToast('Données synchronisées ✓','success');
+  },1800);
+  // TODO: logique de sync réelle avec Supabase
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: DATE & SALUTATION
+// ══════════════════════════════════════════════════════════════
+function initDateGreeting(){
+  const d = new Date();
+  const h = d.getHours();
+  const sal = h<12 ? 'Bonjour' : h<18 ? 'Bonne après-midi' : 'Bonsoir';
+  document.getElementById('home-greeting').textContent = `${sal}, bonne journée sur les chantiers`;
+  document.getElementById('hdate').textContent = d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: OFFLINE DETECTION
+// ══════════════════════════════════════════════════════════════
+function updateOnlineStatus(){
+  const banner = document.getElementById('offline-banner');
+  const dot = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  if(navigator.onLine){
+    banner.classList.remove('show');
+    dot.classList.remove('offline');
+    label.textContent = 'Synchronisé';
+  } else {
+    banner.classList.add('show');
+    dot.classList.add('offline');
+    label.textContent = 'Hors-ligne';
+  }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+// ══════════════════════════════════════════════════════════════
+// MODULE: CHIPS PERSONNEL (chantiers dynamiques)
+// ══════════════════════════════════════════════════════════════
+function initPersonnelChips(){
+  const chantierIds = [...new Set(DB.agents.map(a=>a.ch_id))];
+  const extra = chantierIds.map(id=>{
+    const c = DB.chantiers.find(x=>x.id===id);
+    return c ? `<div class="chip" onclick="filterPersonnelCh('${id}',this)">${c.nom.split(' ')[0]}</div>` : '';
+  }).join('');
+  document.getElementById('pers-filter-chips').innerHTML =
+    `<div class="chip on" onclick="filterPersonnelCh('ALL',this)">Tous</div>` + extra;
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+function init(){
+  initDateGreeting();
+  updateOnlineStatus();
+
+  // Supabase status label
+  if(supabaseConnected){
+    document.getElementById('sb-status-lbl').textContent = 'Connecté · ' + (SUPABASE_CONFIG.url ? new URL(SUPABASE_CONFIG.url).hostname : '');
+  }
+
+  // Render all modules
+  renderHome();
+  renderChantiersFull();
+  renderJournalFull();
+  renderAchats();
+  renderPersonnel();
+  initPersonnelChips();
+}
+
+init();
+
+// ══════════════════════════════════════════════════════════════
+// SERVICE WORKER
+// ══════════════════════════════════════════════════════════════
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js')
+      .then(r=>console.log('[SW] ok',r.scope))
+      .catch(e=>console.log('[SW] error',e));
+  });
+}
+</script>
+</body>
+</html>
