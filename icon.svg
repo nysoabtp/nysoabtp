@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#1C2B3A" rx="80"/>
-  <text x="256" y="200" font-family="Georgia,serif" font-size="130" font-weight="bold" fill="#E8631A" text-anchor="middle">N</text>
-  <text x="256" y="340" font-family="Georgia,serif" font-size="80" fill="white" text-anchor="middle" opacity="0.85">BTP</text>
-  <rect x="100" y="360" width="312" height="6" fill="#E8631A" rx="3"/>
-</svg>
