@@ -89,8 +89,10 @@ function initializeData() {
     }
 }
 
-// Initialize data on load
-initializeData();
+// Initialize data on load (seulement si pas de Supabase)
+if (typeof initSupabase !== "function") {
+    initializeData();
+}
 
 // Load data into tables on page load
 function loadAllData() {
@@ -1348,6 +1350,12 @@ if (!localStorage.getItem(STORAGE_KEYS.pointage)) {
 
 // Load pointage table on page load
 document.addEventListener('DOMContentLoaded', () => {
+    // Si supabase.js est chargé, il gère l'initialisation — on ne charge pas localStorage
+    if (typeof initSupabase === 'function') {
+        initializeSearch();
+        initializeCharts();
+        return;
+    }
     loadPointageTable();
     loadAllData();
     initializeSearch();
