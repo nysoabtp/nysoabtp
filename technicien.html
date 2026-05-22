@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NySoa Construct - Technicien</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-building"></i>
+                <span>NySoa Construct</span>
+            </div>
+            <nav>
+                <a href="#" class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Tableau de bord</span>
+                </a>
+                <a href="#" class="nav-item" data-section="projets">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>Mes Projets</span>
+                </a>
+                <a href="#" class="nav-item" data-section="taches">
+                    <i class="fas fa-tasks"></i>
+                    <span>Tâches</span>
+                </a>
+                <a href="#" class="nav-item" data-section="interventions">
+                    <i class="fas fa-tools"></i>
+                    <span>Interventions</span>
+                </a>
+                <a href="#" class="nav-item" data-section="rapports">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Rapports</span>
+                </a>
+                <a href="#" class="nav-item" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Déconnexion</span>
+                </a>
+            </nav>
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user-cog"></i>
+                </div>
+                <div class="user-details">
+                    <p class="user-name">Technicien</p>
+                    <p class="user-role">Service Technique</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Mobile Menu Toggle -->
+            <button class="menu-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 id="page-title">Tableau de bord</h1>
+                </div>
+                <div class="header-right">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Rechercher...">
+                    </div>
+                    <div class="notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </div>
+                    <div class="date-display">
+                        <span id="current-date"></span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section active">
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-project-diagram"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>5</h3>
+                            <p>Projets actifs</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>12</h3>
+                            <p>Tâches terminées</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>8</h3>
+                            <p>Tâches en cours</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>2</h3>
+                            <p>Interventions urgentes</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Tâches par Priorité</h3>
+                            <div class="card-actions">
+                                <button class="btn-small" onclick="exportChart('taskChart', 'pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                                <button class="btn-small" onclick="exportChart('taskChart', 'excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="taskChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Interventions par Type</h3>
+                            <div class="card-actions">
+                                <button class="btn-small" onclick="exportChart('interventionChart', 'pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                                <button class="btn-small" onclick="exportChart('interventionChart', 'excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="interventionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Tâches du jour</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="task-list">
+                                <div class="task-item">
+                                    <div class="task-checkbox">
+                                        <input type="checkbox" id="task1">
+                                        <label for="task1">Inspection électrique - Résidence Palmiers</label>
+                                    </div>
+                                    <span class="task-priority high">Haute</span>
+                                </div>
+                                <div class="task-item">
+                                    <div class="task-checkbox">
+                                        <input type="checkbox" id="task2">
+                                        <label for="task2">Révision plomberie - Centre Commercial</label>
+                                    </div>
+                                    <span class="task-priority medium">Moyenne</span>
+                                </div>
+                                <div class="task-item">
+                                    <div class="task-checkbox">
+                                        <input type="checkbox" id="task3" checked>
+                                        <label for="task3">Contrôle climatisation - Bureau Ecobank</label>
+                                    </div>
+                                    <span class="task-priority low">Basse</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Interventions récentes</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-timeline">
+                                <div class="activity-item">
+                                    <div class="activity-icon success">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Réparation pompe - Résidence Palmiers</p>
+                                        <p class="activity-time">Aujourd'hui, 09:00</p>
+                                        <p class="activity-status">Terminé</p>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon warning">
+                                        <i class="fas fa-wrench"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Maintenance chaudière - Centre Commercial</p>
+                                        <p class="activity-time">Hier, 14:30</p>
+                                        <p class="activity-status">En cours</p>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon error">
+                                        <i class="fas fa-exclamation"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Fuite détectée - Bureau Ecobank</p>
+                                        <p class="activity-time">12/05/2026</p>
+                                        <p class="activity-status">Urgent</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Projets Section -->
+            <section id="projets" class="section">
+                <div class="section-header">
+                    <h2>Mes Projets</h2>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Projet</th>
+                                    <th>Client</th>
+                                    <th>Progression</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Résidence Les Palmiers</td>
+                                    <td>SCI Immobilier</td>
+                                    <td><div class="progress-bar"><div class="progress" style="width: 75%"></div></div></td>
+                                    <td><span class="status active">En cours</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Centre Commercial</td>
+                                    <td>Groupe Alpha</td>
+                                    <td><div class="progress-bar"><div class="progress" style="width: 45%"></div></div></td>
+                                    <td><span class="status active">En cours</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Bureau Ecobank</td>
+                                    <td>Ecobank</td>
+                                    <td><div class="progress-bar"><div class="progress" style="width: 90%"></div></div></td>
+                                    <td><span class="status warning">Bientôt terminé</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tâches Section -->
+            <section id="taches" class="section">
+                <div class="section-header">
+                    <h2>Mes Tâches</h2>
+                    <button class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Nouvelle tâche
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Liste des tâches</h3>
+                        <div class="filters">
+                            <select class="filter-select">
+                                <option value="">Toutes les priorités</option>
+                                <option value="haute">Haute</option>
+                                <option value="moyenne">Moyenne</option>
+                                <option value="basse">Basse</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Tâche</th>
+                                    <th>Projet</th>
+                                    <th>Date limite</th>
+                                    <th>Priorité</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Inspection électrique</td>
+                                    <td>Résidence Les Palmiers</td>
+                                    <td>15/05/2026</td>
+                                    <td><span class="priority high">Haute</span></td>
+                                    <td><span class="status warning">En cours</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="completeTask(this)"><i class="fas fa-check"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Révision plomberie</td>
+                                    <td>Centre Commercial</td>
+                                    <td>20/05/2026</td>
+                                    <td><span class="priority medium">Moyenne</span></td>
+                                    <td><span class="status warning">En cours</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="completeTask(this)"><i class="fas fa-check"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Interventions Section -->
+            <section id="interventions" class="section">
+                <div class="section-header">
+                    <h2>Interventions</h2>
+                    <button class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Nouvelle intervention
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Historique des interventions</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Lieu</th>
+                                    <th>Description</th>
+                                    <th>Durée</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>13/05/2026</td>
+                                    <td>Réparation</td>
+                                    <td>Résidence Palmiers</td>
+                                    <td>Remplacement pompe défaillante</td>
+                                    <td>2h</td>
+                                    <td><span class="status success">Terminé</span></td>
+                                </tr>
+                                <tr>
+                                    <td>12/05/2026</td>
+                                    <td>Maintenance</td>
+                                    <td>Centre Commercial</td>
+                                    <td>Entretien chaudière</td>
+                                    <td>3h</td>
+                                    <td><span class="status warning">En cours</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Rapports Section -->
+            <section id="rapports" class="section">
+                <div class="section-header">
+                    <h2>Rapports Techniques</h2>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Rapports d'intervention</h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="report-list">
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Rapport intervention - Mai 2026</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Rapport intervention - Avril 2026</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Checklists techniques</h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="report-list">
+                                <li>
+                                    <i class="fas fa-file-excel"></i>
+                                    <span>Checklist électrique</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-excel"></i>
+                                    <span>Checklist plomberie</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Check authentication
+        window.addEventListener('load', function() {
+            const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
+            if (!currentUser || currentUser.role !== 'technicien') {
+                window.location.href = 'login.html';
+            }
+            initializeTechnicienCharts();
+            updateDate();
+        });
+
+        // Update section titles
+        const sectionTitles = {
+            'dashboard': 'Tableau de bord',
+            'projets': 'Mes Projets',
+            'taches': 'Mes Tâches',
+            'interventions': 'Interventions',
+            'rapports': 'Rapports Techniques'
+        };
+
+        // Initialize Technicien Charts
+        function initializeTechnicienCharts() {
+            // Task Chart
+            const taskCtx = document.getElementById('taskChart');
+            if (taskCtx) {
+                new Chart(taskCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Haute', 'Moyenne', 'Basse'],
+                        datasets: [{
+                            data: [3, 5, 4],
+                            backgroundColor: ['#ef4444', '#ff6b35', '#10b981']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'right'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Intervention Chart
+            const interventionCtx = document.getElementById('interventionChart');
+            if (interventionCtx) {
+                new Chart(interventionCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Électrique', 'Plomberie', 'Climatisation', 'Structure'],
+                        datasets: [{
+                            label: 'Interventions',
+                            data: [8, 6, 4, 5],
+                            backgroundColor: '#0066cc'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function completeTask(button) {
+            const row = button.closest('tr');
+            const statusCell = row.querySelector('.status');
+            statusCell.className = 'status success';
+            statusCell.textContent = 'Terminé';
+            showNotification('Tâche terminée!', 'success');
+        }
+    </script>
+</body>
+</html>
