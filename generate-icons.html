@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur d'icônes PWA - NYSOA BTP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1C2B3A 0%, #2d4a6b 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #1C2B3A;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .instructions {
+            background: #f8f9fa;
+            border-left: 4px solid #E8631A;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 5px;
+        }
+        .instructions h3 {
+            color: #E8631A;
+            margin-bottom: 10px;
+        }
+        .instructions ol {
+            margin-left: 20px;
+            color: #555;
+            line-height: 1.8;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        button {
+            background: #E8631A;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #c95215;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(232, 99, 26, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        .icon-preview {
+            text-align: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        .icon-preview:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .icon-preview img {
+            border: 3px solid #1C2B3A;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            background: white;
+        }
+        .icon-preview p {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+        }
+        .icon-preview .size {
+            color: #E8631A;
+            font-size: 12px;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: none;
+            font-weight: 600;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .progress {
+            margin-top: 20px;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #E8631A;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Générateur d'icônes PWA</h1>
+        <p class="subtitle">Créez les icônes pour votre application NYSOA BTP</p>
+        
+        <div class="instructions">
+            <h3>📋 Instructions :</h3>
+            <ol>
+                <li>Cliquez sur "Générer les icônes" pour créer les aperçus</li>
+                <li>Vérifiez que les icônes s'affichent correctement</li>
+                <li>Cliquez sur "Télécharger toutes les icônes" pour les enregistrer</li>
+                <li>Déplacez les fichiers téléchargés dans le dossier <code>icons/</code> de votre projet</li>
+            </ol>
+        </div>
+        
+        <div class="button-group">
+            <button onclick="generateIcons()" id="generateBtn">🔄 Générer les icônes</button>
+            <button onclick="downloadAll()" id="downloadBtn" disabled>📥 Télécharger toutes les icônes</button>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div class="progress" id="progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div class="preview" id="preview"></div>
+    </div>
+
+    <script>
+        const sizes = [72, 96, 128, 192, 512];
+        const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1C2B3A" rx="80"/>
+  <text x="256" y="200" font-family="Georgia,serif" font-size="130" font-weight="bold" fill="#E8631A" text-anchor="middle">N</text>
+  <text x="256" y="340" font-family="Georgia,serif" font-size="80" fill="white" text-anchor="middle" opacity="0.85">BTP</text>
+  <rect x="100" y="360" width="312" height="6" fill="#E8631A" rx="3"/>
+</svg>`;
+
+        const generatedIcons = {};
+
+        function svgToPng(svgString, size) {
+            return new Promise((resolve, reject) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                const img = new Image();
+                const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+                const url = URL.createObjectURL(svgBlob);
+                
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0, size, size);
+                    URL.revokeObjectURL(url);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                
+                img.onerror = reject;
+                img.src = url;
+            });
+        }
+
+        async function generateIcons() {
+            const statusDiv = document.getElementById('status');
+            const previewDiv = document.getElementById('preview');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const progressDiv = document.getElementById('progress');
+            const progressFill = document.getElementById('progressFill');
+            
+            previewDiv.innerHTML = '';
+            generatedIcons = {};
+            progressDiv.style.display = 'block';
+            downloadBtn.disabled = true;
+            
+            try {
+                for (let i = 0; i < sizes.length; i++) {
+                    const size = sizes[i];
+                    const pngDataUrl = await svgToPng(svgContent, size);
+                    generatedIcons[size] = pngDataUrl;
+                    
+                    const progress = ((i + 1) / sizes.length) * 100;
+                    progressFill.style.width = progress + '%';
+                    
+                    const preview = document.createElement('div');
+                    preview.className = 'icon-preview';
+                    preview.innerHTML = `
+                        <img src="${pngDataUrl}" width="${Math.min(size, 150)}" height="${Math.min(size, 150)}">
+                        <p>icon-${size}.png</p>
+                        <span class="size">${size}x${size} pixels</span>
+                    `;
+                    previewDiv.appendChild(preview);
+                }
+                
+                statusDiv.className = 'success';
+                statusDiv.style.display = 'block';
+                statusDiv.textContent = '✅ Icônes générées avec succès ! Cliquez sur "Télécharger toutes les icônes" pour les enregistrer.';
+                downloadBtn.disabled = false;
+                progressDiv.style.display = 'none';
+            } catch (error) {
+                statusDiv.className = 'error';
+                statusDiv.style.display = 'block';
+                statusDiv.textContent = '❌ Erreur lors de la génération des icônes: ' + error.message;
+                progressDiv.style.display = 'none';
+            }
+        }
+
+        async function downloadAll() {
+            if (Object.keys(generatedIcons).length === 0) {
+                alert('Veuillez d\'abord générer les icônes.');
+                return;
+            }
+            
+            for (const [size, dataUrl] of Object.entries(generatedIcons)) {
+                const link = document.createElement('a');
+                link.download = `icon-${size}.png`;
+                link.href = dataUrl;
+                link.click();
+                
+                // Petit délai entre chaque téléchargement
+                if (size !== '512') {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+            }
+        }
+
+        // Auto-generate on load
+        window.onload = () => {
+            generateIcons();
+        };
+    </script>
+</body>
+</html>
