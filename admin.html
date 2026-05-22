@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NySoa BTP — Administration</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1C2B3A">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* ── CONFIG SUPABASE — même valeurs que supabase.js ── */
+        :root {
+            --dark:   #1C2B3A;
+            --orange: #E8631A;
+            --green:  #10b981;
+            --red:    #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            color: #2d3436;
+        }
+
+        .app { display: flex; min-height: 100vh; }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: 240px; flex-shrink: 0;
+            background: var(--dark); color: white;
+            display: flex; flex-direction: column;
+            padding: 24px 0; position: sticky; top: 0; height: 100vh;
+        }
+        .logo { padding: 0 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .logo .icon { width: 44px; height: 44px; background: rgba(232,99,26,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+        .logo .icon span { font-size: 20px; font-weight: 800; color: var(--orange); font-family: Georgia; }
+        .logo h2 { font-size: 15px; font-weight: 600; }
+        .logo p  { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+        nav { flex: 1; padding: 16px 12px; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 8px; cursor: pointer;
+            color: rgba(255,255,255,0.65); font-size: 14px;
+            transition: all 0.2s; text-decoration: none; margin-bottom: 2px;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(232,99,26,0.15); color: white; }
+        .nav-item i { width: 18px; text-align: center; }
+
+        .user-info { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 34px; height: 34px; background: var(--orange); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .user-details p:first-child { font-size: 13px; font-weight: 600; }
+        .user-details p:last-child  { font-size: 11px; color: rgba(255,255,255,0.5); }
+
+        /* ── MAIN ── */
+        .main { flex: 1; padding: 28px 32px; max-width: 960px; }
+
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 22px; font-weight: 700; color: var(--dark); }
+        .page-header p  { font-size: 14px; color: #636e72; margin-top: 4px; }
+
+        /* ── CARDS ── */
+        .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+        @media (max-width: 700px) { .cards { grid-template-columns: 1fr; } }
+
+        .card {
+            background: white; border-radius: 14px;
+            padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .card-icon {
+            width: 42px; height: 42px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .card-icon.orange { background: rgba(232,99,26,0.12); color: var(--orange); }
+        .card-icon.blue   { background: rgba(0,102,204,0.10); color: #0066cc; }
+        .card-icon.green  { background: rgba(16,185,129,0.12); color: var(--green); }
+        .card-icon.red    { background: rgba(239,68,68,0.10);  color: var(--red); }
+        .card h3 { font-size: 15px; font-weight: 600; }
+        .card p  { font-size: 13px; color: #636e72; }
+
+        /* ── IMPORT ZONE ── */
+        .import-zone {
+            border: 2px dashed #dee2e6; border-radius: 10px;
+            padding: 28px 20px; text-align: center; cursor: pointer;
+            transition: all 0.2s; background: #f8f9fa;
+        }
+        .import-zone:hover, .import-zone.drag-over {
+            border-color: var(--orange); background: rgba(232,99,26,0.04);
+        }
+        .import-zone i { font-size: 32px; color: #adb5bd; margin-bottom: 10px; }
+        .import-zone .drag-over i { color: var(--orange); }
+        .import-zone p { font-size: 14px; color: #636e72; margin-bottom: 4px; }
+        .import-zone small { font-size: 12px; color: #adb5bd; }
+        .import-zone input { display: none; }
+
+        /* ── FICHIERS IMPORTÉS ── */
+        .file-list { margin-top: 14px; }
+        .file-item {
+            display: flex; align-items: center; gap: 10px;
+            background: #f8f9fa; border: 1px solid #e9ecef;
+            border-radius: 8px; padding: 10px 14px; margin-bottom: 8px;
+        }
+        .file-item i { color: var(--orange); }
+        .file-item .fname { flex: 1; font-size: 13px; font-weight: 600; }
+        .file-item .fstatus { font-size: 12px; padding: 2px 8px; border-radius: 10px; }
+        .status-ready   { background: #e8f5e9; color: #2e7d32; }
+        .status-loading { background: #fff8e1; color: #f57f17; }
+        .status-done    { background: #e3f2fd; color: #1565c0; }
+        .status-error   { background: #ffebee; color: #c62828; }
+
+        /* ── PROGRESS ── */
+        .progress-wrap { margin-top: 14px; display: none; }
+        .progress-bar { height: 8px; background: #e9ecef; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--orange); border-radius: 10px; transition: width 0.3s; }
+        .progress-text { font-size: 12px; color: #636e72; margin-top: 6px; text-align: center; }
+
+        /* ── BOUTONS ── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 10px 18px; border-radius: 8px; font-size: 14px;
+            font-weight: 600; border: none; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-primary { background: var(--orange); color: white; }
+        .btn-primary:hover { background: #c95215; }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-secondary { background: #f1f3f4; color: #444; }
+        .btn-secondary:hover { background: #e2e5e8; }
+        .btn-dark { background: var(--dark); color: white; }
+        .btn-dark:hover { background: #2d4a6b; }
+        .btn-green { background: var(--green); color: white; }
+        .btn-green:hover { background: #059669; }
+        .btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+        /* ── STATS IMPORT ── */
+        .import-stats {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 10px; margin-top: 14px;
+        }
+        .stat-box { background: #f8f9fa; border-radius: 8px; padding: 12px; text-align: center; }
+        .stat-box .count { font-size: 22px; font-weight: 700; color: var(--dark); }
+        .stat-box .label { font-size: 11px; color: #636e72; margin-top: 2px; }
+
+        /* ── BACKUP SECTION ── */
+        .backup-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 16px; border: 1px solid #e9ecef;
+            border-radius: 8px; margin-bottom: 8px; background: white;
+        }
+        .backup-item i { font-size: 20px; color: #0066cc; }
+        .backup-item .bname { flex: 1; }
+        .backup-item .bname strong { font-size: 13px; display: block; }
+        .backup-item .bname small { font-size: 12px; color: #636e72; }
+        .backup-item .bdate { font-size: 12px; color: #adb5bd; }
+
+        /* ── LOG ── */
+        .log-box {
+            background: #1e1e1e; color: #d4d4d4;
+            border-radius: 8px; padding: 16px; font-family: monospace;
+            font-size: 12px; line-height: 1.8; max-height: 200px; overflow-y: auto;
+            display: none;
+        }
+        .log-box .ok   { color: #4ec9b0; }
+        .log-box .warn { color: #dcdcaa; }
+        .log-box .err  { color: #f44747; }
+
+        /* ── NOTIFICATION ── */
+        .notif {
+            position: fixed; top: 20px; right: 20px;
+            padding: 14px 20px; border-radius: 10px;
+            font-size: 14px; font-weight: 600; z-index: 9999;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: flex; align-items: center; gap: 8px;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .notif-success { background: white; border-left: 4px solid var(--green); color: #2d3436; }
+        .notif-error   { background: white; border-left: 4px solid var(--red);   color: #2d3436; }
+        .notif-info    { background: white; border-left: 4px solid #0066cc;       color: #2d3436; }
+
+        .full-card { grid-column: 1 / -1; }
+        .section-title { font-size: 16px; font-weight: 700; color: var(--dark); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .divider { border: none; border-top: 1px solid #f0f0f0; margin: 24px 0; }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="icon"><span>N</span></div>
+            <h2>NySoa BTP</h2>
+            <p>Administration</p>
+        </div>
+        <nav>
+            <a class="nav-item active" onclick="showSection('import')">
+                <i class="fas fa-file-import"></i><span>Import Excel</span>
+            </a>
+            <a class="nav-item" onclick="showSection('backup')">
+                <i class="fas fa-save"></i><span>Sauvegarde</span>
+            </a>
+            <a class="nav-item" onclick="showSection('supabase')">
+                <i class="fas fa-database"></i><span>Supabase</span>
+            </a>
+            <a class="nav-item" onclick="showSection('users')">
+                <i class="fas fa-users-cog"></i><span>Utilisateurs</span>
+            </a>
+            <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0">
+            <a class="nav-item" href="index.html">
+                <i class="fas fa-home"></i><span>Accueil appli</span>
+            </a>
+            <a class="nav-item" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i><span>Déconnexion</span>
+            </a>
+        </nav>
+        <div class="user-info">
+            <div class="user-avatar"><i class="fas fa-user-shield" style="color:white;font-size:14px"></i></div>
+            <div class="user-details">
+                <p id="user-name">Admin</p>
+                <p>Accès complet</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <main class="main">
+
+        <!-- ═══════════════════════════════════════════════════
+             SECTION 1 : IMPORT EXCEL
+        ════════════════════════════════════════════════════ -->
+        <div id="section-import">
+            <div class="page-header">
+                <h1><i class="fas fa-file-import" style="color:var(--orange);margin-right:10px"></i>Import des fichiers Excel</h1>
+                <p>Importez directement vos 4 fichiers de travail — les données s'ajoutent à Supabase automatiquement</p>
+            </div>
+
+            <div class="cards">
+                <!-- Zone de dépôt -->
+                <div class="card full-card">
+                    <div class="section-title"><i class="fas fa-cloud-upload-alt" style="color:var(--orange)"></i> Glisser-déposer vos fichiers Excel</div>
+
+                    <div class="import-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+                         ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFiles(event)">
+                        <i class="fas fa-file-excel"></i>
+                        <p><strong>Cliquez ici ou glissez vos fichiers</strong></p>
+                        <small>ACHAT_2026.xlsx · JOURNAL_2026.xlsx · LOGISTIQUE_2026.xlsx · PERSONNEL_2026.xlsx</small>
+                        <input type="file" id="file-input" accept=".xlsx,.xls" multiple onchange="handleFiles(this.files)">
+                    </div>
+
+                    <div class="file-list" id="file-list"></div>
+
+                    <div class="progress-wrap" id="progress-wrap">
+                        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text" id="progress-text">Préparation...</div>
+                    </div>
+
+                    <div class="import-stats" id="import-stats" style="display:none">
+                        <div class="stat-box"><div class="count" id="stat-journal">0</div><div class="label">Journal</div></div>
+                        <div class="stat-box"><div class="count" id="stat-achats">0</div><div class="label">Achats</div></div>
+                        <div class="stat-box"><div class="count" id="stat-personnel">0</div><div class="label">Personnel</div></div>
+                        <div class="stat-box"><div class="count" id="stat-pointage">0</div><div class="label">Pointages</div></div>
+                    </div>
+
+                    <div class="btn-row">
+                        <button class="btn btn-primary" id="btn-import" onclick="startImport()" disabled>
+                            <i class="fas fa-upload"></i> Importer dans Supabase
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearFiles()">
+                            <i class="fas fa-times"></i> Effacer
+                        </button>
+                        <button class="btn btn-secondary" onclick="toggleLog()">
+                            <i class="fas fa-terminal"></i> Journal technique
+                        </button>
+                    </div>
+
+                    <div class="log-box" id="log-box"></div>
+                </div>
+
+                <!-- Instructions -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon orange"><i class="fas fa-info-circle"></i></div>
+                        <div><h3>Fichiers attendus</h3><p>4 fichiers Excel de travail</p></div>
+                    </div>
+                    <div style="font-size:13px;line-height:2;color:#444">
+                        <div><i class="fas fa-check-circle" style="color:var(--green);margin-right:6px"></i><strong>JOURNAL_2026.xlsx</strong> → journal des dépenses</div>
+                        <div><i class="fas fa-check-circle" style="color:var(--green);margin-right:6px"></i><strong>ACHAT_2026.xlsx</strong> → commandes & achats</div>
+                        <div><i class="fas fa-check-circle" style="color:var(--green);margin-right:6px"></i><strong>PERSONNEL_2026.xlsx</strong> → employés & pointage</div>
+                        <div><i class="fas fa-check-circle" style="color:var(--green);margin-right:6px"></i><strong>LOGISTIQUE_2026.xlsx</strong> → matériaux & stocks</div>
+                    </div>
+                </div>
+
+                <!-- Options import -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><i class="fas fa-cog"></i></div>
+                        <div><h3>Options d'import</h3><p>Comportement si données existantes</p></div>
+                    </div>
+                    <label style="display:flex;gap:10px;align-items:center;margin-bottom:12px;font-size:13px;cursor:pointer">
+                        <input type="radio" name="import-mode" value="append" checked>
+                        <div><strong>Ajouter</strong> — conserve les données existantes et ajoute les nouvelles</div>
+                    </label>
+                    <label style="display:flex;gap:10px;align-items:center;font-size:13px;cursor:pointer">
+                        <input type="radio" name="import-mode" value="replace">
+                        <div><strong>Remplacer</strong> — efface tout puis reimporte (⚠ irréversible)</div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SECTION 2 : SAUVEGARDE MACBOOK
+        ════════════════════════════════════════════════════ -->
+        <div id="section-backup" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-save" style="color:var(--orange);margin-right:10px"></i>Sauvegarde locale — MacBook Admin</h1>
+                <p>Téléchargez une copie complète de toutes les données sur votre MacBook</p>
+            </div>
+
+            <div class="cards">
+                <!-- Sauvegarde complète -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon green"><i class="fas fa-file-archive"></i></div>
+                        <div><h3>Sauvegarde complète</h3><p>Toutes les tables en un fichier</p></div>
+                    </div>
+                    <p style="font-size:13px;color:#636e72;margin-bottom:16px">
+                        Exporte toutes les données (journal, achats, personnel, pointage, matériaux) dans un fichier Excel multi-onglets — identique à vos fichiers originaux.
+                    </p>
+                    <button class="btn btn-green" onclick="backupAll()">
+                        <i class="fas fa-download"></i> Télécharger la sauvegarde complète
+                    </button>
+                    <div style="font-size:12px;color:#adb5bd;margin-top:10px" id="last-backup-full">Dernière sauvegarde : jamais</div>
+                </div>
+
+                <!-- Export par module -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><i class="fas fa-table"></i></div>
+                        <div><h3>Export par module</h3><p>Choisir ce que vous exportez</p></div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                        <button class="btn btn-secondary" onclick="exportModule('journal')">
+                            <i class="fas fa-book" style="color:var(--orange)"></i> Journal des dépenses
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportModule('achats')">
+                            <i class="fas fa-shopping-cart" style="color:#0066cc"></i> Achats & commandes
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportModule('personnel')">
+                            <i class="fas fa-users" style="color:var(--green)"></i> Personnel & pointage
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportModule('logistique')">
+                            <i class="fas fa-truck" style="color:#9c27b0"></i> Logistique & matériaux
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sauvegarde automatique -->
+                <div class="card full-card">
+                    <div class="card-header">
+                        <div class="card-icon orange"><i class="fas fa-clock"></i></div>
+                        <div><h3>Sauvegarde automatique</h3><p>Planifier des exports réguliers</p></div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                        <label style="font-size:13px;display:flex;align-items:center;gap:8px">
+                            <input type="checkbox" id="auto-backup" onchange="toggleAutoBackup(this.checked)">
+                            Activer la sauvegarde automatique
+                        </label>
+                        <label style="font-size:13px;display:flex;align-items:center;gap:8px">
+                            Fréquence :
+                            <select id="backup-freq" style="padding:5px 10px;border-radius:6px;border:1px solid #dee2e6;font-size:13px">
+                                <option value="daily">Tous les jours</option>
+                                <option value="weekly" selected>Chaque semaine</option>
+                                <option value="monthly">Chaque mois</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div style="margin-top:16px">
+                        <div class="section-title" style="font-size:14px;margin-bottom:10px">Historique des sauvegardes</div>
+                        <div id="backup-history">
+                            <div style="font-size:13px;color:#adb5bd;padding:12px 0">Aucune sauvegarde pour le moment</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SECTION 3 : SUPABASE CONFIG
+        ════════════════════════════════════════════════════ -->
+        <div id="section-supabase" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-database" style="color:var(--orange);margin-right:10px"></i>Configuration Supabase</h1>
+                <p>Gérez la connexion à votre base de données cloud</p>
+            </div>
+            <div class="cards">
+                <div class="card full-card">
+                    <div class="section-title"><i class="fas fa-plug" style="color:var(--orange)"></i> Connexion</div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Project URL</label>
+                        <input type="text" id="sb-url" placeholder="https://XXXXX.supabase.co"
+                               style="width:100%;padding:10px 14px;border:1.5px solid #dee2e6;border-radius:8px;font-size:13px;font-family:monospace">
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Anon Key</label>
+                        <input type="password" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI..."
+                               style="width:100%;padding:10px 14px;border:1.5px solid #dee2e6;border-radius:8px;font-size:13px;font-family:monospace">
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="saveSupabaseConfig()"><i class="fas fa-save"></i> Sauvegarder</button>
+                        <button class="btn btn-secondary" onclick="testSupabaseConnection()"><i class="fas fa-plug"></i> Tester la connexion</button>
+                    </div>
+                    <div id="sb-status" style="margin-top:12px;font-size:13px;display:none"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><i class="fas fa-info-circle"></i></div>
+                        <div><h3>Où trouver ces clés ?</h3></div>
+                    </div>
+                    <ol style="font-size:13px;color:#444;line-height:2.2;padding-left:18px">
+                        <li>Aller sur <strong>app.supabase.com</strong></li>
+                        <li>Ouvrir votre projet <strong>nysoa-btp</strong></li>
+                        <li>Cliquer <strong>Settings → API</strong></li>
+                        <li>Copier <strong>Project URL</strong></li>
+                        <li>Copier <strong>anon / public key</strong></li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SECTION 4 : UTILISATEURS
+        ════════════════════════════════════════════════════ -->
+        <div id="section-users" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-users-cog" style="color:var(--orange);margin-right:10px"></i>Gestion des utilisateurs</h1>
+                <p>Comptes d'accès à l'application</p>
+            </div>
+            <div class="card">
+                <table style="width:100%;border-collapse:collapse;font-size:13px">
+                    <thead>
+                        <tr style="border-bottom:2px solid #f0f0f0">
+                            <th style="padding:10px;text-align:left;color:#636e72">Nom</th>
+                            <th style="padding:10px;text-align:left;color:#636e72">Email</th>
+                            <th style="padding:10px;text-align:left;color:#636e72">Rôle</th>
+                            <th style="padding:10px;text-align:left;color:#636e72">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table">
+                        <tr><td colspan="4" style="padding:20px;text-align:center;color:#adb5bd">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+// ── SUPABASE CONFIG ────────────────────────────────────────────
+let SUPABASE_URL = localStorage.getItem('sb_url') || 'https://VOTRE_PROJECT_ID.supabase.co';
+let SUPABASE_KEY = localStorage.getItem('sb_key') || 'VOTRE_ANON_KEY';
+const { createClient } = supabase;
+let db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── NAVIGATION ─────────────────────────────────────────────────
+function showSection(name) {
+    document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
+    document.getElementById('section-' + name).style.display = 'block';
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    event?.currentTarget?.classList.add('active');
+}
+
+// ── NOTIFICATION ───────────────────────────────────────────────
+function notify(msg, type = 'info') {
+    const n = document.createElement('div');
+    n.className = `notif notif-${type}`;
+    const icons = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
+    n.innerHTML = `<i class="fas fa-${icons[type] || 'info-circle'}"></i> ${msg}`;
+    document.body.appendChild(n);
+    setTimeout(() => n.style.opacity = '0', 3000);
+    setTimeout(() => n.remove(), 3300);
+}
+
+// ── LOG ────────────────────────────────────────────────────────
+const logBox = document.getElementById('log-box');
+function log(msg, type = '') {
+    logBox.innerHTML += `<div class="${type}">${new Date().toLocaleTimeString()} — ${msg}</div>`;
+    logBox.scrollTop = logBox.scrollHeight;
+}
+function toggleLog() {
+    logBox.style.display = logBox.style.display === 'block' ? 'none' : 'block';
+}
+
+// ── DRAG & DROP ────────────────────────────────────────────────
+function dragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function dragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function dropFiles(e) {
+    e.preventDefault();
+    dragLeave(e);
+    handleFiles(e.dataTransfer.files);
+}
+
+// ── PARSING EXCEL ──────────────────────────────────────────────
+let parsedData = {};
+
+function handleFiles(files) {
+    const list = document.getElementById('file-list');
+    Array.from(files).forEach(file => {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.id = 'file-' + file.name;
+        item.innerHTML = `<i class="fas fa-file-excel"></i>
+            <span class="fname">${file.name}</span>
+            <span class="fstatus status-loading" id="status-${file.name}">Lecture...</span>`;
+        list.appendChild(item);
+        parseExcel(file);
+    });
+}
+
+function parseExcel(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+            const fname = file.name.toUpperCase();
+            let rows = 0;
+
+            if (fname.includes('JOURNAL')) {
+                parsedData.journal = parseJournal(wb);
+                rows = parsedData.journal.length;
+                document.getElementById('stat-journal').textContent = rows;
+            } else if (fname.includes('ACHAT')) {
+                parsedData.achats = parseAchats(wb);
+                rows = parsedData.achats.length;
+                document.getElementById('stat-achats').textContent = rows;
+            } else if (fname.includes('PERSONNEL')) {
+                const p = parsePersonnel(wb);
+                parsedData.personnel = p.personnel;
+                parsedData.pointage = p.pointage;
+                rows = p.personnel.length + p.pointage.length;
+                document.getElementById('stat-personnel').textContent = p.personnel.length;
+                document.getElementById('stat-pointage').textContent = p.pointage.length;
+            } else if (fname.includes('LOGISTIQUE')) {
+                parsedData.materiaux = parseLogistique(wb);
+                rows = parsedData.materiaux.length;
+            }
+
+            document.getElementById('status-' + file.name).className = 'fstatus status-ready';
+            document.getElementById('status-' + file.name).textContent = rows + ' lignes';
+            document.getElementById('import-stats').style.display = 'grid';
+            log(`✓ ${file.name} → ${rows} lignes lues`, 'ok');
+            checkImportReady();
+        } catch(err) {
+            document.getElementById('status-' + file.name).className = 'fstatus status-error';
+            document.getElementById('status-' + file.name).textContent = 'Erreur';
+            log(`✗ ${file.name} : ${err.message}`, 'err');
+        }
+    };
+    reader.readAsArrayBuffer(file.name.endsWith('.xls') ? file : file);
+    reader.readAsArrayBuffer(file);
+}
+
+function safeDate(v) {
+    if (!v) return null;
+    if (v instanceof Date) return v.toISOString().split('T')[0];
+    if (typeof v === 'string' && v.length >= 10) return v.substring(0, 10);
+    return null;
+}
+function safeNum(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    if (typeof v === 'number') return v;
+    return parseFloat(String(v).replace(/\s/g,'').replace(',','.')) || 0;
+}
+function safeStr(v) {
+    if (v === null || v === undefined) return null;
+    const s = String(v).trim();
+    return s === '' ? null : s;
+}
+
+function parseJournal(wb) {
+    const ws = wb.Sheets['JOURNAL'] || wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    return rows.slice(1).filter(r => r[0] && r[3]).map(r => ({
+        date_ecriture: safeDate(r[0]),
+        chantier:      safeStr(r[1]),
+        designation:   safeStr(r[2]) || '',
+        montant:       safeNum(r[3]),
+        mode_paiement: safeStr(r[4]),
+        categorie:     safeStr(r[5]),
+        travaux:       safeStr(r[6]),
+    })).filter(r => r.date_ecriture);
+}
+
+function parseAchats(wb) {
+    const ws = wb.Sheets['DETAIL ACHAT'] || wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    return rows.slice(1).filter(r => r[0] && r[2]).map(r => ({
+        date_achat:    safeDate(r[0]),
+        chantier:      safeStr(r[1]),
+        libelle:       safeStr(r[2]) || '',
+        quantite:      safeNum(r[3]) || 1,
+        prix:          safeNum(r[4]),
+        fournisseur:   safeStr(r[5]),
+        mode_paiement: safeStr(r[6]),
+        statut:        'OK',
+    })).filter(r => r.date_achat);
+}
+
+function parsePersonnel(wb) {
+    const wsBase = wb.Sheets['BASE'];
+    const wsPoint = wb.Sheets['POINTAGE ET AVANCE'];
+    const personnel = [];
+    const pointage = [];
+
+    if (wsBase) {
+        const rows = XLSX.utils.sheet_to_json(wsBase, { header: 1, defval: null });
+        rows.slice(1).forEach(r => {
+            if (!r[0] || !r[1]) return;
+            const sal = safeNum(r[2]);
+            personnel.push({
+                nom:               safeStr(r[1]),
+                chantier_code:     safeStr(r[0]),
+                salaire_journalier: sal,
+                metier:            safeStr(r[3]),
+                type_salaire:      sal >= 100000 ? 'MENSUEL' : 'JOURNALIER',
+            });
+        });
+    }
+
+    if (wsPoint) {
+        const rows = XLSX.utils.sheet_to_json(wsPoint, { header: 1, defval: null });
+        rows.slice(1).forEach(r => {
+            if (!r[0] || !r[2]) return;
+            const d = safeDate(r[0]);
+            if (!d) return;
+            pointage.push({
+                semaine_du: d, chantier: safeStr(r[1]), nom_employe: safeStr(r[2]) || '',
+                lundi: safeNum(r[3]), mardi: safeNum(r[4]), mercredi: safeNum(r[5]),
+                jeudi: safeNum(r[6]), vendredi: safeNum(r[7]), samedi: safeNum(r[8]),
+                dimanche: safeNum(r[9]), nb_jours: safeNum(r[10]),
+                salaire_journalier: safeNum(r[11]),
+                avance_lundi: safeNum(r[12]), avance_mardi: safeNum(r[13]),
+                avance_mercredi: safeNum(r[14]), avance_jeudi: safeNum(r[15]),
+                avance_vendredi: safeNum(r[16]), avance_samedi: safeNum(r[17]),
+                total_avances: safeNum(r[18]), a_payer: safeNum(r[19]),
+            });
+        });
+    }
+    return { personnel, pointage };
+}
+
+function parseLogistique(wb) {
+    const ws = wb.Sheets['MATERIAUX'] || wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    return rows.slice(1).filter(r => r[2]).map(r => {
+        let chantier = null;
+        for (let i = r.length - 1; i >= 3; i--) {
+            if (r[i] && typeof r[i] === 'string' && r[i].trim()) { chantier = r[i].trim(); break; }
+        }
+        const etat = safeStr(r[0]) || 'EN MARCHE';
+        return {
+            etat: ['EN MARCHE','EN PANNE','BON','MOYEN','MAUVAIS'].includes(etat) ? etat : 'EN MARCHE',
+            quantite: safeNum(r[1]) || null,
+            libelle: safeStr(r[2]) || '',
+            chantier_actuel: chantier,
+        };
+    });
+}
+
+// ── IMPORT VERS SUPABASE ───────────────────────────────────────
+function checkImportReady() {
+    const hasData = Object.keys(parsedData).length > 0;
+    document.getElementById('btn-import').disabled = !hasData;
+}
+
+async function startImport() {
+    const mode = document.querySelector('input[name="import-mode"]:checked').value;
+    const btn = document.getElementById('btn-import');
+    btn.disabled = true;
+    logBox.style.display = 'block';
+    logBox.innerHTML = '';
+    log('Démarrage de l\'import...', 'ok');
+
+    const pw = document.getElementById('progress-wrap');
+    const pf = document.getElementById('progress-fill');
+    const pt = document.getElementById('progress-text');
+    pw.style.display = 'block';
+
+    const tables = [];
+    if (parsedData.journal)   tables.push({ table: 'journal',   data: parsedData.journal });
+    if (parsedData.achats)    tables.push({ table: 'achats',    data: parsedData.achats });
+    if (parsedData.personnel) tables.push({ table: 'personnel', data: parsedData.personnel });
+    if (parsedData.pointage)  tables.push({ table: 'pointage',  data: parsedData.pointage });
+    if (parsedData.materiaux) tables.push({ table: 'materiaux', data: parsedData.materiaux });
+
+    let done = 0;
+    for (const { table, data } of tables) {
+        pt.textContent = `Import ${table}... (${data.length} lignes)`;
+        log(`→ Import ${table} (${data.length} lignes)...`);
+
+        try {
+            if (mode === 'replace') {
+                const { error: delErr } = await db.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                if (delErr) throw delErr;
+                log(`  Données existantes supprimées`, 'warn');
+            }
+
+            // Batch de 100
+            const BATCH = 100;
+            for (let i = 0; i < data.length; i += BATCH) {
+                const batch = data.slice(i, i + BATCH);
+                const { error } = await db.from(table).insert(batch);
+                if (error) throw error;
+                const pct = Math.round(((done + (i + BATCH) / data.length) / tables.length) * 100);
+                pf.style.width = Math.min(pct, 100) + '%';
+            }
+
+            log(`  ✓ ${data.length} lignes importées dans ${table}`, 'ok');
+            document.getElementById('file-list').querySelectorAll('.fstatus').forEach(s => {
+                if (s.id && s.id.includes(table)) s.className = 'fstatus status-done';
+            });
+
+        } catch(err) {
+            log(`  ✗ Erreur ${table}: ${err.message}`, 'err');
+            notify(`Erreur import ${table}`, 'error');
+        }
+        done++;
+        pf.style.width = Math.round((done / tables.length) * 100) + '%';
+    }
+
+    pt.textContent = 'Import terminé ✓';
+    pf.style.width = '100%';
+    notify('Import terminé avec succès !', 'success');
+    btn.disabled = false;
+
+    // Sauvegarder la date du dernier import
+    localStorage.setItem('last_import', new Date().toLocaleString('fr-FR'));
+    log('✓ Import complet — ' + new Date().toLocaleString('fr-FR'), 'ok');
+}
+
+function clearFiles() {
+    document.getElementById('file-list').innerHTML = '';
+    document.getElementById('import-stats').style.display = 'none';
+    document.getElementById('progress-wrap').style.display = 'none';
+    document.getElementById('file-input').value = '';
+    parsedData = {};
+    document.getElementById('btn-import').disabled = true;
+    logBox.innerHTML = '';
+}
+
+// ── SAUVEGARDE ─────────────────────────────────────────────────
+async function backupAll() {
+    notify('Préparation de la sauvegarde...', 'info');
+    const wb = XLSX.utils.book_new();
+
+    const tables = ['journal','achats','personnel','pointage','materiaux','chantiers'];
+    for (const t of tables) {
+        try {
+            const { data } = await db.from(t).select('*').order('created_at', { ascending: false });
+            if (data && data.length > 0) {
+                const ws = XLSX.utils.json_to_sheet(data);
+                XLSX.utils.book_append_sheet(wb, ws, t.toUpperCase());
+            }
+        } catch(e) { console.warn(t, e); }
+    }
+
+    const fname = `NYSOA_BTP_BACKUP_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fname);
+    notify('Sauvegarde téléchargée : ' + fname, 'success');
+
+    const now = new Date().toLocaleString('fr-FR');
+    document.getElementById('last-backup-full').textContent = 'Dernière sauvegarde : ' + now;
+    addBackupHistory(fname, now);
+    localStorage.setItem('last_backup', now);
+}
+
+async function exportModule(module) {
+    const map = {
+        journal:    { table: 'journal',   cols: ['date_ecriture','chantier','designation','montant','mode_paiement','categorie','travaux'] },
+        achats:     { table: 'achats',    cols: ['date_achat','chantier','libelle','quantite','prix','fournisseur','mode_paiement','statut'] },
+        personnel:  { table: 'personnel', cols: ['nom','chantier_code','metier','salaire_journalier','type_salaire'] },
+        logistique: { table: 'materiaux', cols: ['etat','quantite','libelle','chantier_actuel'] },
+    };
+    const m = map[module];
+    if (!m) return;
+
+    try {
+        const { data } = await db.from(m.table).select(m.cols.join(',')).order('created_at', { ascending: false });
+        if (!data) return notify('Aucune donnée', 'error');
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, m.table.toUpperCase());
+        const fname = `NYSOA_${m.table.toUpperCase()}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fname);
+        notify(fname + ' téléchargé', 'success');
+        addBackupHistory(fname, new Date().toLocaleString('fr-FR'));
+    } catch(e) { notify('Erreur : ' + e.message, 'error'); }
+}
+
+function addBackupHistory(fname, date) {
+    const hist = document.getElementById('backup-history');
+    if (hist.querySelector('[style*="Aucune"]')) hist.innerHTML = '';
+    hist.innerHTML = `<div class="backup-item">
+        <i class="fas fa-file-excel"></i>
+        <div class="bname"><strong>${fname}</strong><small>Exporté depuis Supabase</small></div>
+        <div class="bdate">${date}</div>
+    </div>` + hist.innerHTML;
+
+    // Sauver dans localStorage
+    const history = JSON.parse(localStorage.getItem('backup_history') || '[]');
+    history.unshift({ fname, date });
+    localStorage.setItem('backup_history', JSON.stringify(history.slice(0, 20)));
+}
+
+function toggleAutoBackup(on) {
+    if (on) {
+        notify('Sauvegarde automatique activée', 'success');
+        const freq = document.getElementById('backup-freq').value;
+        localStorage.setItem('auto_backup', freq);
+    } else {
+        localStorage.removeItem('auto_backup');
+    }
+}
+
+// ── SUPABASE CONFIG ────────────────────────────────────────────
+function saveSupabaseConfig() {
+    const url = document.getElementById('sb-url').value.trim();
+    const key = document.getElementById('sb-key').value.trim();
+    if (!url || !key) return notify('Remplissez les deux champs', 'error');
+    localStorage.setItem('sb_url', url);
+    localStorage.setItem('sb_key', key);
+    SUPABASE_URL = url; SUPABASE_KEY = key;
+    db = createClient(url, key);
+    notify('Configuration sauvegardée', 'success');
+
+    // Mettre à jour supabase.js via instructions
+    const el = document.getElementById('sb-status');
+    el.style.display = 'block';
+    el.style.cssText = 'display:block;padding:10px 14px;background:#e8f5e9;border-radius:8px;font-size:13px;color:#2e7d32';
+    el.textContent = '✓ Clés sauvegardées dans le navigateur. N\'oubliez pas de les copier dans supabase.js pour qu\'elles fonctionnent sur tous les appareils.';
+}
+
+async function testSupabaseConnection() {
+    const el = document.getElementById('sb-status');
+    el.style.display = 'block';
+    el.style.cssText = 'display:block;padding:10px 14px;background:#fff8e1;border-radius:8px;font-size:13px;color:#f57f17';
+    el.textContent = '⏳ Test en cours...';
+    try {
+        const { error } = await db.from('chantiers').select('code').limit(1);
+        if (error) throw error;
+        el.style.background = '#e8f5e9'; el.style.color = '#2e7d32';
+        el.textContent = '✓ Connexion Supabase OK !';
+        notify('Connexion réussie !', 'success');
+    } catch(e) {
+        el.style.background = '#ffebee'; el.style.color = '#c62828';
+        el.textContent = '✗ Erreur : ' + e.message;
+        notify('Connexion échouée', 'error');
+    }
+}
+
+// ── USERS TABLE ────────────────────────────────────────────────
+const DEFAULT_USERS = [
+    { nom:'Administrateur', email:'admin@nysoa.mg',      role:'Admin',      statut:'Actif' },
+    { nom:'DAF',            email:'daf@nysoa.mg',        role:'DAF',        statut:'Actif' },
+    { nom:'Chef Chantier',  email:'chef@nysoa.mg',       role:'Chef',       statut:'Actif' },
+    { nom:'RH',             email:'rh@nysoa.mg',         role:'RH',         statut:'Actif' },
+    { nom:'Contrôleur',     email:'controleur@nysoa.mg', role:'Contrôleur', statut:'Actif' },
+    { nom:'Technicien',     email:'technicien@nysoa.mg', role:'Technicien', statut:'Actif' },
+];
+
+function loadUsers() {
+    const tb = document.getElementById('users-table');
+    tb.innerHTML = DEFAULT_USERS.map(u => `
+        <tr style="border-bottom:1px solid #f0f0f0">
+            <td style="padding:10px"><strong>${u.nom}</strong></td>
+            <td style="padding:10px;font-family:monospace;font-size:12px">${u.email}</td>
+            <td style="padding:10px"><span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:12px">${u.role}</span></td>
+            <td style="padding:10px"><span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:12px">${u.statut}</span></td>
+        </tr>`).join('');
+}
+
+// ── AUTH ───────────────────────────────────────────────────────
+function logout() {
+    localStorage.removeItem('nysoa_current_user');
+    window.location.href = 'login.html';
+}
+
+// ── INIT ───────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+    // Vérif accès admin
+    const user = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
+    if (!user) { window.location.href = 'login.html'; return; }
+    if (user.role !== 'admin') { window.location.href = user.role + '.html'; return; }
+    document.getElementById('user-name').textContent = user.nom || 'Admin';
+
+    // Charger config Supabase sauvegardée
+    const url = localStorage.getItem('sb_url');
+    const key = localStorage.getItem('sb_key');
+    if (url) document.getElementById('sb-url').value = url;
+    if (key) document.getElementById('sb-key').value = key;
+
+    // Historique sauvegardes
+    const hist = JSON.parse(localStorage.getItem('backup_history') || '[]');
+    if (hist.length > 0) {
+        document.getElementById('backup-history').innerHTML = hist.map(h => `
+            <div class="backup-item">
+                <i class="fas fa-file-excel"></i>
+                <div class="bname"><strong>${h.fname}</strong></div>
+                <div class="bdate">${h.date}</div>
+            </div>`).join('');
+    }
+    const lastBackup = localStorage.getItem('last_backup');
+    if (lastBackup) document.getElementById('last-backup-full').textContent = 'Dernière sauvegarde : ' + lastBackup;
+
+    loadUsers();
+});
+</script>
+</body>
+</html>
