@@ -205,8 +205,7 @@ function openDetailModal(tableId, rowEl) {
     if (tableId === 'projets-table') {
         const cells = rowEl.querySelectorAll('td');
         const ref = cells[0].textContent.trim();
-        const projets = loadData(STORAGE_KEYS.projets);
-        const projet = projets.find(p => p.reference === ref) || {
+        const projet = {
             reference: ref,
             nom: cells[1].textContent,
             client: cells[2].textContent,
@@ -220,8 +219,7 @@ function openDetailModal(tableId, rowEl) {
     } else if (tableId === 'achats-table') {
         const cells = rowEl.querySelectorAll('td');
         const cmd = cells[0].textContent.trim();
-        const achats = loadData(STORAGE_KEYS.achats);
-        const achat = achats.find(a => a.commande === cmd) || {
+        const achat = {
             commande: cmd,
             fournisseur: cells[1].textContent,
             date: cells[2].textContent,
@@ -232,8 +230,7 @@ function openDetailModal(tableId, rowEl) {
     } else if (tableId === 'personnel-table') {
         const cells = rowEl.querySelectorAll('td');
         const mat = cells[0].textContent.trim();
-        const personnel = loadData(STORAGE_KEYS.personnel);
-        const emp = personnel.find(e => e.matricule === mat) || {
+        const emp = {
             matricule: mat,
             nom: cells[1].textContent,
             poste: cells[2].textContent,
@@ -246,8 +243,7 @@ function openDetailModal(tableId, rowEl) {
     } else if (tableId === 'journal-table') {
         const cells = rowEl.querySelectorAll('td');
         const id = cells[0].textContent.trim();
-        const journal = loadData(STORAGE_KEYS.journal);
-        const ecr = journal.find(e => e.id === id) || {
+        const ecr = {
             id, date: cells[1].textContent, description: cells[2].textContent,
             debit: cells[3].textContent, credit: cells[4].textContent,
             solde: cells[5].textContent, categorie: cells[6].textContent.trim()
@@ -268,15 +264,8 @@ function openDetailModal(tableId, rowEl) {
  * Fiche détail PROJET avec achats liés, journal lié, équipe
  */
 function showProjetDetail(projet) {
-    const achats = loadData(STORAGE_KEYS.achats);
-    const journal = loadData(STORAGE_KEYS.journal);
-    const personnel = loadData(STORAGE_KEYS.personnel);
-
-    // Achats liés : ceux qui mentionnent le projet ou tout achat (pas de lien direct dans les données demo)
-    const achatsLies = achats.slice(0, 3); // on affiche les 3 derniers achats liés au projet
-
-    // Journal : écrits liés
-    const journalLies = journal.filter(e => e.description && e.description.toLowerCase().includes(projet.nom.split(' ')[0].toLowerCase())).concat(journal.slice(0, 2)).slice(0, 3);
+    const achatsLies = [];
+    const journalLies = [];
 
     const statutClass = getStatusClass(projet.statut);
     const progression = projet.progression || 0;
@@ -362,8 +351,7 @@ function showProjetDetail(projet) {
  */
 function showAchatDetail(achat) {
     // Chercher les achats du même fournisseur
-    const achats = loadData(STORAGE_KEYS.achats);
-    const autreFournisseur = achats.filter(a => a.fournisseur === achat.fournisseur && a.commande !== achat.commande).slice(0, 3);
+    const autreFournisseur = [];
 
     const modal = document.createElement('div');
     modal.className = 'modal active detail-modal';
@@ -412,13 +400,9 @@ function showAchatDetail(achat) {
  * Fiche détail EMPLOYÉ avec pointage + salaires
  */
 function showEmployeDetail(emp) {
-    const pointages = loadData(STORAGE_KEYS.pointage);
-    const salairesData = loadData(STORAGE_KEYS.salaires) || {};
-
-    const empPointages = pointages.filter(p => p.matricule === emp.matricule || p.employe === emp.nom).slice(0, 5);
-
-    const journaliers = (salairesData.journaliers || []).filter(s => s.employe === emp.nom).slice(0, 3);
-    const mensuels = (salairesData.mensuels || []).filter(s => s.employe === emp.nom).slice(0, 3);
+    const empPointages = [];
+    const journaliers = [];
+    const mensuels = [];
 
     const modal = document.createElement('div');
     modal.className = 'modal active detail-modal';
@@ -616,8 +600,17 @@ function makeDashboardStatsClickable() {
 
 let currentChantierFilter = '';
 
-function buildCrossFilterBar() {
-    const projets = loadData(STORAGE_KEYS.projets);
+async function buildCrossFilterBar() {
+    // Charger les chantiers depuis Supabase
+    let chantiersOptions = '<option value="">— Tous les chantiers —</option>';
+    try {
+        if (typeof db !== 'undefined') {
+            const { data } = await db.from('chantiers').select('id, nom').order('nom');
+            if (data) {
+                chantiersOptions += data.map(p => `<option value="${p.nom}">${p.nom}</option>`).join('');
+            }
+        }
+    } catch(e) { console.warn('buildCrossFilterBar:', e); }
 
     const sections = ['journal', 'achats', 'pointage'];
     sections.forEach(sectionId => {
@@ -632,8 +625,7 @@ function buildCrossFilterBar() {
             <i class="fas fa-filter" style="opacity:0.8"></i>
             <label>Filtrer par chantier :</label>
             <select id="cf-select-${sectionId}" onchange="applyGlobalChantierFilter(this.value)">
-                <option value="">— Tous les chantiers —</option>
-                ${projets.map(p => `<option value="${p.reference}">${p.nom} (${p.reference})</option>`).join('')}
+                ${chantiersOptions}
             </select>
             <button class="clear-filter" onclick="clearGlobalChantierFilter()"><i class="fas fa-times"></i> Effacer</button>
             <span class="cross-filter-indicator" id="cf-indicator-${sectionId}" style="display:none">Filtré</span>
@@ -677,16 +669,9 @@ function filterTableByChantier(tableId, chantierRef) {
     if (!table) return;
     const rows = table.querySelectorAll('tbody tr');
     rows.forEach(row => {
-        if (!chantierRef) {
-            row.style.display = '';
-            return;
-        }
+        if (!chantierRef) { row.style.display = ''; return; }
         const text = row.textContent.toLowerCase();
-        // Cherche la référence du chantier ou le nom du projet
-        const projets = loadData(STORAGE_KEYS.projets);
-        const projet = projets.find(p => p.reference === chantierRef);
-        const match = text.includes(chantierRef.toLowerCase()) ||
-            (projet && text.includes(projet.nom.split(' ')[0].toLowerCase()));
+        const match = text.includes(chantierRef.toLowerCase());
         row.style.display = match ? '' : 'none';
     });
 }
