@@ -1,0 +1,2068 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NySoa Construct - ERP</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1C2B3A">
+    <meta name="description" content="Gestion de chantiers, dépenses et personnel — NYSOA BTP">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <style>
+
+        /* ── ÉDITEUR DEVIS ── */
+        .ed-lot {
+            margin-bottom: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            background: white;
+        }
+        .ed-lot-header {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; background: #f8f9fa;
+            cursor: pointer; user-select: none;
+        }
+        .ed-lot-num {
+            font-size: 12px; font-weight: 700; color: #1C2B3A;
+            min-width: 22px;
+        }
+        .ed-lot-titre {
+            flex: 1; font-size: 14px; font-weight: 600; color: #1C2B3A;
+            border: none; background: transparent; outline: none;
+            cursor: pointer;
+        }
+        .ed-lot-titre:focus { background: white; border-radius: 4px; padding: 2px 6px; }
+        .ed-lot-total {
+            font-size: 13px; font-weight: 600; color: #1C2B3A;
+            min-width: 130px; text-align: right;
+        }
+        .ed-del-lot {
+            opacity: 0; transition: opacity 0.15s; color: var(--red) !important;
+        }
+        .ed-lot-header:hover .ed-del-lot { opacity: 1; }
+        .ed-table {
+            width: 100%; border-collapse: collapse;
+        }
+        .ed-table thead tr { background: #f8f9fa; }
+        .ed-table th {
+            font-size: 11px; font-weight: 600; color: #888;
+            padding: 7px 8px; border-bottom: 1px solid #e9ecef; text-align: left;
+        }
+        .ed-table td {
+            padding: 5px 6px; border-bottom: 1px solid #f0f0f0; font-size: 12px;
+        }
+        .ed-table td input {
+            width: 100%; background: transparent; border: none; font-size: 12px;
+            color: #1a1a1a; outline: none; padding: 2px 0;
+        }
+        .ed-table td input:focus {
+            background: #f5f6fa; border-radius: 3px; padding: 2px 4px;
+        }
+        .ed-table tr:last-child td { border-bottom: none; }
+        .ed-add-ligne {
+            padding: 8px 14px; font-size: 12px; color: #888;
+            cursor: pointer; border-top: 1px solid #f0f0f0;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .ed-add-ligne:hover { color: var(--orange); background: #fff8f5; }
+        .ed-total-row {
+            display: flex; justify-content: space-between;
+            padding: 7px 14px; font-size: 12px; border-bottom: 1px solid #e9ecef;
+        }
+        .ed-total-row span:first-child { color: #888; }
+        .ed-total-row span:last-child { font-weight: 600; color: #1C2B3A; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-building"></i>
+                <h2>NySoa Construct</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Tableau de bord</span>
+                </a>
+                <a href="#" class="nav-item" data-section="projets">
+                    <i class="fas fa-hard-hat"></i>
+                    <span>Projets/Chantiers</span>
+                </a>
+                <a href="#" class="nav-item" data-section="achats">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Achats</span>
+                </a>
+                <a href="#" class="nav-item" data-section="journal">
+                    <i class="fas fa-book"></i>
+                    <span>Journal/Comptabilité</span>
+                </a>
+                <a href="#" class="nav-item" data-section="logistique">
+                    <i class="fas fa-truck"></i>
+                    <span>Logistique/Stock</span>
+                </a>
+                <a href="#" class="nav-item" data-section="personnel">
+                    <i class="fas fa-users"></i>
+                    <span>Personnel</span>
+                </a>
+                <a href="#" class="nav-item" data-section="devis">
+                    <i class="fas fa-file-invoice"></i>
+                    <span>Devis</span>
+                </a>
+                <a href="#" class="nav-item" data-section="proformat">
+                    <i class="fas fa-file-contract"></i>
+                    <span>Proformat</span>
+                </a>
+                <a href="#" class="nav-item" data-section="rapports">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Rapports</span>
+                </a>
+                <a href="#" class="nav-item" data-section="pointage">
+                    <i class="fas fa-qrcode"></i>
+                    <span>Pointage QR</span>
+                </a>
+                <a href="#" class="nav-item" data-section="salaires">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>Salaires</span>
+                </a>
+                <a href="admin.html" class="nav-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Administration</span>
+                </a>
+                <a href="#" class="nav-item" data-section="antoka">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <span>Antoka</span>
+                </a>
+                <a href="#" class="nav-item" data-section="credits">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Crédits Fourn.</span>
+                </a>
+                <a href="#" class="nav-item" data-section="caisse">
+                    <i class="fas fa-cash-register"></i>
+                    <span>Caisse</span>
+                </a>
+                <a href="#" class="nav-item" data-section="catalogue">
+                    <i class="fas fa-tags"></i>
+                    <span>Catalogue Prix</span>
+                </a>
+                <a href="#" class="nav-item" data-section="contrats">
+                    <i class="fas fa-file-contract"></i>
+                    <span>Contrats</span>
+                </a>
+                <a href="#" class="nav-item" data-section="suivi-chantier">
+                    <i class="fas fa-hard-hat"></i>
+                    <span>Suivi Chantier</span>
+                </a>
+                <a href="#" class="nav-item" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Déconnexion</span>
+                </a>
+            </nav>
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="user-details">
+                    <p class="user-name">Administrateur</p>
+                    <p class="user-role">Direction</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Mobile Menu Toggle -->
+            <button class="menu-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 id="page-title">Tableau de bord</h1>
+                </div>
+                <div class="header-right">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Rechercher...">
+                    </div>
+                    <div class="notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </div>
+                    <div class="date-display">
+                        <span id="current-date"></span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-project-diagram"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>12</h3>
+                            <p>Projets en cours</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>12.5MAr</h3>
+                            <p>Chiffre d'affaires</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>45</h3>
+                            <p>Employés actifs</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>156</h3>
+                            <p>Stock total</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Évolution du Chiffre d'Affaires</h3>
+                            <div class="card-actions">
+                                <button class="btn-small" onclick="exportChart('revenueChart', 'pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                                <button class="btn-small" onclick="exportChart('revenueChart', 'excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Répartition des Projets</h3>
+                            <div class="card-actions">
+                                <button class="btn-small" onclick="exportChart('projectChart', 'pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                                <button class="btn-small" onclick="exportChart('projectChart', 'excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="projectChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Projets récents</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-timeline">
+                                <div class="activity-item">
+                                    <div class="activity-icon success">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Résidence Les Palmiers</p>
+                                        <p class="activity-time">Aujourd'hui, 10:30</p>
+                                        <p class="activity-status">En cours</p>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon warning">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Centre Commercial</p>
+                                        <p class="activity-time">Hier, 14:00</p>
+                                        <p class="activity-status">En attente</p>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon error">
+                                        <i class="fas fa-exclamation"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Bureau Ecobank</p>
+                                        <p class="activity-time">12/05/2026</p>
+                                        <p class="activity-status">Urgent</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Activités récentes</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-timeline">
+                                <div class="activity-item">
+                                    <div class="activity-icon success">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Nouveau projet créé</p>
+                                        <p class="activity-time">Aujourd'hui, 09:00</p>
+                                        <p class="activity-status">Résidence Les Palmiers</p>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon warning">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Achat validé</p>
+                                        <p class="activity-time">Hier, 16:30</p>
+                                        <p class="activity-status">Ciment Bati - 77 500 Ar</p>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon error">
+                                        <i class="fas fa-exclamation"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Alerte stock</p>
+                                        <p class="activity-time">12/05/2026</p>
+                                        <p class="activity-status">Sable bas</p>
+                                    </div>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Commande #567 validée - Matériaux</p>
+                                    <span class="activity-time">Il y a 1h</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Nouvel employé: Jean Razafy</p>
+                                    <span class="activity-time">Il y a 3h</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Projets Section -->
+            <section id="projets" class="section">
+                <div class="section-header">
+                    <h2>Gestion des Projets/Chantiers</h2>
+                    <button class="btn btn-primary" onclick="openModal('modal-projet')">
+                        <i class="fas fa-plus"></i> Nouveau Projet
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Liste des Projets</h3>
+                        <div class="filters">
+                            <select class="filter-select" id="projets-statut-filter" onchange="filtrerTableParStatut('projets-table', this.value, 7)">
+                                <option value="">Tous les statuts</option>
+                                <option value="en_cours">En cours</option>
+                                <option value="termine">Terminé</option>
+                                <option value="attente">En attente</option>
+                            </select>
+                            <button class="btn-small" onclick="exportTableToExcel('projets-table', 'projets')"><i class="fas fa-file-excel"></i> Excel</button>
+                            <button class="btn-small" onclick="exportTableToPDF('projets-table', 'projets')"><i class="fas fa-file-pdf"></i> PDF</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table" id="projets-table">
+                            <thead>
+                                <tr>
+                                    <th>Référence</th>
+                                    <th>Nom du projet</th>
+                                    <th>Client</th>
+                                    <th>Budget</th>
+                                    <th>Début</th>
+                                    <th>Fin prévue</th>
+                                    <th>Progression</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>PRJ-001</td>
+                                    <td>Résidence Les Palmiers</td>
+                                    <td>SCI Immobilier</td>
+                                    <td>850 000 Ar</td>
+                                    <td>15/01/2026</td>
+                                    <td>30/06/2026</td>
+                                    <td><div class="progress-bar"><div class="progress" style="width: 75%"></div></div></td>
+                                    <td><span class="status active">En cours</span></td>
+                                    <td>
+                                        <button class="btn-icon" title="Voir" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" title="Modifier" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon" title="Supprimer" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>PRJ-002</td>
+                                    <td>Centre Commercial</td>
+                                    <td>Groupe Alpha</td>
+                                    <td>1 200 000 Ar</td>
+                                    <td>01/02/2026</td>
+                                    <td>31/12/2026</td>
+                                    <td><div class="progress-bar"><div class="progress" style="width: 45%"></div></div></td>
+                                    <td><span class="status active">En cours</span></td>
+                                    <td>
+                                        <button class="btn-icon" title="Voir" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" title="Modifier" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon" title="Supprimer" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>PRJ-003</td>
+                                    <td>Bureau Ecobank</td>
+                                    <td>Ecobank</td>
+                                    <td>450 000 Ar</td>
+                                    <td>10/10/2025</td>
+                                    <td>15/05/2026</td>
+                                    <td><div class="progress-bar"><div class="progress" style="width: 90%"></div></div></td>
+                                    <td><span class="status warning">Bientôt terminé</span></td>
+                                    <td>
+                                        <button class="btn-icon" title="Voir" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" title="Modifier" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon" title="Supprimer" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Achats Section -->
+            <section id="achats" class="section">
+                <div class="section-header">
+                    <h2>Gestion des Achats</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="document.getElementById('import-achats').click()">
+                            <i class="fas fa-file-import"></i> Importer Excel
+                        </button>
+                        <input type="file" id="import-achats" accept=".xlsx,.xls" style="display: none" onchange="importExcelFile(this, 'achats')">
+                        <button class="btn btn-primary" onclick="openModal('modal-achat')">
+                            <i class="fas fa-plus"></i> Nouvel Achat
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>24</h3>
+                            <p>Commandes ce mois</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>125 000 Ar</h3>
+                            <p>Dépenses achats</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>5</h3>
+                            <p>En attente</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Historique des Achats</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table" id="achats-table">
+                            <thead>
+                                <tr>
+                                    <th>N° Commande</th>
+                                    <th>Chantier</th>
+                                    <th>Libellé</th>
+                                    <th>Fournisseur</th>
+                                    <th>Date</th>
+                                    <th>Qté × Prix</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Journal / Comptabilité Section -->
+            <section id="journal" class="section">
+                <div class="section-header">
+                    <h2>Journal / Comptabilité</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="document.getElementById('import-journal').click()">
+                            <i class="fas fa-file-import"></i> Importer Excel
+                        </button>
+                        <input type="file" id="import-journal" accept=".xlsx,.xls" style="display: none" onchange="importExcelFile(this, 'journal')">
+                        <button class="btn btn-primary" onclick="openModal('modal-journal')">
+                            <i class="fas fa-plus"></i> Nouvelle Écriture
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="journal-stat-recettes">—</h3>
+                            <p>Recettes 2026</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="journal-stat-depenses">—</h3>
+                            <p>Dépenses 2026</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="journal-stat-benefice">—</h3>
+                            <p>Bénéfice net</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Journal des écritures</h3>
+                        <div class="filters">
+                            <input type="date" class="filter-input" id="journal-date-filter" oninput="filtrerJournalDate(this.value)">
+                            <select class="filter-select" id="journal-type-filter" onchange="filtrerJournalType(this.value)">
+                                <option value="">Tous les types</option>
+                                <option value="RECETTE">Recette</option>
+                                <option value="DEPENSE">Dépense</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table" id="journal-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Chantier</th>
+                                    <th>Désignation</th>
+                                    <th>Montant</th>
+                                    <th>Paiement</th>
+                                    <th>Catégorie</th>
+                                    <th>Travaux</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Logistique / Gestion des Stocks Section -->
+            <section id="logistique" class="section">
+                <div class="section-header">
+                    <h2>Logistique / Gestion des Stocks</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="document.getElementById('import-logistique').click()">
+                            <i class="fas fa-file-import"></i> Importer Excel
+                        </button>
+                        <input type="file" id="import-logistique" accept=".xlsx,.xls" style="display:none" onchange="importExcelFile(this,'logistique')">
+                        <button class="btn btn-secondary" onclick="openModal('modal-mouvement')">
+                            <i class="fas fa-exchange-alt"></i> Enregistrer un mouvement
+                        </button>
+                        <button class="btn btn-primary" onclick="openModal('modal-stock')">
+                            <i class="fas fa-plus"></i> Nouvel article
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats stock -->
+                <div class="stats-grid" id="stock-stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fas fa-boxes"></i></div>
+                        <div class="stat-info"><h3 id="stat-total-articles">—</h3><p>Articles référencés</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="stat-info"><h3 id="stat-stocks-bas">—</h3><p>Stocks sous seuil</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fas fa-money-bill-wave"></i></div>
+                        <div class="stat-info"><h3 id="stat-valeur-stock">—</h3><p>Valeur totale stock</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><i class="fas fa-exchange-alt"></i></div>
+                        <div class="stat-info"><h3 id="stat-mouvements-mois">—</h3><p>Mouvements ce mois</p></div>
+                    </div>
+                </div>
+
+                <!-- Filtres stock par chantier/emplacement -->
+                <div class="card" style="margin-bottom:16px">
+                    <div class="card-body" style="padding:12px 20px">
+                        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+                            <i class="fas fa-filter" style="color:#0066cc"></i>
+                            <label style="font-weight:600;color:#475569;white-space:nowrap">Vue par emplacement :</label>
+                            <select id="stock-emplacement-filter" class="filter-select" onchange="stockFilterByEmplacement(this.value)" style="min-width:200px">
+                                <option value="">— Tous les emplacements —</option>
+                            </select>
+                            <label style="font-weight:600;color:#475569;white-space:nowrap">Catégorie :</label>
+                            <select id="stock-categorie-filter" class="filter-select" onchange="stockFilterByCategorie(this.value)" style="min-width:160px">
+                                <option value="">Toutes</option>
+                                <option value="Matériaux">Matériaux</option>
+                                <option value="Outillage">Outillage</option>
+                                <option value="Équipement">Équipement</option>
+                                <option value="Consommable">Consommable</option>
+                            </select>
+                            <input type="text" id="stock-search" placeholder="Rechercher un article…" class="filter-select" oninput="stockSearch(this.value)" style="min-width:180px">
+                            <button class="btn-small" onclick="stockResetFilters()"><i class="fas fa-times"></i> Effacer</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tableau inventaire -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📦 Inventaire du Stock</h3>
+                        <div class="card-actions">
+                            <button class="btn-small" onclick="exportTableToExcel('stock-table','inventaire_stock')"><i class="fas fa-file-excel"></i> Excel</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table" id="stock-table">
+                            <thead>
+                                <tr>
+                                    <th>Référence</th>
+                                    <th>Désignation</th>
+                                    <th>Catégorie</th>
+                                    <th>Emplacement / Chantier</th>
+                                    <th>Quantité</th>
+                                    <th>Unité</th>
+                                    <th>Prix unitaire</th>
+                                    <th>Valeur</th>
+                                    <th>Seuil alerte</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stock-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Historique des mouvements -->
+                <div class="card" style="margin-top:20px">
+                    <div class="card-header">
+                        <h3>📋 Historique des mouvements</h3>
+                        <div class="card-actions">
+                            <select id="mouvement-filter-article" class="filter-select" onchange="filterMouvements()" style="min-width:180px">
+                                <option value="">Tous les articles</option>
+                            </select>
+                            <select id="mouvement-filter-type" class="filter-select" onchange="filterMouvements()">
+                                <option value="">Tous types</option>
+                                <option value="Entrée">Entrée</option>
+                                <option value="Sortie">Sortie</option>
+                                <option value="Transfert">Transfert</option>
+                            </select>
+                            <button class="btn-small" onclick="exportTableToExcel('mouvement-table','mouvements_stock')"><i class="fas fa-file-excel"></i> Excel</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table" id="mouvement-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Article</th>
+                                    <th>Quantité</th>
+                                    <th>Emplacement source</th>
+                                    <th>Emplacement dest.</th>
+                                    <th>Chantier</th>
+                                    <th>Motif</th>
+                                    <th>Saisi par</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mouvement-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Vue stock par chantier -->
+                <div class="card" style="margin-top:20px">
+                    <div class="card-header">
+                        <h3>🏗️ Stock par chantier</h3>
+                    </div>
+                    <div class="card-body" id="stock-par-chantier-body">
+                        <p style="color:#94a3b8;text-align:center;font-style:italic">Chargement…</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Personnel Section -->
+            <section id="personnel" class="section">
+                <div class="section-header">
+                    <h2>Gestion du Personnel</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="document.getElementById('import-personnel').click()">
+                            <i class="fas fa-file-import"></i> Importer Excel
+                        </button>
+                        <input type="file" id="import-personnel" accept=".xlsx,.xls" style="display: none" onchange="importExcelFile(this, 'personnel')">
+                        <button class="btn btn-primary" onclick="openModal('modal-employe')">
+                            <i class="fas fa-plus"></i> Nouvel Employé
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>45</h3>
+                            <p>Total employés</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-hard-hat"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>32</h3>
+                            <p>Ouvriers</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>13</h3>
+                            <p>Cadres/Admin</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Liste du Personnel</h3>
+                        <div class="filters">
+                            <input type="text" placeholder="Rechercher..." class="filter-input" id="personnel-search" oninput="filtrerPersonnelRecherche(this.value)">
+                            <select class="filter-select" id="personnel-dept-filter" onchange="filtrerPersonnelDept(this.value)">
+                                <option value="">Tous les départements</option>
+                                <option value="chantier">Chantier</option>
+                                <option value="admin">Administration</option>
+                                <option value="technique">Technique</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table" id="personnel-table">
+                            <thead>
+                                <tr>
+                                    <th>Matricule</th>
+                                    <th>Nom & Prénom</th>
+                                    <th>Poste</th>
+                                    <th>Département</th>
+                                    <th>Date embauche</th>
+                                    <th>Salaire</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="personnel-table-body">
+                                <tr>
+                                    <td>EMP-001</td>
+                                    <td>Razafy Jean</td>
+                                    <td>Chef de chantier</td>
+                                    <td>Chantier</td>
+                                    <td>15/01/2024</td>
+                                    <td>1 250 000 Ar</td>
+                                    <td><span class="status success">Actif</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>EMP-002</td>
+                                    <td>Rasoarimanana Marie</td>
+                                    <td>Comptable</td>
+                                    <td>Administration</td>
+                                    <td>01/03/2023</td>
+                                    <td>900 000 Ar</td>
+                                    <td><span class="status success">Actif</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>EMP-003</td>
+                                    <td>Andriamanitra Paul</td>
+                                    <td>Maçon</td>
+                                    <td>Chantier</td>
+                                    <td>10/06/2025</td>
+                                    <td>600 000 Ar</td>
+                                    <td><span class="status success">Actif</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Devis Section -->
+            <section id="devis" class="section">
+                <div class="section-header">
+                    <h2>Gestion des Devis</h2>
+                    <button class="btn btn-primary" onclick="ouvrirEditeurDevis(null)">
+                        <i class="fas fa-plus"></i> Nouveau Devis
+                    </button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fas fa-file-invoice"></i></div>
+                        <div class="stat-info"><h3 id="devis-stat-total">—</h3><p>Total devis</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-info"><h3 id="devis-stat-acceptes">—</h3><p>Acceptés</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange"><i class="fas fa-clock"></i></div>
+                        <div class="stat-info"><h3 id="devis-stat-attente">—</h3><p>En attente</p></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Liste des Devis</h3>
+                        <div class="filters">
+                            <select class="filter-select" onchange="filtrerDevis(this.value)">
+                                <option value="">Tous les statuts</option>
+                                <option value="ACCEPTE">Accepté</option>
+                                <option value="ENVOYE">Envoyé</option>
+                                <option value="BROUILLON">Brouillon</option>
+                                <option value="REFUSE">Refusé</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>N° Devis</th><th>Client</th><th>Objet</th>
+                                    <th>Montant</th><th>Date</th><th>Validité</th>
+                                    <th>Statut</th><th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="devis-tbody">
+                                <tr><td colspan="8" style="text-align:center;color:#888;padding:24px">Chargement…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Proformat Section -->
+            <section id="proformat" class="section">
+                <div class="section-header">
+                    <h2>Gestion des Proformats</h2>
+                    <button class="btn btn-primary" onclick="openModal('modal-proformat')">
+                        <i class="fas fa-plus"></i> Nouveau Proformat
+                    </button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-file-contract"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>8</h3>
+                            <p>Proformats ce mois</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>5</h3>
+                            <p>Convertis en facture</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>3</h3>
+                            <p>En attente</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Liste des Proformats</h3>
+                        <div class="filters">
+                            <select class="filter-select">
+                                <option value="">Tous les statuts</option>
+                                <option value="envoye">Envoyé</option>
+                                <option value="attente">En attente</option>
+                                <option value="facture">Facturé</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>N° Proformat</th>
+                                    <th>Client</th>
+                                    <th>Projet</th>
+                                    <th>Montant</th>
+                                    <th>Date</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>PRO-001</td>
+                                    <td>SCI Immobilier</td>
+                                    <td>Résidence Les Palmiers</td>
+                                    <td>850 000 Ar</td>
+                                    <td>15/05/2026</td>
+                                    <td><span class="status success">Envoyé</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
+                                        <button class="btn-icon" onclick="convertToFacture(this)"><i class="fas fa-file-invoice-dollar"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>PRO-002</td>
+                                    <td>Ecobank</td>
+                                    <td>Bureau Ecobank</td>
+                                    <td>450 000 Ar</td>
+                                    <td>13/05/2026</td>
+                                    <td><span class="status warning">En attente</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
+                                        <button class="btn-icon" onclick="convertToFacture(this)"><i class="fas fa-file-invoice-dollar"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Rapports Section -->
+            <section id="rapports" class="section">
+                <div class="section-header">
+                    <h2>Rapports et Statistiques</h2>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Rapports Financiers</h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="report-list">
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Bilan 2026</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Compte de résultat Mai</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-excel"></i>
+                                    <span>Suivi budgétaire</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Rapports Projets</h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="report-list">
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>État d'avancement global</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-excel"></i>
+                                    <span>Planning chantiers</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Rapport qualité</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Rapports RH</h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="report-list">
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Effectif mensuel</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-excel"></i>
+                                    <span>Masse salariale</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Congés et absences</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Rapports Stocks</h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="report-list">
+                                <li>
+                                    <i class="fas fa-file-excel"></i>
+                                    <span>Inventaire stock</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Mouvements stock</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-excel"></i>
+                                    <span>Valorisation stock</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pointage QR Section -->
+            <section id="pointage" class="section">
+                <div class="section-header">
+                    <h2>Pointage QR Code</h2>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Génération QR Codes -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Générer QR Codes Employés</h3>
+                        </div>
+                        <div class="card-body">
+                            <button class="btn btn-primary" onclick="generateAllQRCodes()">
+                                <i class="fas fa-qrcode"></i> Générer tous les QR Codes
+                            </button>
+                            <div id="qr-codes-container" style="margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scan QR Code -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Scanner QR Code Pointage</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="qr-reader" style="width: 100%;"></div>
+                            <div id="qr-result" style="margin-top: 20px; display: none;">
+                                <h4>Résultat du scan:</h4>
+                                <p id="qr-result-text"></p>
+                                <div id="pointage-form" style="margin-top: 15px; display: none;">
+                                    <div class="form-group">
+                                        <label>Chantier</label>
+                                        <select id="chantier-select" class="form-control">
+                                            <option value="">Sélectionner un chantier</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Type de pointage</label>
+                                        <select id="type-pointage" class="form-control">
+                                            <option value="arrivee">Arrivée</option>
+                                            <option value="depart">Départ</option>
+                                        </select>
+                                    </div>
+                                    <button class="btn btn-primary" onclick="enregistrerPointage()">
+                                        <i class="fas fa-check"></i> Enregistrer Pointage
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Historique Pointage -->
+                    <div class="card" style="grid-column: span 2;">
+                        <div class="card-header">
+                            <h3>Historique des Pointages</h3>
+                            <button class="btn btn-secondary" onclick="exportPointage()">
+                                <i class="fas fa-download"></i> Exporter
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <table id="pointage-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Employé</th>
+                                        <th>Chantier</th>
+                                        <th>Type</th>
+                                        <th>Heure</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pointage-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Salaires Section -->
+            <section id="salaires" class="section">
+                <div class="section-header">
+                    <h2>Calcul des Salaires</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="calculateSalaries()">
+                            <i class="fas fa-calculator"></i> Calculer les Salaires
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportSalaires()">
+                            <i class="fas fa-file-export"></i> Exporter
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Journaliers</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-container">
+                                <table id="salaires-journaliers-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Employé</th>
+                                            <th>Jours Travaillés</th>
+                                            <th>Taux Journalier</th>
+                                            <th>Total</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="salaires-journaliers-body">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Mensuels</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-container">
+                                <table id="salaires-mensuels-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Employé</th>
+                                            <th>Jours Présents</th>
+                                            <th>Salaire Mensuel</th>
+                                            <th>Prorata</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="salaires-mensuels-body">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SUIVI CHANTIER — iframe -->
+            <section id="suivi-chantier" class="section">
+                <iframe
+                    src="suivi-chantier.html"
+                    style="width:100%;height:calc(100vh - 80px);border:none;border-radius:12px"
+                    title="Suivi Chantier">
+                </iframe>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modal Projet -->
+    <div id="modal-projet" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouveau Projet</h3>
+                <button class="close-modal" onclick="closeModal('modal-projet')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-projet">
+                    <div class="form-group">
+                        <label>Nom du projet</label>
+                        <input type="text" name="nom" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Client</label>
+                        <input type="text" name="client" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Budget (€)</label>
+                            <input type="number" name="budget" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Date de début</label>
+                            <input type="date" name="debut" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Date de fin prévue</label>
+                        <input type="date" name="fin" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-projet')">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Achat -->
+    <div id="modal-achat" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouvel Achat</h3>
+                <button class="close-modal" onclick="closeModal('modal-achat')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-achat">
+                    <div class="form-group">
+                        <label>Fournisseur</label>
+                        <input type="text" name="fournisseur" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" name="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Montant (€)</label>
+                            <input type="number" name="montant" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-achat')">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Employé -->
+    <div id="modal-employe" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouvel Employé</h3>
+                <button class="close-modal" onclick="closeModal('modal-employe')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-employe">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nom</label>
+                            <input type="text" name="nom" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Prénom</label>
+                            <input type="text" name="prenom" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Poste</label>
+                        <input type="text" name="poste" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Département</label>
+                        <select name="departement" required>
+                            <option value="">Sélectionner...</option>
+                            <option value="chantier">Chantier</option>
+                            <option value="admin">Administration</option>
+                            <option value="technique">Technique</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date embauche</label>
+                            <input type="date" name="date_embauche" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Salaire (Ar)</label>
+                            <input type="number" name="salaire" required>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-employe')">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Devis -->
+    <div id="modal-devis" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouveau Devis</h3>
+                <button class="close-modal" onclick="closeModal('modal-devis')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-devis">
+                    <div class="form-group">
+                        <label>Client</label>
+                        <input type="text" name="client" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Projet</label>
+                        <input type="text" name="projet" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Montant (Ar)</label>
+                            <input type="number" name="montant" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Validité (jours)</label>
+                            <input type="number" name="validite" value="30" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-devis')">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Proformat -->
+    <div id="modal-proformat" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouveau Proformat</h3>
+                <button class="close-modal" onclick="closeModal('modal-proformat')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-proformat">
+                    <div class="form-group">
+                        <label>Client</label>
+                        <input type="text" name="client" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Projet</label>
+                        <input type="text" name="projet" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Montant (Ar)</label>
+                            <input type="number" name="montant" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" name="date" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-proformat')">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal Journal (Nouvelle Écriture) -->
+    <div id="modal-journal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouvelle Écriture Comptable</h3>
+                <button class="close-modal" onclick="closeModal('modal-journal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-journal" onsubmit="submitJournalForm(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date *</label>
+                            <input type="date" name="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Chantier</label>
+                            <select name="chantier" id="journal-chantier-select">
+                                <option value="">— Sélectionner —</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Désignation *</label>
+                        <input type="text" name="designation" placeholder="Ex: Achat ciment, Salaire maçon…" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Montant (Ar) *</label>
+                            <input type="number" name="montant" min="0" step="any" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Catégorie</label>
+                            <select name="categorie">
+                                <option value="SALAIRE JOURNALIER">Salaire journalier</option>
+                                <option value="SALAIRE MENSUEL">Salaire mensuel</option>
+                                <option value="ANTOKA">Antoka</option>
+                                <option value="APPROVISIONNEMENT">Approvisionnement</option>
+                                <option value="MATERIEL">Matériel</option>
+                                <option value="SERVICE">Service</option>
+                                <option value="FRAIS DE TRANSPORT">Frais de transport</option>
+                                <option value="FRAIS DE DEPLACEMENT">Frais de déplacement</option>
+                                <option value="FRAIS MOBILE MONEY">Frais Mobile Money</option>
+                                <option value="FONCTIONNEMENT">Fonctionnement</option>
+                                <option value="COMMUNICATION">Communication</option>
+                                <option value="BONUS">Bonus</option>
+                                <option value="SAKAFO">Sakafo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Mode de paiement</label>
+                            <select name="mode_paiement">
+                                <option value="ESPECE">Espèce</option>
+                                <option value="CHEQUE">Chèque</option>
+                                <option value="MOBILE MONEY">Mobile Money</option>
+                                <option value="VIREMENT BANCAIRE">Virement bancaire</option>
+                                <option value="A CREDIT">À crédit</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Type de travaux</label>
+                            <select name="travaux">
+                                <option value="">—</option>
+                                <option value="MAÇONNERIE">Maçonnerie</option>
+                                <option value="CARRELAGE">Carrelage</option>
+                                <option value="PLOMBERIE">Plomberie</option>
+                                <option value="ASSAINISSEMENT">Assainissement</option>
+                                <option value="TOITURE">Toiture</option>
+                                <option value="PLAFONNAGE">Plafonnage</option>
+                                <option value="ELECTRICITE">Électricité</option>
+                                <option value="PEINTURE">Peinture</option>
+                                <option value="MENUISERIE">Menuiserie</option>
+                                <option value="OUVRAGE METALLIQUE">Ouvrage métallique</option>
+                                <option value="MATERIEL">Matériel</option>
+                                <option value="CHARPENTE">Charpente</option>
+                                <option value="FONCTIONNEMENT">Fonctionnement</option>
+                                <option value="NETTOYAGE">Nettoyage</option>
+                                <option value="SERVICE EXTERNE">Service externe</option>
+                                <option value="ETANCHEITE">Étanchéité</option>
+                                <option value="AUTOBLOCANTS">Autoblocants</option>
+                                <option value="REVETEMENT">Revêtement</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-journal')">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nouvel Article Stock -->
+    <div id="modal-stock" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouvel Article en Stock</h3>
+                <button class="close-modal" onclick="closeModal('modal-stock')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-stock">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Désignation *</label>
+                            <input type="text" name="nom" placeholder="Ex: Ciment Portland" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Catégorie *</label>
+                            <select name="categorie" required>
+                                <option value="">Sélectionner…</option>
+                                <option value="Matériaux">Matériaux</option>
+                                <option value="Outillage">Outillage</option>
+                                <option value="Équipement">Équipement</option>
+                                <option value="Consommable">Consommable</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Quantité initiale *</label>
+                            <input type="number" name="quantite" min="0" step="any" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Unité *</label>
+                            <input type="text" name="unite" placeholder="Sac, m³, m, Unité…" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Prix unitaire (Ar)</label>
+                            <input type="number" name="prix_unitaire" min="0" step="any">
+                        </div>
+                        <div class="form-group">
+                            <label>Seuil d'alerte</label>
+                            <input type="number" name="seuil_alerte" min="0" step="any" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Emplacement / Chantier *</label>
+                        <select name="emplacement" id="stock-form-emplacement" required>
+                            <option value="">Sélectionner…</option>
+                            <option value="Entrepôt central">Entrepôt central</option>
+                            <option value="Entrepôt A">Entrepôt A</option>
+                            <option value="Entrepôt B">Entrepôt B</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea name="notes" rows="2" placeholder="Observations…"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-stock')">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Mouvement de Stock -->
+    <div id="modal-mouvement" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Enregistrer un Mouvement</h3>
+                <button class="close-modal" onclick="closeModal('modal-mouvement')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-mouvement">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Type de mouvement *</label>
+                            <select name="type" id="mouvement-type-select" onchange="mouvementTypeChange(this.value)" required>
+                                <option value="">Sélectionner…</option>
+                                <option value="Entrée">📥 Entrée (approvisionnement)</option>
+                                <option value="Sortie">📤 Sortie (utilisation chantier)</option>
+                                <option value="Transfert">🔄 Transfert entre emplacements</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Date *</label>
+                            <input type="date" name="date" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Article *</label>
+                        <select name="article_ref" id="mouvement-article-select" required>
+                            <option value="">Sélectionner un article…</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Quantité *</label>
+                            <input type="number" name="quantite" min="0.01" step="any" required>
+                        </div>
+                        <div class="form-group" id="mouvement-source-group">
+                            <label>Emplacement source *</label>
+                            <select name="emplacement_source" id="mouvement-source-select">
+                                <option value="">—</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group" id="mouvement-dest-group">
+                            <label>Emplacement destination</label>
+                            <select name="emplacement_dest" id="mouvement-dest-select">
+                                <option value="">—</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="mouvement-chantier-group">
+                            <label>Chantier associé</label>
+                            <select name="chantier" id="mouvement-chantier-select">
+                                <option value="">— Aucun —</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Motif / Observations</label>
+                        <textarea name="motif" rows="2" placeholder="Ex: Approvisionnement fournisseur Bati, Utilisation dalle RDC…"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Saisi par</label>
+                        <input type="text" name="saisi_par" placeholder="Votre nom…">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-mouvement')">Annuler</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Enregistrer le mouvement</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="devis.js"></script>
+    <script src="import-excel.js"></script>
+    <script src="script.js"></script>
+    <script src="enhancements.js"></script>
+    <script src="stock.js"></script>
+    <script src="supabase.js"></script>
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('Service Worker enregistré avec succès:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Erreur lors de l\'enregistrement du Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════════
+         ÉDITEUR DE DEVIS — overlay plein écran
+    ═══════════════════════════════════════════════════════════ -->
+    <div id="editeur-devis-overlay" style="display:none;position:fixed;inset:0;z-index:2000;background:#f5f6fa;overflow-y:auto;">
+      <div style="max-width:1050px;margin:0 auto;padding:24px 28px 60px">
+
+        <!-- Barre d'actions fixe -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;background:#f5f6fa;padding:12px 0;border-bottom:1px solid #e9ecef">
+          <button class="btn btn-secondary" onclick="fermerEditeurDevis()"><i class="fas fa-arrow-left"></i> Retour</button>
+          <span style="flex:1;font-size:16px;font-weight:700;color:#1C2B3A">Éditeur de Devis</span>
+          <select id="ed-statut" class="filter-select" style="width:140px">
+            <option value="BROUILLON">Brouillon</option>
+            <option value="ENVOYE">Envoyé</option>
+            <option value="ACCEPTE">Accepté</option>
+            <option value="REFUSE">Refusé</option>
+          </select>
+          <button class="btn btn-secondary" onclick="if(devisEnCours&&devisEnCours.id)imprimerDevis(devisEnCours.id)"><i class="fas fa-print"></i> Imprimer</button>
+          <button id="btn-save-devis" class="btn btn-primary" onclick="sauvegarderDevis()"><i class="fas fa-save"></i> Sauvegarder</button>
+        </div>
+
+        <!-- En-tête devis -->
+        <div style="display:grid;grid-template-columns:1fr auto;gap:24px;margin-bottom:20px">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#1C2B3A;margin-bottom:2px">NySoa BTP</div>
+            <div style="font-size:12px;color:#888">Lot 0708 k Ambohimena Antsirabe · +261 34 99 498 49</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#1C2B3A">DEVIS</div>
+            <div style="font-size:12px;color:#888;margin-top:4px">
+              N° <input id="ed-numero" style="width:130px;font-size:12px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1C2B3A;outline:none;text-align:right">
+            </div>
+            <div style="font-size:12px;color:#888;margin-top:3px">
+              Date : <input type="date" id="ed-date" style="font-size:12px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1C2B3A;outline:none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Infos client -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;background:white;border:1px solid #e9ecef;border-radius:10px;padding:14px 18px;margin-bottom:16px">
+          <div><label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Client</label>
+            <input id="ed-client" style="width:100%;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a1a1a;outline:none;padding-bottom:2px"></div>
+          <div><label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Lieu des travaux</label>
+            <input id="ed-lieu" style="width:100%;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a1a1a;outline:none;padding-bottom:2px"></div>
+          <div><label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Contact</label>
+            <input id="ed-contact" style="width:100%;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a1a1a;outline:none;padding-bottom:2px"></div>
+        </div>
+
+        <!-- Objet -->
+        <div style="background:white;border:1px solid #e9ecef;border-radius:10px;padding:12px 18px;margin-bottom:20px">
+          <label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Objet des travaux</label>
+          <input id="ed-objet" style="width:100%;font-size:13px;border:none;background:transparent;color:#1a1a1a;outline:none">
+        </div>
+
+        <!-- Lots -->
+        <div id="ed-lots-container"></div>
+
+        <!-- Bouton ajouter lot -->
+        <button class="btn btn-secondary" onclick="edAjouterLot()" style="margin-bottom:24px">
+          <i class="fas fa-plus"></i> Ajouter un lot
+        </button>
+
+        <!-- Totaux -->
+        <div style="display:flex;justify-content:flex-end">
+          <div style="width:340px;border:1px solid #e9ecef;border-radius:10px;overflow:hidden">
+            <div id="ed-sous-totaux"></div>
+            <div style="display:flex;justify-content:space-between;padding:8px 14px;font-size:13px;border-top:1px solid #e9ecef">
+              <span style="color:#888">TVA (%)</span>
+              <input id="ed-tva" type="number" min="0" max="100" step="0.01" value="0"
+                style="width:60px;text-align:right;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;outline:none"
+                onchange="updateTotauxEditeur()">
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:8px 14px;font-size:13px;border-top:1px solid #e9ecef">
+              <span style="color:#888">Total HT</span><span id="ed-total-ht" style="font-weight:600">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;font-size:15px;font-weight:700;background:#1C2B3A;color:white">
+              <span>Total général</span><span id="ed-total-ttc">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="ed-total-lettres" style="margin-top:12px;font-size:12px;font-style:italic;color:#888;text-align:right"></div>
+
+      </div>
+    </div>
+
+
+<!-- ══ SECTION ANTOKA ══════════════════════════════════════ -->
+<section id="antoka" class="section">
+  <div class="section-header">
+    <h2><i class="fas fa-hand-holding-usd" style="color:var(--orange);margin-right:8px"></i>Antoka — Acomptes Employés</h2>
+    <div class="header-actions">
+    <button class="btn btn-secondary" onclick="document.getElementById('import-antoka').click()"><i class="fas fa-file-import"></i> Importer Excel</button>
+      <input type="file" id="import-antoka" accept=".xlsx,.xls" style="display:none" onchange="importExcelFile(this,'antoka')">
+      <button class="btn btn-primary" onclick="document.getElementById('modal-antoka').classList.add('active')"><i class="fas fa-plus"></i> Nouvel antoka</button>
+    </div>
+  </div>
+  <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-coins"></i></div><div class="stat-info"><h3 id="antoka-total-depart">—</h3><p>Total accordé</p></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="antoka-total-paye">—</h3><p>Total remboursé</p></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-exclamation-circle"></i></div><div class="stat-info"><h3 id="antoka-total-reste">—</h3><p>Reste à rembourser</p></div></div>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="table"><thead><tr><th>Employé</th><th>Chantier</th><th>Montant accordé</th><th>Remboursé</th><th>Reste</th><th>Progression</th><th>Actions</th></tr></thead>
+      <tbody id="antoka-tbody"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION CRÉDITS FOURNISSEURS ═══════════════════════ -->
+<section id="credits" class="section">
+  <div class="section-header">
+    <h2><i class="fas fa-credit-card" style="color:var(--red);margin-right:8px"></i>Crédits Fournisseurs</h2>
+    <div class="header-actions">
+      <button class="btn btn-primary" onclick="document.getElementById('modal-credit').classList.add('active')"><i class="fas fa-plus"></i> Nouveau crédit</button>
+    </div>
+  </div>
+  <div class="stats-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px">
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-file-invoice-dollar"></i></div><div class="stat-info"><h3 id="credit-total-dette">—</h3><p>Total dettes fournisseurs</p></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-hourglass-half"></i></div><div class="stat-info"><h3 id="credit-total-reste">—</h3><p>Reste à payer</p></div></div>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="table"><thead><tr><th>Fournisseur</th><th>Montant total</th><th>Payé</th><th>Reste</th><th>1ère échéance</th><th>Montant 1</th><th>2ème échéance</th><th>Actions</th></tr></thead>
+      <tbody id="credits-tbody"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION CAISSE ═════════════════════════════════════ -->
+<section id="caisse" class="section">
+  <div class="section-header">
+    <h2><i class="fas fa-cash-register" style="color:var(--green);margin-right:8px"></i>Caisse Interne</h2>
+    <div class="header-actions">
+    <button class="btn btn-secondary" onclick="document.getElementById('import-caisse').click()"><i class="fas fa-file-import"></i> Importer Excel</button>
+      <input type="file" id="import-caisse" accept=".xlsx,.xls" style="display:none" onchange="importExcelFile(this,'caisse')">
+      <button class="btn btn-primary" onclick="document.getElementById('modal-caisse').classList.add('active')"><i class="fas fa-minus"></i> Sortie caisse</button>
+    </div>
+  </div>
+  <div class="stats-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px">
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-wallet"></i></div><div class="stat-info"><h3 id="caisse-solde">—</h3><p>Solde actuel</p></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-arrow-down"></i></div><div class="stat-info"><h3 id="caisse-sorties">—</h3><p>Total sorties</p></div></div>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="table"><thead><tr><th>Date</th><th>Désignation</th><th>Montant</th><th>Solde après</th><th>Actions</th></tr></thead>
+      <tbody id="caisse-tbody"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION CATALOGUE PRIX ═════════════════════════════ -->
+<section id="catalogue" class="section">
+  <div class="section-header">
+    <h2><i class="fas fa-tags" style="color:var(--blue);margin-right:8px"></i>Catalogue de Prix</h2>
+    <div class="header-actions">
+      <span id="catalogue-count" style="color:var(--text-muted);font-size:0.84rem"></span>
+      <button class="btn btn-secondary" onclick="document.getElementById('import-catalogue').click()"><i class="fas fa-file-import"></i> Importer Excel</button>
+      <input type="file" id="import-catalogue" accept=".xlsx,.xls" style="display:none" onchange="importExcelFile(this,'catalogue')">
+      <input type="text" id="catalogue-search" class="filter-select" placeholder="Rechercher un article..." oninput="loadCatalogue()" style="width:200px">
+      <select id="catalogue-fourn" class="filter-select" onchange="loadCatalogue()">
+        <option value="">Tous fournisseurs</option>
+        <option>MAX</option><option>BRICOTECH</option><option>SOMALAVAL</option>
+      </select>
+      <button class="btn btn-primary" onclick="document.getElementById('modal-prix').classList.add('active')"><i class="fas fa-plus"></i> Ajouter article</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="table"><thead><tr><th>Désignation</th><th>Prix unitaire</th><th>Unité</th><th>Fournisseur</th><th>Actions</th></tr></thead>
+      <tbody id="catalogue-tbody"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION CONTRATS ════════════════════════════════════ -->
+<section id="contrats" class="section">
+  <div class="section-header">
+    <h2><i class="fas fa-file-contract" style="color:var(--purple);margin-right:8px"></i>Contrats Prestataires</h2>
+    <div class="header-actions">
+      <span id="contrats-count" style="color:var(--text-muted);font-size:0.84rem"></span>
+      <button class="btn btn-secondary" onclick="document.getElementById('import-contrats').click()"><i class="fas fa-file-import"></i> Importer Excel</button>
+      <input type="file" id="import-contrats" accept=".xlsx,.xls" style="display:none" onchange="importExcelFile(this,'contrats')">
+      <button class="btn btn-primary" onclick="document.getElementById('modal-contrat').classList.add('active')"><i class="fas fa-plus"></i> Nouveau contrat</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="table"><thead><tr><th>Désignation</th><th>Prestataire</th><th>Chantier</th><th>Prix convenu</th><th>Début</th><th>Statut</th><th>Actions</th></tr></thead>
+      <tbody id="contrats-tbody"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<!-- ══ MODALS NOUVEAUX MODULES ═════════════════════════════ -->
+
+<!-- Modal Antoka -->
+<div class="modal" id="modal-antoka">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Nouvel Antoka</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-body">
+      <form onsubmit="saveAntoka(event)">
+        <div class="form-row">
+          <div class="form-group"><label>Employé</label><input name="employe" required placeholder="Nom de l'employé"></div>
+          <div class="form-group"><label>Chantier</label><input name="chantier" placeholder="Chantier"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Montant accordé (Ar)</label><input name="montant_depart" type="number" required placeholder="0"></div>
+          <div class="form-group"><label>Déjà remboursé (Ar)</label><input name="montant_paye" type="number" placeholder="0" value="0"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Date</label><input name="date" type="date" required></div>
+          <div class="form-group"><label>Motif</label><input name="motif" placeholder="Motif de l'antoka"></div>
+        </div>
+        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal paiement antoka -->
+<div class="modal" id="modal-antoka-payment">
+  <div class="modal-content" style="max-width:380px">
+    <div class="modal-header"><h3>Ajouter un remboursement</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="ap-id">
+      <p style="margin-bottom:12px;color:var(--text-secondary)">Employé : <strong id="ap-employe"></strong><br>Reste dû : <strong id="ap-reste" style="color:var(--red)"></strong></p>
+      <div class="form-group"><label>Montant remboursé (Ar)</label><input id="ap-montant" type="number" placeholder="0" required></div>
+      <div class="form-group"><label>Date</label><input id="ap-date" type="date" required></div>
+      <div class="form-actions"><button class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button class="btn btn-primary" onclick="saveAntokaPayment()">Confirmer</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Crédit Fournisseur -->
+<div class="modal" id="modal-credit">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Nouveau Crédit Fournisseur</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-body">
+      <form onsubmit="saveCredit(event)">
+        <div class="form-row">
+          <div class="form-group"><label>Fournisseur</label><input name="fournisseur" required placeholder="Nom du fournisseur"></div>
+          <div class="form-group"><label>Montant total (Ar)</label><input name="montant_total" type="number" required placeholder="0"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>1ère échéance</label><input name="date1" type="date"></div>
+          <div class="form-group"><label>Montant 1er paiement</label><input name="montant1" type="number" placeholder="0"></div>
+        </div>
+        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Caisse -->
+<div class="modal" id="modal-caisse">
+  <div class="modal-content" style="max-width:400px">
+    <div class="modal-header"><h3>Sortie de caisse</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-body">
+      <form onsubmit="saveCaisse(event)">
+        <div class="form-row">
+          <div class="form-group"><label>Date</label><input name="date" type="date" required></div>
+          <div class="form-group"><label>Montant (Ar)</label><input name="montant" type="number" required placeholder="0"></div>
+        </div>
+        <div class="form-group"><label>Désignation</label><input name="designation" required placeholder="Description du paiement"></div>
+        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Prix -->
+<div class="modal" id="modal-prix">
+  <div class="modal-content" style="max-width:400px">
+    <div class="modal-header"><h3>Ajouter au catalogue</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-body">
+      <form onsubmit="savePrix(event)">
+        <div class="form-group"><label>Désignation</label><input name="designation" required placeholder="Nom de l'article"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Prix unitaire (Ar)</label><input name="prix_unitaire" type="number" required placeholder="0"></div>
+          <div class="form-group"><label>Unité</label><input name="unite" placeholder="pièce, kg, m..."></div>
+        </div>
+        <div class="form-group"><label>Fournisseur</label><input name="fournisseur" placeholder="Fournisseur habituel"></div>
+        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Contrat -->
+<div class="modal" id="modal-contrat">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Nouveau Contrat Prestataire</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-body">
+      <form onsubmit="saveContrat(event)">
+        <div class="form-group"><label>Désignation des travaux</label><input name="designation" required placeholder="Ex: Peinture façade"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Prestataire</label><input name="prestataire" required placeholder="Nom du prestataire"></div>
+          <div class="form-group"><label>Chantier</label><input name="chantier" placeholder="Chantier concerné"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Prix convenu</label><input name="prix_convenu" placeholder="Ex: 100 000 Ar ou 28 000/m2"></div>
+          <div class="form-group"><label>Date début</label><input name="date_debut" type="date"></div>
+        </div>
+        <div class="form-group"><label>Date fin prévue</label><input name="date_fin_prevue" type="date"></div>
+        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="modules_new.js"></script>
+</body>
+</html>
