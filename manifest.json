@@ -1,0 +1,38 @@
+{
+  "name": "NYSOA BTP",
+  "short_name": "NYSOA BTP",
+  "description": "Gestion de chantiers, dépenses et personnel — NYSOA BTP",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1C2B3A",
+  "theme_color": "#1C2B3A",
+  "lang": "fr",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Journal des dépenses",
+      "short_name": "Journal",
+      "description": "Ajouter une écriture",
+      "url": "/index.html?page=journal",
+      "icons": [{ "src": "/icon.svg", "sizes": "512x512" }]
+    },
+    {
+      "name": "Nouvelle demande d'achat",
+      "short_name": "Achat",
+      "description": "Soumettre une demande d'achat",
+      "url": "/index.html?page=achats",
+      "icons": [{ "src": "/icon.svg", "sizes": "512x512" }]
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
