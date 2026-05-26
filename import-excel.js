@@ -8,24 +8,65 @@
 function sheetToRows(wb, sheetName) {
     const ws = wb.Sheets[sheetName];
     if (!ws) throw new Error(`Onglet introuvable : "${sheetName}". Disponibles : ${wb.SheetNames.join(', ')}`);
-    return XLSX.utils.sheet_to_json(ws, { defval: null, raw: false });
+    // FIX: raw:true + dateNF pour avoir les dates comme objets Date via cellDates du workbook
+    return XLSX.utils.sheet_to_json(ws, { defval: null, raw: false, dateNF: 'yyyy-mm-dd' });
 }
 
 function toISODate(val) {
     if (!val) return null;
-    if (val instanceof Date) return val.toISOString().split('T')[0];
+    // Objet Date JavaScript
+    if (val instanceof Date) {
+        if (isNaN(val.getTime())) return null;
+        const y = val.getFullYear();
+        const m = String(val.getMonth() + 1).padStart(2, '0');
+        const d = String(val.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
     if (typeof val === 'string') {
-        // dd/mm/yyyy
-        const dmY = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-        if (dmY) return `${dmY[3]}-${dmY[2].padStart(2,'0')}-${dmY[1].padStart(2,'0')}`;
-        // yyyy-mm-dd
-        const iso = val.match(/^(\d{4}-\d{2}-\d{2})/);
-        if (iso) return iso[1];
-        // Texte libre (ex: "SAKAFO SEM DU 09/02") → essayer d'extraire une date
-        const dmY2 = val.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
-        if (dmY2) {
-            const y = dmY2[3] || '2026';
-            return `${y}-${dmY2[2].padStart(2,'0')}-${dmY2[1].padStart(2,'0')}`;
+        const s = val.trim();
+        // yyyy-mm-dd déjà ISO
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+        // dd/mm/yyyy  ← format Excel français (jour PUIS mois)
+        const dmY = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (dmY) {
+            const day = dmY[1].padStart(2, '0');
+            const mon = dmY[2].padStart(2, '0');
+            const yr  = dmY[3];
+            // Valider que c'est une vraie date
+            const test = new Date(`${yr}-${mon}-${day}`);
+            if (!isNaN(test.getTime())) return `${yr}-${mon}-${day}`;
+        }
+        // mm/dd/yyyy (format US possible selon OS)
+        const mdY = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (mdY) {
+            // Tenter d/m/Y en priorité (fichiers Madagascar = français)
+            const day = mdY[1].padStart(2, '0');
+            const mon = mdY[2].padStart(2, '0');
+            const yr  = mdY[3];
+            if (parseInt(day) <= 12) {
+                // Ambigu : forcer interprétation dd/mm/yyyy
+                const test = new Date(`${yr}-${mon}-${day}`);
+                if (!isNaN(test.getTime())) return `${yr}-${mon}-${day}`;
+            }
+        }
+        // Texte libre contenant une date (ex: "SAKAFO SEM DU 09/02")
+        const embedded = s.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
+        if (embedded) {
+            const day = embedded[1].padStart(2, '0');
+            const mon = embedded[2].padStart(2, '0');
+            const yr  = embedded[3] || '2026';
+            const test = new Date(`${yr}-${mon}-${day}`);
+            if (!isNaN(test.getTime())) return `${yr}-${mon}-${day}`;
+        }
+    }
+    // Numéro de série Excel (nombre entier)
+    if (typeof val === 'number' && val > 0 && val < 100000) {
+        const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+        if (!isNaN(d.getTime())) {
+            const y = d.getUTCFullYear();
+            const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+            const dd = String(d.getUTCDate()).padStart(2, '0');
+            return `${y}-${m}-${dd}`;
         }
     }
     return null;
