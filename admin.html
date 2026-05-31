@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NySoa BTP — Administration</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1C2B3A">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* ── CONFIG SUPABASE — même valeurs que supabase.js ── */
+        :root {
+            --dark:   #1C2B3A;
+            --orange: #E8631A;
+            --green:  #10b981;
+            --red:    #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            color: #2d3436;
+        }
+
+        .app { display: flex; min-height: 100vh; }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: 240px; flex-shrink: 0;
+            background: var(--dark); color: white;
+            display: flex; flex-direction: column;
+            padding: 24px 0; position: sticky; top: 0; height: 100vh;
+        }
+        .logo { padding: 0 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .logo .icon { width: 44px; height: 44px; background: rgba(232,99,26,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+        .logo .icon span { font-size: 20px; font-weight: 800; color: var(--orange); font-family: Georgia; }
+        .logo h2 { font-size: 15px; font-weight: 600; }
+        .logo p  { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+        nav { flex: 1; padding: 16px 12px; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 8px; cursor: pointer;
+            color: rgba(255,255,255,0.65); font-size: 14px;
+            transition: all 0.2s; text-decoration: none; margin-bottom: 2px;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(232,99,26,0.15); color: white; }
+        .nav-item i { width: 18px; text-align: center; }
+
+        .user-info { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 34px; height: 34px; background: var(--orange); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .user-details p:first-child { font-size: 13px; font-weight: 600; }
+        .user-details p:last-child  { font-size: 11px; color: rgba(255,255,255,0.5); }
+
+        /* ── MAIN ── */
+        .main { flex: 1; padding: 28px 32px; max-width: 960px; }
+
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 22px; font-weight: 700; color: var(--dark); }
+        .page-header p  { font-size: 14px; color: #636e72; margin-top: 4px; }
+
+        /* ── CARDS ── */
+        .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+        @media (max-width: 700px) { .cards { grid-template-columns: 1fr; } }
+
+        .card {
+            background: white; border-radius: 14px;
+            padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .card-icon {
+            width: 42px; height: 42px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .card-icon.orange { background: rgba(232,99,26,0.12); color: var(--orange); }
+        .card-icon.blue   { background: rgba(0,102,204,0.10); color: #0066cc; }
+        .card-icon.green  { background: rgba(16,185,129,0.12); color: var(--green); }
+        .card-icon.red    { background: rgba(239,68,68,0.10);  color: var(--red); }
+        .card h3 { font-size: 15px; font-weight: 600; }
+        .card p  { font-size: 13px; color: #636e72; }
+
+        /* ── IMPORT ZONE ── */
+        .import-zone {
+            border: 2px dashed #dee2e6; border-radius: 10px;
+            padding: 28px 20px; text-align: center; cursor: pointer;
+            transition: all 0.2s; background: #f8f9fa;
+        }
+        .import-zone:hover, .import-zone.drag-over {
+            border-color: var(--orange); background: rgba(232,99,26,0.04);
+        }
+        .import-zone i { font-size: 32px; color: #adb5bd; margin-bottom: 10px; }
+        .import-zone .drag-over i { color: var(--orange); }
+        .import-zone p { font-size: 14px; color: #636e72; margin-bottom: 4px; }
+        .import-zone small { font-size: 12px; color: #adb5bd; }
+        .import-zone input { display: none; }
+
+        /* ── FICHIERS IMPORTÉS ── */
+        .file-list { margin-top: 14px; }
+        .file-item {
+            display: flex; align-items: center; gap: 10px;
+            background: #f8f9fa; border: 1px solid #e9ecef;
+            border-radius: 8px; padding: 10px 14px; margin-bottom: 8px;
+        }
+        .file-item i { color: var(--orange); }
+        .file-item .fname { flex: 1; font-size: 13px; font-weight: 600; }
+        .file-item .fstatus { font-size: 12px; padding: 2px 8px; border-radius: 10px; }
+        .status-ready   { background: #e8f5e9; color: #2e7d32; }
+        .status-loading { background: #fff8e1; color: #f57f17; }
+        .status-done    { background: #e3f2fd; color: #1565c0; }
+        .status-error   { background: #ffebee; color: #c62828; }
+
+        /* ── PROGRESS ── */
+        .progress-wrap { margin-top: 14px; display: none; }
+        .progress-bar { height: 8px; background: #e9ecef; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--orange); border-radius: 10px; transition: width 0.3s; }
+        .progress-text { font-size: 12px; color: #636e72; margin-top: 6px; text-align: center; }
+
+        /* ── BOUTONS ── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 10px 18px; border-radius: 8px; font-size: 14px;
+            font-weight: 600; border: none; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-primary { background: var(--orange); color: white; }
+        .btn-primary:hover { background: #c95215; }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-secondary { background: #f1f3f4; color: #444; }
+        .btn-secondary:hover { background: #e2e5e8; }
+        .btn-dark { background: var(--dark); color: white; }
+        .btn-dark:hover { background: #2d4a6b; }
+        .btn-green { background: var(--green); color: white; }
+        .btn-green:hover { background: #059669; }
+        .btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+        /* ── STATS IMPORT ── */
+        .import-stats {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 10px; margin-top: 14px;
+        }
+        .stat-box { background: #f8f9fa; border-radius: 8px; padding: 12px; text-align: center; }
+        .stat-box .count { font-size: 22px; font-weight: 700; color: var(--dark); }
+        .stat-box .label { font-size: 11px; color: #636e72; margin-top: 2px; }
+
+        /* ── BACKUP SECTION ── */
+        .backup-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 16px; border: 1px solid #e9ecef;
+            border-radius: 8px; margin-bottom: 8px; background: white;
+        }
+        .backup-item i { font-size: 20px; color: #0066cc; }
+        .backup-item .bname { flex: 1; }
+        .backup-item .bname strong { font-size: 13px; display: block; }
+        .backup-item .bname small { font-size: 12px; color: #636e72; }
+        .backup-item .bdate { font-size: 12px; color: #adb5bd; }
+
+        /* ── LOG ── */
+        .log-box {
+            background: #1e1e1e; color: #d4d4d4;
+            border-radius: 8px; padding: 16px; font-family: monospace;
+            font-size: 12px; line-height: 1.8; max-height: 200px; overflow-y: auto;
+            display: none;
+        }
+        .log-box .ok   { color: #4ec9b0; }
+        .log-box .warn { color: #dcdcaa; }
+        .log-box .err  { color: #f44747; }
+
+        /* ── NOTIFICATION ── */
+        .notif {
+            position: fixed; top: 20px; right: 20px;
+            padding: 14px 20px; border-radius: 10px;
+            font-size: 14px; font-weight: 600; z-index: 9999;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: flex; align-items: center; gap: 8px;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .notif-success { background: white; border-left: 4px solid var(--green); color: #2d3436; }
+        .notif-error   { background: white; border-left: 4px solid var(--red);   color: #2d3436; }
+        .notif-info    { background: white; border-left: 4px solid #0066cc;       color: #2d3436; }
+
+        .full-card { grid-column: 1 / -1; }
+        .section-title { font-size: 16px; font-weight: 700; color: var(--dark); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .divider { border: none; border-top: 1px solid #f0f0f0; margin: 24px 0; }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="LOGO_NYSOA.png" alt="NySoa Construct" style="height:44px;width:auto;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
+            <h2>NySoa BTP</h2>
+            <p>Administration</p>
+        </div>
+        <nav>
+            <a class="nav-item active" onclick="showSection('import')">
+                <i class="fas fa-file-import"></i><span>Import Excel</span>
+            </a>
+            <a class="nav-item" onclick="showSection('backup')">
+                <i class="fas fa-save"></i><span>Sauvegarde</span>
+            </a>
+            <a class="nav-item" onclick="showSection('supabase')">
+                <i class="fas fa-database"></i><span>Supabase</span>
+            </a>
+            <a class="nav-item" onclick="showSection('users')">
+                <i class="fas fa-users-cog"></i><span>Utilisateurs</span>
+            </a>
+            <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0">
+            <a class="nav-item" onclick="showSection('rapports')">
+                <i class="fas fa-hard-hat"></i><span>Rapports Chantier</span>
+            </a>
+            <a class="nav-item" onclick="showSection('controles')">
+                <i class="fas fa-clipboard-check"></i><span>Contrôles</span>
+            </a>
+            <a class="nav-item" onclick="showSection('gantt')">
+                <i class="fas fa-tasks"></i><span>Avancement Gantt</span>
+            </a>
+            <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0">
+            <a class="nav-item" href="index.html">
+                <i class="fas fa-home"></i><span>Accueil appli</span>
+            </a>
+            <a class="nav-item" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i><span>Déconnexion</span>
+            </a>
+        </nav>
+        <div class="user-info">
+            <div class="user-avatar"><i class="fas fa-user-shield" style="color:white;font-size:14px"></i></div>
+            <div class="user-details">
+                <p id="user-name">Admin</p>
+                <p>Accès complet</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <main class="main">
+
+        <!-- ═══════════════════════════════════════════════════
+             SECTION 1 : IMPORT EXCEL
+        ════════════════════════════════════════════════════ -->
+        <div id="section-import">
+            <div class="page-header">
+                <h1><i class="fas fa-file-import" style="color:var(--orange);margin-right:10px"></i>Import des fichiers Excel</h1>
+                <p>Importez directement vos 4 fichiers de travail — les données s'ajoutent à Supabase automatiquement</p>
+            </div>
+
+            <div class="cards">
+                <!-- Zone de dépôt -->
+                <div class="card full-card">
+                    <div class="section-title"><i class="fas fa-cloud-upload-alt" style="color:var(--orange)"></i> Glisser-déposer vos fichiers Excel</div>
+
+                    <div class="import-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+                         ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFiles(event)">
+                        <i class="fas fa-file-excel"></i>
+                        <p><strong>Cliquez ici ou glissez vos fichiers</strong></p>
+                        <small>ACHAT_2026.xlsx · JOURNAL_2026.xlsx · LOGISTIQUE_2026.xlsx · PERSONNEL_2026.xlsx</small>
+                        <input type="file" id="file-input" accept=".xlsx,.xls" multiple onchange="handleFiles(this.files)">
+                    </div>
+
+                    <div class="file-list" id="file-list"></div>
+
+                    <div class="progress-wrap" id="progress-wrap">
+                        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text" id="progress-text">Préparation...</div>
+                    </div>
+
+                    <div class="import-stats" id="import-stats" style="display:none">
+                        <div class="stat-box"><div class="count" id="stat-journal">0</div><div class="label">Journal</div></div>
+                        <div class="stat-box"><div class="count" id="stat-achats">0</div><div class="label">Achats</div></div>
+                        <div class="stat-box"><div class="count" id="stat-personnel">0</div><div class="label">Personnel</div></div>
+                        <div class="stat-box"><div class="count" id="stat-pointage">0</div><div class="label">Pointages</div></div>
+                    </div>
+
+                    <div class="btn-row">
+                        <button class="btn btn-primary" id="btn-import" onclick="startImport()" disabled>
+                            <i class="fas fa-upload"></i> Importer dans Supabase
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearFiles()">
+                            <i class="fas fa-times"></i> Effacer
+                        </button>
+                        <button class="btn btn-secondary" onclick="toggleLog()">
+                            <i class="fas fa-terminal"></i> Journal technique
+                        </button>
+                    </div>
+
+                    <div class="log-box" id="log-box"></div>
+                </div>
+
+                <!-- Instructions -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon orange"><i class="fas fa-info-circle"></i></div>
+                        <div><h3>Fichiers attendus</h3><p>4 fichiers Excel de travail</p></div>
+                    </div>
+                    <div style="font-size:13px;line-height:2;color:#444">
+                        <div><i class="fas fa-check-circle" style="color:var(--green);margin-right:6px"></i><strong>JOURNAL_2026.xlsx</strong> → journal des dépenses</div>
+                        <div><i class="fas fa-check-circle" style="color:var(--green);margin-right:6px"></i><strong>ACHAT_2026.xlsx</strong> → commandes & achats</div>
+                        <div><i class="fas fa-check-circle" style="color:var(--green);margin-right:6px"></i><strong>PERSONNEL_2026.xlsx</strong> → employés & pointage</div>
+                        <div><i class="fas fa-check-circle" style="color:var(--green);margin-right:6px"></i><strong>LOGISTIQUE_2026.xlsx</strong> → matériaux & stocks</div>
+                    </div>
+                </div>
+
+                <!-- Options import -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><i class="fas fa-cog"></i></div>
+                        <div><h3>Options d'import</h3><p>Comportement si données existantes</p></div>
+                    </div>
+                    <label style="display:flex;gap:10px;align-items:center;margin-bottom:12px;font-size:13px;cursor:pointer">
+                        <input type="radio" name="import-mode" value="append" checked>
+                        <div><strong>Ajouter</strong> — conserve les données existantes et ajoute les nouvelles</div>
+                    </label>
+                    <label style="display:flex;gap:10px;align-items:center;font-size:13px;cursor:pointer">
+                        <input type="radio" name="import-mode" value="replace">
+                        <div><strong>Remplacer</strong> — efface tout puis reimporte (⚠ irréversible)</div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SECTION 2 : SAUVEGARDE MACBOOK
+        ════════════════════════════════════════════════════ -->
+        <div id="section-backup" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-save" style="color:var(--orange);margin-right:10px"></i>Sauvegarde locale — MacBook Admin</h1>
+                <p>Téléchargez une copie complète de toutes les données sur votre MacBook</p>
+            </div>
+
+            <div class="cards">
+                <!-- Sauvegarde complète -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon green"><i class="fas fa-file-archive"></i></div>
+                        <div><h3>Sauvegarde complète</h3><p>Toutes les tables en un fichier</p></div>
+                    </div>
+                    <p style="font-size:13px;color:#636e72;margin-bottom:16px">
+                        Exporte toutes les données (journal, achats, personnel, pointage, matériaux) dans un fichier Excel multi-onglets — identique à vos fichiers originaux.
+                    </p>
+                    <button class="btn btn-green" onclick="backupAll()">
+                        <i class="fas fa-download"></i> Télécharger la sauvegarde complète
+                    </button>
+                    <div style="font-size:12px;color:#adb5bd;margin-top:10px" id="last-backup-full">Dernière sauvegarde : jamais</div>
+                </div>
+
+                <!-- Export par module -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><i class="fas fa-table"></i></div>
+                        <div><h3>Export par module</h3><p>Choisir ce que vous exportez</p></div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                        <button class="btn btn-secondary" onclick="exportModule('journal')">
+                            <i class="fas fa-book" style="color:var(--orange)"></i> Journal des dépenses
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportModule('achats')">
+                            <i class="fas fa-shopping-cart" style="color:#0066cc"></i> Achats & commandes
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportModule('personnel')">
+                            <i class="fas fa-users" style="color:var(--green)"></i> Personnel & pointage
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportModule('logistique')">
+                            <i class="fas fa-truck" style="color:#9c27b0"></i> Logistique & matériaux
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sauvegarde automatique -->
+                <div class="card full-card">
+                    <div class="card-header">
+                        <div class="card-icon orange"><i class="fas fa-clock"></i></div>
+                        <div><h3>Sauvegarde automatique</h3><p>Planifier des exports réguliers</p></div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                        <label style="font-size:13px;display:flex;align-items:center;gap:8px">
+                            <input type="checkbox" id="auto-backup" onchange="toggleAutoBackup(this.checked)">
+                            Activer la sauvegarde automatique
+                        </label>
+                        <label style="font-size:13px;display:flex;align-items:center;gap:8px">
+                            Fréquence :
+                            <select id="backup-freq" style="padding:5px 10px;border-radius:6px;border:1px solid #dee2e6;font-size:13px">
+                                <option value="daily">Tous les jours</option>
+                                <option value="weekly" selected>Chaque semaine</option>
+                                <option value="monthly">Chaque mois</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div style="margin-top:16px">
+                        <div class="section-title" style="font-size:14px;margin-bottom:10px">Historique des sauvegardes</div>
+                        <div id="backup-history">
+                            <div style="font-size:13px;color:#adb5bd;padding:12px 0">Aucune sauvegarde pour le moment</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SECTION 3 : SUPABASE CONFIG
+        ════════════════════════════════════════════════════ -->
+        <div id="section-supabase" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-database" style="color:var(--orange);margin-right:10px"></i>Configuration Supabase</h1>
+                <p>Gérez la connexion à votre base de données cloud</p>
+            </div>
+            <div class="cards">
+                <div class="card full-card">
+                    <div class="section-title"><i class="fas fa-plug" style="color:var(--orange)"></i> Connexion</div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Project URL</label>
+                        <input type="text" id="sb-url" placeholder="https://XXXXX.supabase.co"
+                               style="width:100%;padding:10px 14px;border:1.5px solid #dee2e6;border-radius:8px;font-size:13px;font-family:monospace">
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Anon Key</label>
+                        <input type="password" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI..."
+                               style="width:100%;padding:10px 14px;border:1.5px solid #dee2e6;border-radius:8px;font-size:13px;font-family:monospace">
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="saveSupabaseConfig()"><i class="fas fa-save"></i> Sauvegarder</button>
+                        <button class="btn btn-secondary" onclick="testSupabaseConnection()"><i class="fas fa-plug"></i> Tester la connexion</button>
+                    </div>
+                    <div id="sb-status" style="margin-top:12px;font-size:13px;display:none"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><i class="fas fa-info-circle"></i></div>
+                        <div><h3>Où trouver ces clés ?</h3></div>
+                    </div>
+                    <ol style="font-size:13px;color:#444;line-height:2.2;padding-left:18px">
+                        <li>Aller sur <strong>app.supabase.com</strong></li>
+                        <li>Ouvrir votre projet <strong>nysoa-btp</strong></li>
+                        <li>Cliquer <strong>Settings → API</strong></li>
+                        <li>Copier <strong>Project URL</strong></li>
+                        <li>Copier <strong>anon / public key</strong></li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════
+             SECTION 4 : UTILISATEURS
+        ════════════════════════════════════════════════════ -->
+        <div id="section-users" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-users-cog" style="color:var(--orange);margin-right:10px"></i>Gestion des utilisateurs</h1>
+                <p>Comptes d'accès à l'application</p>
+            </div>
+            <div class="card">
+                <table style="width:100%;border-collapse:collapse;font-size:13px">
+                    <thead>
+                        <tr style="border-bottom:2px solid #f0f0f0">
+                            <th style="padding:10px;text-align:left;color:#636e72">Nom</th>
+                            <th style="padding:10px;text-align:left;color:#636e72">Email</th>
+                            <th style="padding:10px;text-align:left;color:#636e72">Rôle</th>
+                            <th style="padding:10px;text-align:left;color:#636e72">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table">
+                        <tr><td colspan="4" style="padding:20px;text-align:center;color:#adb5bd">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- ══════════════════════════════════════════════════════
+             SECTION RAPPORTS CHANTIER
+             ══════════════════════════════════════════════════════ -->
+        <div id="section-rapports" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-hard-hat" style="color:var(--orange);margin-right:10px"></i>Rapports de Chantier</h1>
+                <p>Tous les rapports journaliers soumis par les chefs de chantier</p>
+            </div>
+
+            <!-- Filtres -->
+            <div style="background:white;border-radius:12px;padding:18px 20px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+                <div style="flex:1;min-width:160px">
+                    <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Chantier</label>
+                    <select id="rp-filter-chantier" onchange="loadRapports()" style="width:100%;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px">
+                        <option value="">Tous</option>
+                    </select>
+                </div>
+                <div style="flex:1;min-width:140px">
+                    <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Du</label>
+                    <input type="date" id="rp-date-from" onchange="loadRapports()" style="width:100%;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px">
+                </div>
+                <div style="flex:1;min-width:140px">
+                    <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Au</label>
+                    <input type="date" id="rp-date-to" onchange="loadRapports()" style="width:100%;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px">
+                </div>
+                <div style="align-self:flex-end">
+                    <button class="btn btn-secondary" onclick="loadRapports()"><i class="fas fa-sync-alt"></i> Actualiser</button>
+                </div>
+            </div>
+
+            <!-- KPIs Rapports -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px" id="rp-kpis">
+                <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid var(--orange)">
+                    <div style="font-size:24px;font-weight:800;color:var(--dark)" id="rp-kpi-total">—</div>
+                    <div style="font-size:12px;color:#636e72;margin-top:4px">Rapports total</div>
+                </div>
+                <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid var(--green)">
+                    <div style="font-size:24px;font-weight:800;color:var(--dark)" id="rp-kpi-ouvriers">—</div>
+                    <div style="font-size:12px;color:#636e72;margin-top:4px">Moy. ouvriers/jour</div>
+                </div>
+                <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid #0066cc">
+                    <div style="font-size:24px;font-weight:800;color:var(--dark)" id="rp-kpi-chantiers">—</div>
+                    <div style="font-size:12px;color:#636e72;margin-top:4px">Chantiers actifs</div>
+                </div>
+                <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid var(--red)">
+                    <div style="font-size:24px;font-weight:800;color:var(--dark)" id="rp-kpi-problemes">—</div>
+                    <div style="font-size:12px;color:#636e72;margin-top:4px">Problèmes signalés</div>
+                </div>
+            </div>
+
+            <!-- Liste rapports -->
+            <div style="background:white;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div id="rp-list" style="overflow-x:auto">
+                    <div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Chargement...</div>
+                </div>
+            </div>
+
+            <!-- Modal détail rapport -->
+            <div id="rp-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;padding:20px">
+                <div style="background:white;border-radius:16px;max-width:720px;margin:0 auto;padding:28px;position:relative">
+                    <button onclick="document.getElementById('rp-modal').style.display='none'" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#636e72">×</button>
+                    <div id="rp-modal-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════
+             SECTION CONTRÔLES INOPINÉS
+             ══════════════════════════════════════════════════════ -->
+        <div id="section-controles" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-clipboard-check" style="color:var(--orange);margin-right:10px"></i>Contrôles Inopinés</h1>
+                <p>Résultats des inspections surprise par le contrôleur qualité</p>
+            </div>
+
+            <!-- Filtres -->
+            <div style="background:white;border-radius:12px;padding:18px 20px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+                <div style="flex:1;min-width:160px">
+                    <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Chantier</label>
+                    <select id="ct-filter-chantier" onchange="loadControles()" style="width:100%;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px">
+                        <option value="">Tous</option>
+                    </select>
+                </div>
+                <div style="flex:1;min-width:140px">
+                    <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Score min</label>
+                    <select id="ct-filter-score" onchange="loadControles()" style="width:100%;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px">
+                        <option value="">Tous scores</option>
+                        <option value="80">≥ 80% (Bien)</option>
+                        <option value="60">≥ 60% (Moyen)</option>
+                        <option value="0">< 60% (Insuffisant)</option>
+                    </select>
+                </div>
+                <div style="align-self:flex-end">
+                    <button class="btn btn-secondary" onclick="loadControles()"><i class="fas fa-sync-alt"></i> Actualiser</button>
+                </div>
+            </div>
+
+            <!-- KPIs Contrôles -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+                <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid var(--orange)">
+                    <div style="font-size:24px;font-weight:800;color:var(--dark)" id="ct-kpi-total">—</div>
+                    <div style="font-size:12px;color:#636e72;margin-top:4px">Contrôles effectués</div>
+                </div>
+                <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid var(--green)">
+                    <div style="font-size:24px;font-weight:800;color:var(--dark)" id="ct-kpi-score">—</div>
+                    <div style="font-size:12px;color:#636e72;margin-top:4px">Score moyen</div>
+                </div>
+                <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid var(--green)">
+                    <div style="font-size:24px;font-weight:800;color:var(--dark)" id="ct-kpi-conformes">—</div>
+                    <div style="font-size:12px;color:#636e72;margin-top:4px">Conformes (≥ 80%)</div>
+                </div>
+                <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid var(--red)">
+                    <div style="font-size:24px;font-weight:800;color:var(--dark)" id="ct-kpi-insuffisants">—</div>
+                    <div style="font-size:12px;color:#636e72;margin-top:4px">Insuffisants (< 60%)</div>
+                </div>
+            </div>
+
+            <!-- Liste contrôles -->
+            <div style="background:white;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div id="ct-list">
+                    <div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Chargement...</div>
+                </div>
+            </div>
+
+            <!-- Modal détail contrôle -->
+            <div id="ct-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;padding:20px">
+                <div style="background:white;border-radius:16px;max-width:720px;margin:0 auto;padding:28px;position:relative">
+                    <button onclick="document.getElementById('ct-modal').style.display='none'" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#636e72">×</button>
+                    <div id="ct-modal-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════
+             SECTION GANTT / AVANCEMENT
+             ══════════════════════════════════════════════════════ -->
+        <div id="section-gantt" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-tasks" style="color:var(--orange);margin-right:10px"></i>Avancement Gantt</h1>
+                <p>Suivi de l'avancement des tâches par chantier</p>
+            </div>
+
+            <!-- Filtres + bouton ajouter -->
+            <div style="background:white;border-radius:12px;padding:18px 20px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+                <div style="flex:1;min-width:160px">
+                    <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Chantier</label>
+                    <select id="gt-filter-chantier" onchange="loadGantt()" style="width:100%;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px">
+                        <option value="">Tous</option>
+                    </select>
+                </div>
+                <div style="align-self:flex-end;display:flex;gap:8px">
+                    <button class="btn btn-secondary" onclick="loadGantt()"><i class="fas fa-sync-alt"></i> Actualiser</button>
+                    <button class="btn btn-primary" onclick="openGanttForm()"><i class="fas fa-plus"></i> Nouvelle tâche</button>
+                </div>
+            </div>
+
+            <!-- KPIs Gantt -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+                <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid var(--orange)">
+                    <div style="font-size:24px;font-weight:800;color:var(--dark)" id="gt-kpi-total">—</div>
+                    <div style="font-size:12px;color:#636e72;margin-top:4px">Tâches totales</div>
+                </div>
+                <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid var(--green)">
+                    <div style="font-size:24px;font-weight:800;color:var(--dark)" id="gt-kpi-terminees">—</div>
+                    <div style="font-size:12px;color:#636e72;margin-top:4px">Terminées (100%)</div>
+                </div>
+                <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid #0066cc">
+                    <div style="font-size:24px;font-weight:800;color:var(--dark)" id="gt-kpi-encours">—</div>
+                    <div style="font-size:12px;color:#636e72;margin-top:4px">En cours</div>
+                </div>
+                <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid #9b59b6">
+                    <div style="font-size:24px;font-weight:800;color:var(--dark)" id="gt-kpi-avancement">—</div>
+                    <div style="font-size:12px;color:#636e72;margin-top:4px">Avancement global</div>
+                </div>
+            </div>
+
+            <!-- Gantt visuel -->
+            <div style="background:white;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:20px;overflow-x:auto">
+                <div id="gantt-chart" style="min-width:700px">
+                    <div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Chargement...</div>
+                </div>
+            </div>
+
+            <!-- Tableau tâches -->
+            <div style="background:white;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div style="font-weight:700;font-size:15px;margin-bottom:14px;color:var(--dark)"><i class="fas fa-list" style="margin-right:8px;color:var(--orange)"></i>Détail des tâches</div>
+                <div id="gt-table" style="overflow-x:auto"></div>
+            </div>
+
+            <!-- Modal formulaire Gantt -->
+            <div id="gt-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;padding:20px">
+                <div style="background:white;border-radius:16px;max-width:520px;margin:0 auto;padding:28px;position:relative">
+                    <button onclick="document.getElementById('gt-modal').style.display='none'" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#636e72">×</button>
+                    <h3 style="font-size:17px;font-weight:700;margin-bottom:20px;color:var(--dark)" id="gt-modal-title">Nouvelle tâche</h3>
+                    <div style="display:grid;gap:14px">
+                        <input type="hidden" id="gt-edit-id">
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Tâche *</label>
+                            <input id="gt-tache" type="text" style="width:100%;padding:10px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px" placeholder="Nom de la tâche">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Chantier</label>
+                            <input id="gt-chantier" type="text" style="width:100%;padding:10px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px" placeholder="Nom du chantier">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                            <div>
+                                <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Début *</label>
+                                <input id="gt-debut" type="date" style="width:100%;padding:10px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px">
+                            </div>
+                            <div>
+                                <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Fin *</label>
+                                <input id="gt-fin" type="date" style="width:100%;padding:10px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:6px">Avancement : <span id="gt-av-label">0</span>%</label>
+                            <input id="gt-avancement" type="range" min="0" max="100" value="0" oninput="document.getElementById('gt-av-label').textContent=this.value" style="width:100%">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Couleur</label>
+                            <select id="gt-couleur" style="width:100%;padding:10px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px">
+                                <option value="blue">Bleu</option>
+                                <option value="green">Vert</option>
+                                <option value="orange">Orange</option>
+                                <option value="red">Rouge</option>
+                                <option value="gray">Gris</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Responsable</label>
+                            <input id="gt-responsable" type="text" style="width:100%;padding:10px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px" placeholder="Nom du responsable">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Notes</label>
+                            <textarea id="gt-notes" rows="2" style="width:100%;padding:10px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;resize:vertical" placeholder="Notes optionnelles"></textarea>
+                        </div>
+                        <div style="display:flex;gap:10px;margin-top:4px">
+                            <button class="btn btn-primary" style="flex:1" onclick="saveGanttTache()"><i class="fas fa-save"></i> Enregistrer</button>
+                            <button class="btn btn-secondary" onclick="document.getElementById('gt-modal').style.display='none'">Annuler</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+// ── SUPABASE CONFIG ────────────────────────────────────────────
+const SUPABASE_URL = 'https://djncsybvloyyesllfxhq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbmNzeWJ2bG95eWVzbGxmeGhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NDI1OTksImV4cCI6MjA5MzMxODU5OX0.o4MOSg6axYoNdl0XgidLi0eNukR-KwnKvecZxchkcP8';
+const { createClient } = supabase;
+let db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── NAVIGATION ─────────────────────────────────────────────────
+function showSection(name) {
+    document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
+    document.getElementById('section-' + name).style.display = 'block';
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    event?.currentTarget?.classList.add('active');
+}
+
+// ── NOTIFICATION ───────────────────────────────────────────────
+function notify(msg, type = 'info') {
+    const n = document.createElement('div');
+    n.className = `notif notif-${type}`;
+    const icons = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
+    n.innerHTML = `<i class="fas fa-${icons[type] || 'info-circle'}"></i> ${msg}`;
+    document.body.appendChild(n);
+    setTimeout(() => n.style.opacity = '0', 3000);
+    setTimeout(() => n.remove(), 3300);
+}
+
+// ── LOG ────────────────────────────────────────────────────────
+const logBox = document.getElementById('log-box');
+function log(msg, type = '') {
+    logBox.innerHTML += `<div class="${type}">${new Date().toLocaleTimeString()} — ${msg}</div>`;
+    logBox.scrollTop = logBox.scrollHeight;
+}
+function toggleLog() {
+    logBox.style.display = logBox.style.display === 'block' ? 'none' : 'block';
+}
+
+// ── DRAG & DROP ────────────────────────────────────────────────
+function dragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function dragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function dropFiles(e) {
+    e.preventDefault();
+    dragLeave(e);
+    handleFiles(e.dataTransfer.files);
+}
+
+// ── PARSING EXCEL ──────────────────────────────────────────────
+let parsedData = {};
+
+function handleFiles(files) {
+    const list = document.getElementById('file-list');
+    Array.from(files).forEach(file => {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.id = 'file-' + file.name;
+        item.innerHTML = `<i class="fas fa-file-excel"></i>
+            <span class="fname">${file.name}</span>
+            <span class="fstatus status-loading" id="status-${file.name}">Lecture...</span>`;
+        list.appendChild(item);
+        parseExcel(file);
+    });
+}
+
+function parseExcel(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+            const fname = file.name.toUpperCase();
+            let rows = 0;
+
+            if (fname.includes('JOURNAL')) {
+                parsedData.journal = parseJournal(wb);
+                rows = parsedData.journal.length;
+                document.getElementById('stat-journal').textContent = rows;
+            } else if (fname.includes('ACHAT')) {
+                parsedData.achats = parseAchats(wb);
+                rows = parsedData.achats.length;
+                document.getElementById('stat-achats').textContent = rows;
+            } else if (fname.includes('PERSONNEL')) {
+                const p = parsePersonnel(wb);
+                parsedData.personnel = p.personnel;
+                parsedData.pointage = p.pointage;
+                rows = p.personnel.length + p.pointage.length;
+                document.getElementById('stat-personnel').textContent = p.personnel.length;
+                document.getElementById('stat-pointage').textContent = p.pointage.length;
+            } else if (fname.includes('LOGISTIQUE')) {
+                parsedData.materiaux = parseLogistique(wb);
+                rows = parsedData.materiaux.length;
+            }
+
+            document.getElementById('status-' + file.name).className = 'fstatus status-ready';
+            document.getElementById('status-' + file.name).textContent = rows + ' lignes';
+            document.getElementById('import-stats').style.display = 'grid';
+            log(`✓ ${file.name} → ${rows} lignes lues`, 'ok');
+            checkImportReady();
+        } catch(err) {
+            document.getElementById('status-' + file.name).className = 'fstatus status-error';
+            document.getElementById('status-' + file.name).textContent = 'Erreur';
+            log(`✗ ${file.name} : ${err.message}`, 'err');
+        }
+    };
+    reader.readAsArrayBuffer(file.name.endsWith('.xls') ? file : file);
+    reader.readAsArrayBuffer(file);
+}
+
+function safeDate(v) {
+    if (!v) return null;
+    if (v instanceof Date) return v.toISOString().split('T')[0];
+    if (typeof v === 'string' && v.length >= 10) return v.substring(0, 10);
+    return null;
+}
+function safeNum(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    if (typeof v === 'number') return v;
+    return parseFloat(String(v).replace(/\s/g,'').replace(',','.')) || 0;
+}
+function safeStr(v) {
+    if (v === null || v === undefined) return null;
+    const s = String(v).trim();
+    return s === '' ? null : s;
+}
+
+function parseJournal(wb) {
+    const ws = wb.Sheets['JOURNAL'] || wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    return rows.slice(1).filter(r => r[0] && r[3]).map(r => ({
+        date_ecriture: safeDate(r[0]),
+        chantier:      safeStr(r[1]),
+        designation:   safeStr(r[2]) || '',
+        montant:       safeNum(r[3]),
+        mode_paiement: safeStr(r[4]),
+        categorie:     safeStr(r[5]),
+        travaux:       safeStr(r[6]),
+    })).filter(r => r.date_ecriture);
+}
+
+function parseAchats(wb) {
+    const ws = wb.Sheets['DETAIL ACHAT'] || wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    return rows.slice(1).filter(r => r[0] && r[2]).map(r => ({
+        date_achat:    safeDate(r[0]),
+        chantier:      safeStr(r[1]),
+        libelle:       safeStr(r[2]) || '',
+        quantite:      safeNum(r[3]) || 1,
+        prix:          safeNum(r[4]),
+        fournisseur:   safeStr(r[5]),
+        mode_paiement: safeStr(r[6]),
+        statut:        'OK',
+    })).filter(r => r.date_achat);
+}
+
+function parsePersonnel(wb) {
+    const wsBase = wb.Sheets['BASE'];
+    const wsPoint = wb.Sheets['POINTAGE ET AVANCE'];
+    const personnel = [];
+    const pointage = [];
+
+    if (wsBase) {
+        const rows = XLSX.utils.sheet_to_json(wsBase, { header: 1, defval: null });
+        rows.slice(1).forEach(r => {
+            if (!r[0] || !r[1]) return;
+            const sal = safeNum(r[2]);
+            personnel.push({
+                nom:               safeStr(r[1]),
+                chantier_code:     safeStr(r[0]),
+                salaire_journalier: sal,
+                metier:            safeStr(r[3]),
+                type_salaire:      sal >= 100000 ? 'MENSUEL' : 'JOURNALIER',
+            });
+        });
+    }
+
+    if (wsPoint) {
+        const rows = XLSX.utils.sheet_to_json(wsPoint, { header: 1, defval: null });
+        rows.slice(1).forEach(r => {
+            if (!r[0] || !r[2]) return;
+            const d = safeDate(r[0]);
+            if (!d) return;
+            pointage.push({
+                semaine_du: d, chantier: safeStr(r[1]), nom_employe: safeStr(r[2]) || '',
+                lundi: safeNum(r[3]), mardi: safeNum(r[4]), mercredi: safeNum(r[5]),
+                jeudi: safeNum(r[6]), vendredi: safeNum(r[7]), samedi: safeNum(r[8]),
+                dimanche: safeNum(r[9]), nb_jours: safeNum(r[10]),
+                salaire_journalier: safeNum(r[11]),
+                avance_lundi: safeNum(r[12]), avance_mardi: safeNum(r[13]),
+                avance_mercredi: safeNum(r[14]), avance_jeudi: safeNum(r[15]),
+                avance_vendredi: safeNum(r[16]), avance_samedi: safeNum(r[17]),
+                total_avances: safeNum(r[18]), a_payer: safeNum(r[19]),
+            });
+        });
+    }
+    return { personnel, pointage };
+}
+
+function parseLogistique(wb) {
+    const ws = wb.Sheets['MATERIAUX'] || wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    return rows.slice(1).filter(r => r[2]).map(r => {
+        let chantier = null;
+        for (let i = r.length - 1; i >= 3; i--) {
+            if (r[i] && typeof r[i] === 'string' && r[i].trim()) { chantier = r[i].trim(); break; }
+        }
+        const etat = safeStr(r[0]) || 'EN MARCHE';
+        return {
+            etat: ['EN MARCHE','EN PANNE','BON','MOYEN','MAUVAIS'].includes(etat) ? etat : 'EN MARCHE',
+            quantite: safeNum(r[1]) || null,
+            libelle: safeStr(r[2]) || '',
+            chantier_actuel: chantier,
+        };
+    });
+}
+
+// ── IMPORT VERS SUPABASE ───────────────────────────────────────
+function checkImportReady() {
+    const hasData = Object.keys(parsedData).length > 0;
+    document.getElementById('btn-import').disabled = !hasData;
+}
+
+async function startImport() {
+    const mode = document.querySelector('input[name="import-mode"]:checked').value;
+    const btn = document.getElementById('btn-import');
+    btn.disabled = true;
+    logBox.style.display = 'block';
+    logBox.innerHTML = '';
+    log('Démarrage de l\'import...', 'ok');
+
+    const pw = document.getElementById('progress-wrap');
+    const pf = document.getElementById('progress-fill');
+    const pt = document.getElementById('progress-text');
+    pw.style.display = 'block';
+
+    const tables = [];
+    if (parsedData.journal)   tables.push({ table: 'journal',   data: parsedData.journal });
+    if (parsedData.achats)    tables.push({ table: 'achats',    data: parsedData.achats });
+    if (parsedData.personnel) tables.push({ table: 'personnel', data: parsedData.personnel });
+    if (parsedData.pointage)  tables.push({ table: 'pointage',  data: parsedData.pointage });
+    if (parsedData.materiaux) tables.push({ table: 'materiaux', data: parsedData.materiaux });
+
+    let done = 0;
+    for (const { table, data } of tables) {
+        pt.textContent = `Import ${table}... (${data.length} lignes)`;
+        log(`→ Import ${table} (${data.length} lignes)...`);
+
+        try {
+            if (mode === 'replace') {
+                const { error: delErr } = await db.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                if (delErr) throw delErr;
+                log(`  Données existantes supprimées`, 'warn');
+            }
+
+            // Batch de 100
+            const BATCH = 100;
+            for (let i = 0; i < data.length; i += BATCH) {
+                const batch = data.slice(i, i + BATCH);
+                const { error } = await db.from(table).insert(batch);
+                if (error) throw error;
+                const pct = Math.round(((done + (i + BATCH) / data.length) / tables.length) * 100);
+                pf.style.width = Math.min(pct, 100) + '%';
+            }
+
+            log(`  ✓ ${data.length} lignes importées dans ${table}`, 'ok');
+            document.getElementById('file-list').querySelectorAll('.fstatus').forEach(s => {
+                if (s.id && s.id.includes(table)) s.className = 'fstatus status-done';
+            });
+
+        } catch(err) {
+            log(`  ✗ Erreur ${table}: ${err.message}`, 'err');
+            notify(`Erreur import ${table}`, 'error');
+        }
+        done++;
+        pf.style.width = Math.round((done / tables.length) * 100) + '%';
+    }
+
+    pt.textContent = 'Import terminé ✓';
+    pf.style.width = '100%';
+    notify('Import terminé avec succès !', 'success');
+    btn.disabled = false;
+
+    // Sauvegarder la date du dernier import
+    localStorage.setItem('last_import', new Date().toLocaleString('fr-FR'));
+    log('✓ Import complet — ' + new Date().toLocaleString('fr-FR'), 'ok');
+}
+
+function clearFiles() {
+    document.getElementById('file-list').innerHTML = '';
+    document.getElementById('import-stats').style.display = 'none';
+    document.getElementById('progress-wrap').style.display = 'none';
+    document.getElementById('file-input').value = '';
+    parsedData = {};
+    document.getElementById('btn-import').disabled = true;
+    logBox.innerHTML = '';
+}
+
+// ── SAUVEGARDE ─────────────────────────────────────────────────
+async function backupAll() {
+    notify('Préparation de la sauvegarde...', 'info');
+    const wb = XLSX.utils.book_new();
+
+    const tables = ['journal','achats','personnel','pointage','materiaux','chantiers'];
+    for (const t of tables) {
+        try {
+            const { data } = await db.from(t).select('*').order('created_at', { ascending: false });
+            if (data && data.length > 0) {
+                const ws = XLSX.utils.json_to_sheet(data);
+                XLSX.utils.book_append_sheet(wb, ws, t.toUpperCase());
+            }
+        } catch(e) { console.warn(t, e); }
+    }
+
+    const fname = `NYSOA_BTP_BACKUP_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fname);
+    notify('Sauvegarde téléchargée : ' + fname, 'success');
+
+    const now = new Date().toLocaleString('fr-FR');
+    document.getElementById('last-backup-full').textContent = 'Dernière sauvegarde : ' + now;
+    addBackupHistory(fname, now);
+    localStorage.setItem('last_backup', now);
+}
+
+async function exportModule(module) {
+    const map = {
+        journal:    { table: 'journal',   cols: ['date_ecriture','chantier','designation','montant','mode_paiement','categorie','travaux'] },
+        achats:     { table: 'achats',    cols: ['date_achat','chantier','libelle','quantite','prix','fournisseur','mode_paiement','statut'] },
+        personnel:  { table: 'personnel', cols: ['nom','chantier_code','metier','salaire_journalier','type_salaire'] },
+        logistique: { table: 'materiaux', cols: ['etat','quantite','libelle','chantier_actuel'] },
+    };
+    const m = map[module];
+    if (!m) return;
+
+    try {
+        const { data } = await db.from(m.table).select(m.cols.join(',')).order('created_at', { ascending: false });
+        if (!data) return notify('Aucune donnée', 'error');
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, m.table.toUpperCase());
+        const fname = `NYSOA_${m.table.toUpperCase()}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fname);
+        notify(fname + ' téléchargé', 'success');
+        addBackupHistory(fname, new Date().toLocaleString('fr-FR'));
+    } catch(e) { notify('Erreur : ' + e.message, 'error'); }
+}
+
+function addBackupHistory(fname, date) {
+    const hist = document.getElementById('backup-history');
+    if (hist.querySelector('[style*="Aucune"]')) hist.innerHTML = '';
+    hist.innerHTML = `<div class="backup-item">
+        <i class="fas fa-file-excel"></i>
+        <div class="bname"><strong>${fname}</strong><small>Exporté depuis Supabase</small></div>
+        <div class="bdate">${date}</div>
+    </div>` + hist.innerHTML;
+
+    // Sauver dans localStorage
+    const history = JSON.parse(localStorage.getItem('backup_history') || '[]');
+    history.unshift({ fname, date });
+    localStorage.setItem('backup_history', JSON.stringify(history.slice(0, 20)));
+}
+
+function toggleAutoBackup(on) {
+    if (on) {
+        notify('Sauvegarde automatique activée', 'success');
+        const freq = document.getElementById('backup-freq').value;
+        localStorage.setItem('auto_backup', freq);
+    } else {
+        localStorage.removeItem('auto_backup');
+    }
+}
+
+// ── SUPABASE CONFIG ────────────────────────────────────────────
+function saveSupabaseConfig() {
+    const url = document.getElementById('sb-url').value.trim();
+    const key = document.getElementById('sb-key').value.trim();
+    if (!url || !key) return notify('Remplissez les deux champs', 'error');
+    localStorage.setItem('sb_url', url);
+    localStorage.setItem('sb_key', key);
+    SUPABASE_URL = url; SUPABASE_KEY = key;
+    db = createClient(url, key);
+    notify('Configuration sauvegardée', 'success');
+
+    // Mettre à jour supabase.js via instructions
+    const el = document.getElementById('sb-status');
+    el.style.display = 'block';
+    el.style.cssText = 'display:block;padding:10px 14px;background:#e8f5e9;border-radius:8px;font-size:13px;color:#2e7d32';
+    el.textContent = '✓ Clés sauvegardées dans le navigateur. N\'oubliez pas de les copier dans supabase.js pour qu\'elles fonctionnent sur tous les appareils.';
+}
+
+async function testSupabaseConnection() {
+    const el = document.getElementById('sb-status');
+    el.style.display = 'block';
+    el.style.cssText = 'display:block;padding:10px 14px;background:#fff8e1;border-radius:8px;font-size:13px;color:#f57f17';
+    el.textContent = '⏳ Test en cours...';
+    try {
+        const { error } = await db.from('chantiers').select('code').limit(1);
+        if (error) throw error;
+        el.style.background = '#e8f5e9'; el.style.color = '#2e7d32';
+        el.textContent = '✓ Connexion Supabase OK !';
+        notify('Connexion réussie !', 'success');
+    } catch(e) {
+        el.style.background = '#ffebee'; el.style.color = '#c62828';
+        el.textContent = '✗ Erreur : ' + e.message;
+        notify('Connexion échouée', 'error');
+    }
+}
+
+// ── USERS TABLE ────────────────────────────────────────────────
+const DEFAULT_USERS = [
+    { nom:'Administrateur', email:'admin@nysoa.mg',      role:'Admin',      statut:'Actif' },
+    { nom:'DAF',            email:'daf@nysoa.mg',        role:'DAF',        statut:'Actif' },
+    { nom:'Chef Chantier',  email:'chef@nysoa.mg',       role:'Chef',       statut:'Actif' },
+    { nom:'RH',             email:'rh@nysoa.mg',         role:'RH',         statut:'Actif' },
+    { nom:'Contrôleur',     email:'controleur@nysoa.mg', role:'Contrôleur', statut:'Actif' },
+    { nom:'Technicien',     email:'technicien@nysoa.mg', role:'Technicien', statut:'Actif' },
+];
+
+function loadUsers() {
+    const tb = document.getElementById('users-table');
+    tb.innerHTML = DEFAULT_USERS.map(u => `
+        <tr style="border-bottom:1px solid #f0f0f0">
+            <td style="padding:10px"><strong>${u.nom}</strong></td>
+            <td style="padding:10px;font-family:monospace;font-size:12px">${u.email}</td>
+            <td style="padding:10px"><span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:12px">${u.role}</span></td>
+            <td style="padding:10px"><span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:12px">${u.statut}</span></td>
+        </tr>`).join('');
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// RAPPORTS CHANTIER
+// ══════════════════════════════════════════════════════════════
+async function loadRapports() {
+    const el = document.getElementById('rp-list');
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Chargement...</div>';
+    try {
+        let q = db.from('rapports_chantier').select('*').order('date', { ascending: false });
+        const chantier = document.getElementById('rp-filter-chantier').value;
+        const from = document.getElementById('rp-date-from').value;
+        const to = document.getElementById('rp-date-to').value;
+        if (chantier) q = q.eq('chantier', chantier);
+        if (from) q = q.gte('date', from);
+        if (to) q = q.lte('date', to);
+        const { data, error } = await q;
+        if (error) throw error;
+        const rows = data || [];
+
+        // KPIs
+        document.getElementById('rp-kpi-total').textContent = rows.length;
+        const moy = rows.length ? Math.round(rows.reduce((s,r)=>s+(r.ouvriers||0),0)/rows.length) : 0;
+        document.getElementById('rp-kpi-ouvriers').textContent = moy;
+        document.getElementById('rp-kpi-chantiers').textContent = [...new Set(rows.map(r=>r.chantier))].length;
+        document.getElementById('rp-kpi-problemes').textContent = rows.filter(r=>r.problemes&&r.problemes.trim()).length;
+
+        // Mettre à jour le select chantiers
+        const chantiers = [...new Set(rows.map(r=>r.chantier))].filter(Boolean);
+        const sel = document.getElementById('rp-filter-chantier');
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">Tous</option>' + chantiers.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+
+        if (!rows.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-inbox fa-2x"></i><br><br>Aucun rapport trouvé</div>'; return; }
+
+        el.innerHTML = `<table style="width:100%;border-collapse:collapse">
+            <thead>
+                <tr style="border-bottom:2px solid #f0f0f0">
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">DATE</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">CHANTIER</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">MÉTÉO</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:12px;color:#636e72;font-weight:600">OUVRIERS</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">TRAVAUX</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:12px;color:#636e72;font-weight:600">PROBLÈME</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:12px;color:#636e72;font-weight:600">ACTION</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows.map(r => {
+                    const taches = r.taches || [];
+                    const avgAv = taches.length ? Math.round(taches.reduce((s,t)=>s+(t.avancement||0),0)/taches.length) : null;
+                    const meteoIcon = {soleil:'☀️',nuageux:'⛅',pluie:'🌧️',orage:'⛈️'}[r.meteo] || '—';
+                    const hasProb = r.problemes && r.problemes.trim();
+                    return `<tr style="border-bottom:1px solid #f7f7f7;cursor:pointer" onclick="showRapportDetail(${JSON.stringify(JSON.stringify(r))})">
+                        <td style="padding:10px 12px;font-size:13px;font-weight:600">${r.date}</td>
+                        <td style="padding:10px 12px;font-size:13px">${r.chantier}</td>
+                        <td style="padding:10px 12px;font-size:16px">${meteoIcon}</td>
+                        <td style="padding:10px 12px;text-align:center;font-size:13px">${r.ouvriers||0}</td>
+                        <td style="padding:10px 12px;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.travaux||'—'}</td>
+                        <td style="padding:10px 12px;text-align:center">${hasProb ? '<span style="background:#ffebee;color:#c62828;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">OUI</span>' : '<span style="color:#adb5bd;font-size:12px">—</span>'}</td>
+                        <td style="padding:10px 12px;text-align:center"><button class="btn btn-secondary" style="padding:5px 12px;font-size:12px" onclick="event.stopPropagation();showRapportDetail(${JSON.stringify(JSON.stringify(r))})"><i class="fas fa-eye"></i></button></td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table>`;
+    } catch(e) {
+        el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)"><i class="fas fa-exclamation-triangle fa-2x"></i><br><br>${e.message}</div>`;
+    }
+}
+
+function showRapportDetail(jsonStr) {
+    const r = JSON.parse(jsonStr);
+    const taches = r.taches || [];
+    const mvts = r.mouvements || [];
+    const photos = r.photos || [];
+    const meteoLabels = {soleil:'☀️ Soleil',nuageux:'⛅ Nuageux',pluie:'🌧️ Pluie',orage:'⛈️ Orage'};
+    document.getElementById('rp-modal-content').innerHTML = `
+        <h2 style="font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px">Rapport du ${r.date}</h2>
+        <p style="color:#636e72;font-size:13px;margin-bottom:20px">${r.chantier} — ${meteoLabels[r.meteo]||r.meteo||'—'} — ${r.ouvriers||0} ouvrier(s)</p>
+        <hr style="border:none;border-top:1px solid #f0f0f0;margin-bottom:20px">
+        <div style="margin-bottom:16px">
+            <div style="font-size:12px;font-weight:700;color:#636e72;margin-bottom:6px">TRAVAUX RÉALISÉS</div>
+            <p style="font-size:14px;color:#2d3436">${r.travaux||'—'}</p>
+        </div>
+        ${taches.length ? `<div style="margin-bottom:16px">
+            <div style="font-size:12px;font-weight:700;color:#636e72;margin-bottom:8px">TÂCHES (${taches.length})</div>
+            ${taches.map(t=>{
+                const av=t.avancement||0;
+                const col=av===100?'var(--green)':av>50?'#0066cc':'var(--orange)';
+                return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                    <div style="flex:1;font-size:13px">${t.nom}</div>
+                    <div style="width:120px;background:#f0f0f0;border-radius:10px;height:8px;overflow:hidden">
+                        <div style="width:${av}%;background:${col};height:100%;border-radius:10px"></div>
+                    </div>
+                    <div style="font-size:12px;font-weight:700;color:${col};width:36px;text-align:right">${av}%</div>
+                    <span style="font-size:11px;background:#f0f0f0;padding:2px 7px;border-radius:6px;color:#636e72">${t.statut||''}</span>
+                </div>`;
+            }).join('')}
+        </div>` : ''}
+        ${mvts.length ? `<div style="margin-bottom:16px">
+            <div style="font-size:12px;font-weight:700;color:#636e72;margin-bottom:8px">MOUVEMENTS PERSONNEL</div>
+            ${mvts.map(m=>`<div style="font-size:13px;margin-bottom:4px">${m.type==='arrivee'?'↗️':'↙️'} <strong>${m.nom}</strong> — ${m.heure||''}</div>`).join('')}
+        </div>` : ''}
+        ${r.problemes ? `<div style="margin-bottom:16px;background:#ffebee;border-radius:10px;padding:14px">
+            <div style="font-size:12px;font-weight:700;color:#c62828;margin-bottom:6px">⚠️ PROBLÈMES</div>
+            <p style="font-size:14px;color:#2d3436">${r.problemes}</p>
+        </div>` : ''}
+        ${r.actions ? `<div style="margin-bottom:16px;background:#e8f5e9;border-radius:10px;padding:14px">
+            <div style="font-size:12px;font-weight:700;color:#2e7d32;margin-bottom:6px">✅ ACTIONS PRISES</div>
+            <p style="font-size:14px;color:#2d3436">${r.actions}</p>
+        </div>` : ''}
+        ${photos.length ? `<div>
+            <div style="font-size:12px;font-weight:700;color:#636e72;margin-bottom:8px">PHOTOS (${photos.length})</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                ${photos.map(p=>`<img src="${p}" style="width:120px;height:90px;object-fit:cover;border-radius:8px;cursor:pointer" onclick="window.open('${p}','_blank')">`).join('')}
+            </div>
+        </div>` : ''}
+    `;
+    document.getElementById('rp-modal').style.display = 'block';
+}
+
+// ══════════════════════════════════════════════════════════════
+// CONTRÔLES INOPINÉS
+// ══════════════════════════════════════════════════════════════
+async function loadControles() {
+    const el = document.getElementById('ct-list');
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Chargement...</div>';
+    try {
+        let q = db.from('controles_inopines').select('*').order('datetime', { ascending: false });
+        const chantier = document.getElementById('ct-filter-chantier').value;
+        const scoreFilter = document.getElementById('ct-filter-score').value;
+        if (chantier) q = q.eq('chantier', chantier);
+        const { data, error } = await q;
+        if (error) throw error;
+        let rows = data || [];
+        if (scoreFilter !== '') {
+            const s = parseInt(scoreFilter);
+            rows = s === 0 ? rows.filter(r=>(r.score||0)<60) : rows.filter(r=>(r.score||0)>=s);
+        }
+
+        // KPIs
+        document.getElementById('ct-kpi-total').textContent = rows.length;
+        const avgScore = rows.length ? Math.round(rows.reduce((s,r)=>s+(r.score||0),0)/rows.length) : 0;
+        document.getElementById('ct-kpi-score').textContent = avgScore + '%';
+        document.getElementById('ct-kpi-conformes').textContent = rows.filter(r=>(r.score||0)>=80).length;
+        document.getElementById('ct-kpi-insuffisants').textContent = rows.filter(r=>(r.score||0)<60).length;
+
+        // Select chantiers
+        const chantiers = [...new Set((data||[]).map(r=>r.chantier))].filter(Boolean);
+        const sel = document.getElementById('ct-filter-chantier');
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">Tous</option>' + chantiers.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+
+        if (!rows.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-inbox fa-2x"></i><br><br>Aucun contrôle trouvé</div>'; return; }
+
+        el.innerHTML = `<table style="width:100%;border-collapse:collapse">
+            <thead>
+                <tr style="border-bottom:2px solid #f0f0f0">
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">DATE</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">CHANTIER</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">CONTRÔLEUR</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:12px;color:#636e72;font-weight:600">CHEF PRÉSENT</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:12px;color:#636e72;font-weight:600">SCORE</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:12px;color:#636e72;font-weight:600">ACTION</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows.map(r => {
+                    const sc = r.score||0;
+                    const scColor = sc>=80?'var(--green)':sc>=60?'var(--orange)':'var(--red)';
+                    const scBg = sc>=80?'#e8f5e9':sc>=60?'#fff8e1':'#ffebee';
+                    const dt = r.datetime ? new Date(r.datetime).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+                    return `<tr style="border-bottom:1px solid #f7f7f7;cursor:pointer" onclick="showControleDetail(${JSON.stringify(JSON.stringify(r))})">
+                        <td style="padding:10px 12px;font-size:13px;font-weight:600">${dt}</td>
+                        <td style="padding:10px 12px;font-size:13px">${r.chantier}</td>
+                        <td style="padding:10px 12px;font-size:13px">${r.controleur||'—'}</td>
+                        <td style="padding:10px 12px;text-align:center">${r.chef_present==='oui'?'<span style="color:var(--green)">✓ Oui</span>':'<span style="color:var(--red)">✗ Non</span>'}</td>
+                        <td style="padding:10px 12px;text-align:center"><span style="background:${scBg};color:${scColor};padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700">${sc}%</span></td>
+                        <td style="padding:10px 12px;text-align:center"><button class="btn btn-secondary" style="padding:5px 12px;font-size:12px" onclick="event.stopPropagation();showControleDetail(${JSON.stringify(JSON.stringify(r))})"><i class="fas fa-eye"></i></button></td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table>`;
+    } catch(e) {
+        el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)"><i class="fas fa-exclamation-triangle fa-2x"></i><br><br>${e.message}</div>`;
+    }
+}
+
+function showControleDetail(jsonStr) {
+    const r = JSON.parse(jsonStr);
+    const sc = r.score||0;
+    const scColor = sc>=80?'var(--green)':sc>=60?'var(--orange)':'var(--red)';
+    const resultats = r.resultats || {};
+    const dt = r.datetime ? new Date(r.datetime).toLocaleString('fr-FR',{dateStyle:'full',timeStyle:'short'}) : '—';
+    const renderCategorie = (cat, items) => {
+        if (!items||!items.length) return '';
+        return `<div style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:#636e72;margin-bottom:8px;text-transform:uppercase">${cat}</div>
+            ${items.map(item=>{
+                const ok = item.resultat==='ok'||item.resultat==='conforme';
+                return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:8px;background:#f8f9fa;border-radius:8px">
+                    <span style="color:${ok?'var(--green)':'var(--red)'};font-size:16px">${ok?'✓':'✗'}</span>
+                    <span style="flex:1;font-size:13px">${item.item||item.nom||'—'}</span>
+                    ${item.note?`<span style="font-size:12px;color:#636e72">${item.note}</span>`:''}
+                </div>`;
+            }).join('')}
+        </div>`;
+    };
+    document.getElementById('ct-modal-content').innerHTML = `
+        <h2 style="font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px">Contrôle — ${r.chantier}</h2>
+        <p style="color:#636e72;font-size:13px;margin-bottom:16px">${dt} — Contrôleur : ${r.controleur||'—'}</p>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:#f8f9fa;border-radius:12px">
+            <div style="font-size:42px;font-weight:900;color:${scColor}">${sc}%</div>
+            <div>
+                <div style="font-size:14px;font-weight:600;color:${scColor}">${sc>=80?'Conforme':sc>=60?'Moyen':'Insuffisant'}</div>
+                <div style="font-size:12px;color:#636e72">Chef présent : ${r.chef_present==='oui'?'✓ Oui':'✗ Non'}</div>
+            </div>
+        </div>
+        <hr style="border:none;border-top:1px solid #f0f0f0;margin-bottom:16px">
+        ${renderCategorie('Sécurité', resultats.securite)}
+        ${renderCategorie('Qualité', resultats.qualite)}
+        ${renderCategorie('Propreté', resultats.proprete)}
+        ${renderCategorie('Matériel', resultats.materiel)}
+        ${Object.entries(resultats).filter(([k])=>!['securite','qualite','proprete','materiel'].includes(k)).map(([k,v])=>renderCategorie(k,v)).join('')}
+        ${r.observations ? `<div style="background:#fff8e1;border-radius:10px;padding:14px;margin-top:10px">
+            <div style="font-size:12px;font-weight:700;color:#f57f17;margin-bottom:6px">📝 OBSERVATIONS</div>
+            <p style="font-size:14px;color:#2d3436">${r.observations}</p>
+        </div>` : ''}
+        ${(r.photos||[]).length ? `<div style="margin-top:16px">
+            <div style="font-size:12px;font-weight:700;color:#636e72;margin-bottom:8px">PHOTOS</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                ${r.photos.map(p=>`<img src="${p}" style="width:120px;height:90px;object-fit:cover;border-radius:8px;cursor:pointer" onclick="window.open('${p}','_blank')">`).join('')}
+            </div>
+        </div>` : ''}
+    `;
+    document.getElementById('ct-modal').style.display = 'block';
+}
+
+// ══════════════════════════════════════════════════════════════
+// GANTT / AVANCEMENT
+// ══════════════════════════════════════════════════════════════
+const GANTT_COLORS = { blue:'#0066cc', green:'#10b981', orange:'#E8631A', red:'#ef4444', gray:'#9b59b6' };
+let _ganttData = [];
+
+async function loadGantt() {
+    document.getElementById('gantt-chart').innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Chargement...</div>';
+    document.getElementById('gt-table').innerHTML = '';
+    try {
+        let q = db.from('gantt_taches').select('*').order('debut', { ascending: true });
+        const chantier = document.getElementById('gt-filter-chantier').value;
+        if (chantier) q = q.eq('chantier', chantier);
+        const { data, error } = await q;
+        if (error) throw error;
+        _ganttData = data || [];
+
+        // KPIs
+        document.getElementById('gt-kpi-total').textContent = _ganttData.length;
+        document.getElementById('gt-kpi-terminees').textContent = _ganttData.filter(t=>t.avancement===100).length;
+        document.getElementById('gt-kpi-encours').textContent = _ganttData.filter(t=>t.avancement>0&&t.avancement<100).length;
+        const avgAv = _ganttData.length ? Math.round(_ganttData.reduce((s,t)=>s+(t.avancement||0),0)/_ganttData.length) : 0;
+        document.getElementById('gt-kpi-avancement').textContent = avgAv + '%';
+
+        // Select chantiers
+        const allChantiers = [...new Set(_ganttData.map(t=>t.chantier).filter(Boolean))];
+        const sel = document.getElementById('gt-filter-chantier');
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">Tous</option>' + allChantiers.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+
+        renderGanttChart(_ganttData);
+        renderGanttTable(_ganttData);
+    } catch(e) {
+        document.getElementById('gantt-chart').innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)"><i class="fas fa-exclamation-triangle fa-2x"></i><br><br>${e.message}</div>`;
+    }
+}
+
+function renderGanttChart(tasks) {
+    if (!tasks.length) { document.getElementById('gantt-chart').innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-inbox fa-2x"></i><br><br>Aucune tâche</div>'; return; }
+    const dates = tasks.flatMap(t=>[new Date(t.debut),new Date(t.fin)]);
+    const minDate = new Date(Math.min(...dates));
+    const maxDate = new Date(Math.max(...dates));
+    const totalDays = Math.max(1, (maxDate - minDate) / 86400000);
+    const today = new Date();
+
+    const todayPct = Math.min(100, Math.max(0, (today-minDate)/(maxDate-minDate)*100));
+
+    let html = `<div style="font-weight:700;font-size:15px;margin-bottom:16px;color:var(--dark)"><i class="fas fa-chart-gantt" style="margin-right:8px;color:var(--orange)"></i>Diagramme de Gantt</div>`;
+
+    // En-tête mois
+    html += `<div style="display:flex;margin-bottom:8px;padding-left:160px">`;
+    let cur = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    while (cur <= maxDate) {
+        const pct = Math.min(100, ((new Date(cur.getFullYear(),cur.getMonth()+1,1)-minDate)/((maxDate-minDate)||1))*100) - Math.max(0,((cur-minDate)/((maxDate-minDate)||1))*100);
+        html += `<div style="flex:0 0 ${Math.max(4,pct)}%;font-size:11px;color:#636e72;font-weight:600;overflow:hidden">${cur.toLocaleString('fr-FR',{month:'short',year:'2-digit'})}</div>`;
+        cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1);
+    }
+    html += `</div>`;
+
+    // Lignes tâches
+    tasks.forEach(t => {
+        const debut = new Date(t.debut);
+        const fin = new Date(t.fin);
+        const left = ((debut-minDate)/((maxDate-minDate)||1))*100;
+        const width = Math.max(1, ((fin-debut)/((maxDate-minDate)||1))*100);
+        const col = GANTT_COLORS[t.couleur] || GANTT_COLORS.blue;
+        const av = t.avancement||0;
+        html += `<div style="display:flex;align-items:center;margin-bottom:8px">
+            <div style="width:160px;flex-shrink:0;font-size:12px;font-weight:600;color:#2d3436;padding-right:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.tache}">${t.tache}</div>
+            <div style="flex:1;position:relative;height:26px">
+                <div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:2px;background:#f0f0f0"></div>
+                ${todayPct>0&&todayPct<100?`<div style="position:absolute;left:${todayPct}%;top:0;bottom:0;width:2px;background:rgba(239,68,68,0.4);z-index:1"></div>`:''}
+                <div style="position:absolute;left:${left}%;width:${width}%;height:22px;top:2px;background:${col};border-radius:4px;overflow:hidden;cursor:pointer" title="${t.tache} — ${av}%" onclick="openGanttForm(${t.id})">
+                    <div style="width:${av}%;height:100%;background:rgba(255,255,255,0.3)"></div>
+                    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white">${av}%</div>
+                </div>
+            </div>
+        </div>`;
+    });
+
+    if (todayPct>0&&todayPct<100) {
+        html += `<div style="padding-left:160px;margin-top:4px"><span style="font-size:11px;color:#ef4444;font-weight:600">━ Aujourd'hui</span></div>`;
+    }
+
+    document.getElementById('gantt-chart').innerHTML = html;
+}
+
+function renderGanttTable(tasks) {
+    if (!tasks.length) { document.getElementById('gt-table').innerHTML = ''; return; }
+    document.getElementById('gt-table').innerHTML = `<table style="width:100%;border-collapse:collapse">
+        <thead>
+            <tr style="border-bottom:2px solid #f0f0f0">
+                <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">TÂCHE</th>
+                <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">CHANTIER</th>
+                <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">DÉBUT</th>
+                <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">FIN</th>
+                <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">AVANCEMENT</th>
+                <th style="padding:10px 12px;text-align:left;font-size:12px;color:#636e72;font-weight:600">RESPONSABLE</th>
+                <th style="padding:10px 12px;text-align:center;font-size:12px;color:#636e72;font-weight:600">ACTIONS</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${tasks.map(t => {
+                const av = t.avancement||0;
+                const col = GANTT_COLORS[t.couleur]||GANTT_COLORS.blue;
+                return `<tr style="border-bottom:1px solid #f7f7f7">
+                    <td style="padding:10px 12px;font-size:13px;font-weight:600">${t.tache}</td>
+                    <td style="padding:10px 12px;font-size:13px">${t.chantier||'—'}</td>
+                    <td style="padding:10px 12px;font-size:13px">${t.debut}</td>
+                    <td style="padding:10px 12px;font-size:13px">${t.fin}</td>
+                    <td style="padding:10px 12px;min-width:140px">
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <div style="flex:1;background:#f0f0f0;border-radius:10px;height:8px;overflow:hidden">
+                                <div style="width:${av}%;background:${col};height:100%;border-radius:10px"></div>
+                            </div>
+                            <span style="font-size:12px;font-weight:700;color:${col};width:32px">${av}%</span>
+                        </div>
+                    </td>
+                    <td style="padding:10px 12px;font-size:13px">${t.responsable||'—'}</td>
+                    <td style="padding:10px 12px;text-align:center;white-space:nowrap">
+                        <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;margin-right:4px" onclick="openGanttForm(${t.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn" style="padding:5px 10px;font-size:12px;background:#ffebee;color:var(--red)" onclick="deleteGanttTache(${t.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('')}
+        </tbody>
+    </table>`;
+}
+
+function openGanttForm(id) {
+    const modal = document.getElementById('gt-modal');
+    document.getElementById('gt-modal-title').textContent = id ? 'Modifier la tâche' : 'Nouvelle tâche';
+    if (id) {
+        const t = _ganttData.find(x=>x.id===id);
+        if (!t) return;
+        document.getElementById('gt-edit-id').value = t.id;
+        document.getElementById('gt-tache').value = t.tache||'';
+        document.getElementById('gt-chantier').value = t.chantier||'';
+        document.getElementById('gt-debut').value = t.debut||'';
+        document.getElementById('gt-fin').value = t.fin||'';
+        document.getElementById('gt-avancement').value = t.avancement||0;
+        document.getElementById('gt-av-label').textContent = t.avancement||0;
+        document.getElementById('gt-couleur').value = t.couleur||'blue';
+        document.getElementById('gt-responsable').value = t.responsable||'';
+        document.getElementById('gt-notes').value = t.notes||'';
+    } else {
+        document.getElementById('gt-edit-id').value = '';
+        document.getElementById('gt-tache').value = '';
+        document.getElementById('gt-chantier').value = '';
+        document.getElementById('gt-debut').value = '';
+        document.getElementById('gt-fin').value = '';
+        document.getElementById('gt-avancement').value = 0;
+        document.getElementById('gt-av-label').textContent = 0;
+        document.getElementById('gt-couleur').value = 'blue';
+        document.getElementById('gt-responsable').value = '';
+        document.getElementById('gt-notes').value = '';
+    }
+    modal.style.display = 'block';
+}
+
+async function saveGanttTache() {
+    const tache = document.getElementById('gt-tache').value.trim();
+    const debut = document.getElementById('gt-debut').value;
+    const fin = document.getElementById('gt-fin').value;
+    if (!tache||!debut||!fin) { notify('Tâche, début et fin sont requis', 'error'); return; }
+    const payload = {
+        tache, debut, fin,
+        chantier: document.getElementById('gt-chantier').value.trim()||null,
+        avancement: parseInt(document.getElementById('gt-avancement').value)||0,
+        couleur: document.getElementById('gt-couleur').value,
+        responsable: document.getElementById('gt-responsable').value.trim()||null,
+        notes: document.getElementById('gt-notes').value.trim()||null,
+    };
+    const id = document.getElementById('gt-edit-id').value;
+    try {
+        let err;
+        if (id) {
+            ({ error: err } = await db.from('gantt_taches').update(payload).eq('id', id));
+        } else {
+            ({ error: err } = await db.from('gantt_taches').insert(payload));
+        }
+        if (err) throw err;
+        document.getElementById('gt-modal').style.display = 'none';
+        notify(id ? 'Tâche mise à jour' : 'Tâche créée', 'success');
+        await loadGantt();
+    } catch(e) { notify('Erreur : ' + e.message, 'error'); }
+}
+
+async function deleteGanttTache(id) {
+    if (!confirm('Supprimer cette tâche ?')) return;
+    try {
+        const { error } = await db.from('gantt_taches').delete().eq('id', id);
+        if (error) throw error;
+        notify('Tâche supprimée', 'success');
+        await loadGantt();
+    } catch(e) { notify('Erreur : ' + e.message, 'error'); }
+}
+
+
+function logout() {
+    localStorage.removeItem('nysoa_current_user');
+    window.location.href = 'login.html';
+}
+
+// ── INIT ───────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+    // Vérif accès admin
+    const user = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
+    if (!user) { window.location.href = 'login.html'; return; }
+    if (user.role !== 'admin') { window.location.href = user.role + '.html'; return; }
+    document.getElementById('user-name').textContent = user.nom || 'Admin';
+
+    // Charger config Supabase sauvegardée
+    const url = localStorage.getItem('sb_url');
+    const key = localStorage.getItem('sb_key');
+    if (url) document.getElementById('sb-url').value = url;
+    if (key) document.getElementById('sb-key').value = key;
+
+    // Historique sauvegardes
+    const hist = JSON.parse(localStorage.getItem('backup_history') || '[]');
+    if (hist.length > 0) {
+        document.getElementById('backup-history').innerHTML = hist.map(h => `
+            <div class="backup-item">
+                <i class="fas fa-file-excel"></i>
+                <div class="bname"><strong>${h.fname}</strong></div>
+                <div class="bdate">${h.date}</div>
+            </div>`).join('');
+    }
+    const lastBackup = localStorage.getItem('last_backup');
+    if (lastBackup) document.getElementById('last-backup-full').textContent = 'Dernière sauvegarde : ' + lastBackup;
+
+    loadUsers();
+
+    // Charger les sections suivi au premier affichage
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const onclick = item.getAttribute('onclick') || '';
+            if (onclick.includes("'rapports'")) loadRapports();
+            if (onclick.includes("'controles'")) loadControles();
+            if (onclick.includes("'gantt'")) loadGantt();
+        });
+    });
+});
+</script>
+</body>
+</html>

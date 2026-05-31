@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NySoa Construct - RH</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <img src="LOGO_NYSOA.png" alt="NySoa" style="height:32px;width:auto;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4))">
+            </div>
+            <nav>
+                <a href="#" class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Tableau de bord</span>
+                </a>
+                <a href="#" class="nav-item" data-section="employes">
+                    <i class="fas fa-users"></i>
+                    <span>Employés</span>
+                </a>
+                <a href="#" class="nav-item" data-section="recrutement">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Recrutement</span>
+                </a>
+                <a href="#" class="nav-item" data-section="conges">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Congés</span>
+                </a>
+                <a href="#" class="nav-item" data-section="formations">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Formations</span>
+                </a>
+                <a href="#" class="nav-item" data-section="paie">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>Paie</span>
+                </a>
+                <a href="#" class="nav-item" data-section="rapports">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Rapports</span>
+                </a>
+                <a href="#" class="nav-item" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Déconnexion</span>
+                </a>
+            </nav>
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div class="user-details">
+                    <p class="user-name">RH</p>
+                    <p class="user-role">Ressources Humaines</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Mobile Menu Toggle -->
+            <button class="menu-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 id="page-title">Tableau de bord</h1>
+                </div>
+                <div class="header-right">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Rechercher...">
+                    </div>
+                    <div class="notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">6</span>
+                    </div>
+                    <div class="date-display">
+                        <span id="current-date"></span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section active">
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>156</h3>
+                            <p>Total employés</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>8</h3>
+                            <p>Nouvelles embauches</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>12</h3>
+                            <p>Congés en cours</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>5</h3>
+                            <p>Formations planifiées</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Répartition par Département</h3>
+                            <div class="card-actions">
+                                <button class="btn-small" onclick="exportChart('deptChart', 'pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                                <button class="btn-small" onclick="exportChart('deptChart', 'excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="deptChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Évolution des Embauches</h3>
+                            <div class="card-actions">
+                                <button class="btn-small" onclick="exportChart('hiringChart', 'pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                                <button class="btn-small" onclick="exportChart('hiringChart', 'excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="hiringChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Dernières embauches</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-timeline">
+                                <div class="activity-item">
+                                    <div class="activity-icon success">
+                                        <i class="fas fa-user-plus"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Rakoto Jean - Maçon</p>
+                                        <p class="activity-time">Aujourd'hui, 09:00</p>
+                                        <p class="activity-status">Chantier Résidence Palmiers</p>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon success">
+                                        <i class="fas fa-user-plus"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Rasoarimanana Paul - Électricien</p>
+                                        <p class="activity-time">Hier, 14:30</p>
+                                        <p class="activity-status">Chantier Centre Commercial</p>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon success">
+                                        <i class="fas fa-user-plus"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Andriamanitra Pierre - Plombier</p>
+                                        <p class="activity-time">12/05/2026</p>
+                                        <p class="activity-status">Chantier Bureau Ecobank</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Demandes de congés</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-timeline">
+                                <div class="activity-item">
+                                    <div class="activity-icon warning">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Rakoto Jean - 5 jours</p>
+                                        <p class="activity-time">15/05/2026 - 19/05/2026</p>
+                                        <p class="activity-status">En attente</p>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-icon success">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="activity-title">Rasoarimanana Paul - 3 jours</p>
+                                        <p class="activity-time">20/05/2026 - 22/05/2026</p>
+                                        <p class="activity-status">Approuvé</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Employés Section -->
+            <section id="employes" class="section">
+                <div class="section-header">
+                    <h2>Gestion des Employés</h2>
+                    <button class="btn btn-primary" onclick="openModal('modal-employe')">
+                        <i class="fas fa-plus"></i> Nouvel employé
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Liste des employés</h3>
+                        <div class="filters">
+                            <select class="filter-select">
+                                <option value="">Tous les départements</option>
+                                <option value="chantier">Chantier</option>
+                                <option value="admin">Administration</option>
+                                <option value="technique">Technique</option>
+                                <option value="rh">RH</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Matricule</th>
+                                    <th>Nom</th>
+                                    <th>Poste</th>
+                                    <th>Département</th>
+                                    <th>Date embauche</th>
+                                    <th>Salaire</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>EMP-001</td>
+                                    <td>Rakoto Jean</td>
+                                    <td>Maçon</td>
+                                    <td>Chantier</td>
+                                    <td>01/01/2024</td>
+                                    <td>450 000 Ar</td>
+                                    <td><span class="status success">Actif</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>EMP-002</td>
+                                    <td>Rasoarimanana Paul</td>
+                                    <td>Électricien</td>
+                                    <td>Technique</td>
+                                    <td>15/02/2024</td>
+                                    <td>500 000 Ar</td>
+                                    <td><span class="status success">Actif</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>EMP-003</td>
+                                    <td>Andriamanitra Pierre</td>
+                                    <td>Plombier</td>
+                                    <td>Technique</td>
+                                    <td>01/03/2024</td>
+                                    <td>480 000 Ar</td>
+                                    <td><span class="status success">Actif</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recrutement Section -->
+            <section id="recrutement" class="section">
+                <div class="section-header">
+                    <h2>Recrutement</h2>
+                    <button class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Nouvelle offre
+                    </button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-briefcase"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>5</h3>
+                            <p>Offres actives</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>42</h3>
+                            <p>Candidatures</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-user-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>8</h3>
+                            <p>Entretiens planifiés</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Offres d'emploi</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Poste</th>
+                                    <th>Département</th>
+                                    <th>Type</th>
+                                    <th>Candidatures</th>
+                                    <th>Date limite</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Maçon qualifié</td>
+                                    <td>Chantier</td>
+                                    <td>CDI</td>
+                                    <td>15</td>
+                                    <td>30/05/2026</td>
+                                    <td><span class="status active">Active</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Électricien</td>
+                                    <td>Technique</td>
+                                    <td>CDI</td>
+                                    <td>12</td>
+                                    <td>25/05/2026</td>
+                                    <td><span class="status active">Active</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Congés Section -->
+            <section id="conges" class="section">
+                <div class="section-header">
+                    <h2>Gestion des Congés</h2>
+                    <button class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Nouvelle demande
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Demandes de congés</h3>
+                        <div class="filters">
+                            <select class="filter-select">
+                                <option value="">Tous les statuts</option>
+                                <option value="attente">En attente</option>
+                                <option value="approuve">Approuvé</option>
+                                <option value="refuse">Refusé</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Employé</th>
+                                    <th>Type</th>
+                                    <th>Du</th>
+                                    <th>Au</th>
+                                    <th>Jours</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Rakoto Jean</td>
+                                    <td>Congé annuel</td>
+                                    <td>15/05/2026</td>
+                                    <td>19/05/2026</td>
+                                    <td>5</td>
+                                    <td><span class="status warning">En attente</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="approveLeave(this)"><i class="fas fa-check"></i></button>
+                                        <button class="btn-icon" onclick="rejectLeave(this)"><i class="fas fa-times"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Rasoarimanana Paul</td>
+                                    <td>Congé maladie</td>
+                                    <td>20/05/2026</td>
+                                    <td>22/05/2026</td>
+                                    <td>3</td>
+                                    <td><span class="status success">Approuvé</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Formations Section -->
+            <section id="formations" class="section">
+                <div class="section-header">
+                    <h2>Formations</h2>
+                    <button class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Nouvelle formation
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Formations planifiées</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Formation</th>
+                                    <th>Participants</th>
+                                    <th>Date</th>
+                                    <th>Durée</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Sécurité au travail</td>
+                                    <td>25</td>
+                                    <td>20/05/2026</td>
+                                    <td>8h</td>
+                                    <td><span class="status warning">Planifié</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Manutention lourde</td>
+                                    <td>15</td>
+                                    <td>25/05/2026</td>
+                                    <td>4h</td>
+                                    <td><span class="status warning">Planifié</span></td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Paie Section -->
+            <section id="paie" class="section">
+                <div class="section-header">
+                    <h2>Gestion de la Paie</h2>
+                    <button class="btn btn-primary">
+                        <i class="fas fa-calculator"></i> Générer fiches
+                    </button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>75MAr</h3>
+                            <p>Masse salariale</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-check-circle"></i>
+                            <div class="stat-info">
+                                <h3>156</h3>
+                                <p>Fiches générées</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Fiches de paie</h3>
+                        <div class="filters">
+                            <select class="filter-select">
+                                <option value="">Mois actuel</option>
+                                <option value="mai">Mai 2026</option>
+                                <option value="avril">Avril 2026</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Employé</th>
+                                    <th>Salaire base</th>
+                                    <th>Primes</th>
+                                    <th>Déductions</th>
+                                    <th>Net à payer</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Rakoto Jean</td>
+                                    <td>450 000 Ar</td>
+                                    <td>50 000 Ar</td>
+                                    <td>25 000 Ar</td>
+                                    <td>475 000 Ar</td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Rasoarimanana Paul</td>
+                                    <td>500 000 Ar</td>
+                                    <td>60 000 Ar</td>
+                                    <td>30 000 Ar</td>
+                                    <td>530 000 Ar</td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Rapports Section -->
+            <section id="rapports" class="section">
+                <div class="section-header">
+                    <h2>Rapports RH</h2>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Rapports employés</h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="report-list">
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Effectif mensuel - Mai 2026</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-excel"></i>
+                                    <span>Masse salariale - Mai 2026</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Rapports congés</h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="report-list">
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Bilan congés - Mai 2026</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                                <li>
+                                    <i class="fas fa-file-excel"></i>
+                                    <span>Solde congés par employé</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Rapports recrutement</h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="report-list">
+                                <li>
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Statistiques recrutement - 2026</span>
+                                    <button class="btn-small">Télécharger</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Employé -->
+    <div id="modal-employe" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouvel Employé</h3>
+                <button class="close-modal" onclick="closeModal('modal-employe')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-employe">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nom</label>
+                            <input type="text" name="nom" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Prénom</label>
+                            <input type="text" name="prenom" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Poste</label>
+                        <input type="text" name="poste" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Département</label>
+                        <select name="departement" required>
+                            <option value="">Sélectionner...</option>
+                            <option value="chantier">Chantier</option>
+                            <option value="admin">Administration</option>
+                            <option value="technique">Technique</option>
+                            <option value="rh">RH</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date embauche</label>
+                            <input type="date" name="date_embauche" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Salaire (Ar)</label>
+                            <input type="number" name="salaire" required>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-employe')">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="supabase.js"></script>
+    <script src="script.js"></script>
+    <script>
+        // Check authentication
+        window.addEventListener('load', function() {
+            const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
+            if (!currentUser || currentUser.role !== 'rh') {
+                window.location.href = 'login.html';
+            }
+            initializeRHCharts();
+            updateDate();
+        });
+
+        // Update section titles
+        const sectionTitles = {
+            'dashboard': 'Tableau de bord',
+            'employes': 'Gestion des Employés',
+            'recrutement': 'Recrutement',
+            'conges': 'Gestion des Congés',
+            'formations': 'Formations',
+            'paie': 'Gestion de la Paie',
+            'rapports': 'Rapports RH'
+        };
+
+        // Initialize RH Charts
+        function initializeRHCharts() {
+            // Department Chart
+            const deptCtx = document.getElementById('deptChart');
+            if (deptCtx) {
+                new Chart(deptCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Chantier', 'Administration', 'Technique', 'RH'],
+                        datasets: [{
+                            data: [80, 25, 35, 16],
+                            backgroundColor: ['#0066cc', '#ff6b35', '#10b981', '#636e72']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'right'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Hiring Chart
+            const hiringCtx = document.getElementById('hiringChart');
+            if (hiringCtx) {
+                new Chart(hiringCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+                        datasets: [{
+                            label: 'Nouvelles embauches',
+                            data: [3, 5, 4, 6, 8, 5],
+                            borderColor: '#0066cc',
+                            backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function approveLeave(button) {
+            const row = button.closest('tr');
+            const statusCell = row.querySelector('.status');
+            statusCell.className = 'status success';
+            statusCell.textContent = 'Approuvé';
+            showNotification('Congé approuvé!', 'success');
+        }
+
+        function rejectLeave(button) {
+            const row = button.closest('tr');
+            const statusCell = row.querySelector('.status');
+            statusCell.className = 'status error';
+            statusCell.textContent = 'Refusé';
+            showNotification('Congé refusé', 'info');
+        }
+    </script>
+</body>
+</html>
