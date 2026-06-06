@@ -237,55 +237,21 @@
 
                 <div class="card">
                     <div class="card-body">
-                        <table class="table">
+                        <table class="table" id="projets-table">
                             <thead>
                                 <tr>
-                                    <th>Chantier</th>
+                                    <th>Code</th>
+                                    <th>Nom</th>
                                     <th>Client</th>
                                     <th>Budget</th>
+                                    <th>Début</th>
+                                    <th>Fin</th>
                                     <th>Progression</th>
-                                    <th>Date fin</th>
                                     <th>Statut</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>Résidence Les Palmiers</td>
-                                    <td>SCI Immobilier</td>
-                                    <td>850 000 Ar</td>
-                                    <td><div class="progress-bar"><div class="progress" style="width: 75%"></div></div></td>
-                                    <td>30/06/2026</td>
-                                    <td><span class="status active">En cours</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Centre Commercial</td>
-                                    <td>Groupe Alpha</td>
-                                    <td>1 200 000 Ar</td>
-                                    <td><div class="progress-bar"><div class="progress" style="width: 45%"></div></div></td>
-                                    <td>31/12/2026</td>
-                                    <td><span class="status active">En cours</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Bureau Ecobank</td>
-                                    <td>Ecobank</td>
-                                    <td>450 000 Ar</td>
-                                    <td><div class="progress-bar"><div class="progress" style="width: 90%"></div></div></td>
-                                    <td>15/05/2026</td>
-                                    <td><span class="status warning">Bientôt terminé</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
-                                    </td>
-                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -306,45 +272,21 @@
                         <h3>Liste des ouvriers</h3>
                     </div>
                     <div class="card-body">
-                        <table class="table">
+                        <table class="table" id="personnel-table">
                             <thead>
                                 <tr>
+                                    <th>Matricule</th>
                                     <th>Nom</th>
-                                    <th>Spécialité</th>
-                                    <th>Chantier actuel</th>
-                                    <th>Présence</th>
+                                    <th>Métier</th>
+                                    <th>Chantier</th>
+                                    <th>Date embauche</th>
+                                    <th>Ancienneté</th>
+                                    <th>Salaire</th>
+                                    <th>Statut</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Rakoto Jean</td>
-                                    <td>Maçon</td>
-                                    <td>Résidence Les Palmiers</td>
-                                    <td><span class="status success">Présent</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Rasoarimanana Paul</td>
-                                    <td>Électricien</td>
-                                    <td>Centre Commercial</td>
-                                    <td><span class="status success">Présent</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Andriamanitra Pierre</td>
-                                    <td>Plombier</td>
-                                    <td>Bureau Ecobank</td>
-                                    <td><span class="status error">Absent</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                    </td>
-                                </tr>
-                            </tbody>
+                            <tbody id="personnel-table-body">
                         </table>
                     </div>
                 </div>
