@@ -1402,3 +1402,131 @@ function goToAdmin() {
     }
     window.location.href = 'admin.html';
 }
+
+// ── Téléchargement des rapports ─────────────────────────────────
+async function downloadReport(btn) {
+    const li = btn.closest('li');
+    if (!li) return;
+    const icon = li.querySelector('i');
+    const span = li.querySelector('span');
+    if (!span) return;
+    const format = icon?.className?.includes('fa-file-pdf') ? 'pdf' : 'xlsx';
+    const nom = span.textContent.trim();
+    showNotification(`Génération de « ${nom} »...`, 'info');
+
+    try {
+        // Déterminer la source de données selon le nom du rapport
+        let rows, headers, filename;
+        const n = nom.toLowerCase();
+
+        if (n.includes('bilan') || n.includes('résultat') || n.includes('budgét') || n.includes('financier')) {
+            const { data } = await db.from('journal').select('date,designation,montant,categorie,mode_paiement').order('date', { ascending: false }).limit(500);
+            rows = data || [];
+            headers = ['Date', 'Désignation', 'Montant (Ar)', 'Catégorie', 'Paiement'];
+            filename = nom.replace(/[^a-zA-Z0-9]/g,'_');
+        } else if (n.includes('avancement') || n.includes('planning') || n.includes('chantier')) {
+            const { data } = await db.from('chantiers').select('nom,client,budget,debut,fin,progression,statut').order('nom');
+            rows = data || [];
+            headers = ['Chantier', 'Client', 'Budget (Ar)', 'Début', 'Fin', 'Progression %', 'Statut'];
+            filename = nom.replace(/[^a-zA-Z0-9]/g,'_');
+        } else if (n.includes('qualité')) {
+            const { data } = await db.from('chantiers').select('nom,statut,progression').order('nom');
+            rows = data || [];
+            headers = ['Chantier', 'Statut', 'Progression %'];
+            filename = 'rapport_qualite';
+        } else if (n.includes('effectif') || n.includes('masse salariale')) {
+            const { data } = await db.from('personnel').select('nom,metier,chantier,type_salaire,salaire_journalier').eq('actif', true).order('nom');
+            rows = data || [];
+            headers = ['Nom', 'Métier', 'Chantier', 'Type Salaire', 'Salaire (Ar)'];
+            filename = 'rapport_rh';
+        } else if (n.includes('congé') || n.includes('absence')) {
+            const { data } = await db.from('personnel').select('nom,metier,chantier').eq('actif', true).order('nom');
+            rows = data || [];
+            headers = ['Nom', 'Métier', 'Chantier'];
+            filename = 'conges_absences';
+        } else if (n.includes('inventaire') || n.includes('mouvement') || n.includes('valorisation') || n.includes('stock')) {
+            const { data } = await db.from('materiels').select('libelle,chantier_actuel,quantite,etat').order('libelle');
+            rows = data || [];
+            headers = ['Matériel', 'Chantier', 'Quantité', 'État'];
+            filename = 'rapport_stock';
+        } else if (n.includes('intervention') || n.includes('technique')) {
+            const { data } = await db.from('chantiers').select('nom,statut,debut,fin').order('nom');
+            rows = data || [];
+            headers = ['Chantier', 'Statut', 'Début', 'Fin'];
+            filename = 'rapport_technique';
+        } else if (n.includes('contrôle') || n.includes('sécurité')) {
+            const { data } = await db.from('chantiers').select('nom,statut,progression').order('nom');
+            rows = data || [];
+            headers = ['Chantier', 'Statut', 'Progression %'];
+            filename = 'rapport_controle';
+        } else {
+            showNotification(`Rapport « ${nom} » non reconnu`, 'error');
+            return;
+        }
+
+        if (!rows.length) {
+            showNotification('Aucune donnée pour ce rapport', 'warning');
+            return;
+        }
+
+        if (format === 'pdf') {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(16);
+            doc.text(nom, 14, 20);
+            doc.setFontSize(9);
+            let y = 30;
+            const pageW = doc.internal.pageSize.width;
+            doc.setFillColor(28, 43, 58);
+            doc.setTextColor(255, 255, 255);
+            doc.rect(14, y - 4, pageW - 28, 7, 'F');
+            let x = 14;
+            headers.forEach(h => {
+                doc.text(h, x + 1, y + 1);
+                x += pageW / headers.length;
+            });
+            doc.setTextColor(0);
+            y += 10;
+            rows.forEach((r, i) => {
+                if (y > 270) { doc.addPage(); y = 20; doc.setTextColor(28, 43, 58); doc.setFontSize(9); }
+                if (i % 2 === 0) { doc.setFillColor(245, 247, 250); doc.rect(14, y - 4, pageW - 28, 6, 'F'); }
+                let cx = 14;
+                const vals = typeof r === 'object' ? Object.values(r) : [r];
+                vals.forEach((v, vi) => {
+                    const txt = v ? (vi === 0 || typeof v === 'string' ? String(v).substring(0, 18) : String(v)) : '—';
+                    doc.text(txt, cx + 1, y);
+                    cx += pageW / Math.max(vals.length, headers.length);
+                });
+                y += 7;
+            });
+            doc.save(`${filename}.pdf`);
+        } else {
+            const wb = XLSX.utils.book_new();
+            const data2 = rows.map(r => {
+                const obj = {};
+                headers.forEach((h, i) => {
+                    const keys = Object.keys(r);
+                    obj[h] = keys[i] ? r[keys[i]] : '—';
+                });
+                return obj;
+            });
+            const ws = XLSX.utils.json_to_sheet(data2);
+            XLSX.utils.book_append_sheet(wb, ws, nom.substring(0, 31));
+            XLSX.writeFile(wb, `${filename}.xlsx`);
+        }
+        showNotification(`${nom} téléchargé ✓`, 'success');
+    } catch (e) {
+        console.error('[Rapport]', e);
+        showNotification('Erreur génération rapport', 'error');
+    }
+}
+
+// Délégation : clic sur bouton dans les listes de rapports
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.report-list').forEach(ul => {
+        ul.addEventListener('click', e => {
+            const btn = e.target.closest('button.btn-small');
+            if (btn) downloadReport(btn);
+        });
+    });
+});
