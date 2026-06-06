@@ -415,103 +415,7 @@ function filtrerPersonnelDept(dept) {
     });
 }
 
-// ============================================================
-// LOGISTIQUE / STOCK — lit depuis Supabase
-// ============================================================
-async function loadLogistiqueTable() {
-    // Inventaire stock — correspond à #stock-table-body dans index.html
-    const tbody = document.getElementById('stock-table-body');
-    const stockParChantier = document.getElementById('stock-par-chantier-body');
-
-    if (tbody) tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:#94a3b8">Chargement...</td></tr>';
-
-    const { data, error } = await db.from('materiels').select('*').order('libelle');
-    if (error) {
-        console.error('[Logistique]', error);
-        if (tbody) tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:red">Erreur chargement</td></tr>';
-        if (stockParChantier) stockParChantier.innerHTML = '<p style="color:red">Erreur chargement</p>';
-        return;
-    }
-
-    // ── Inventaire ──
-    if (tbody) {
-        tbody.innerHTML = '';
-        data.forEach((m, i) => {
-            const etatClass = m.etat === 'EN MARCHE' || m.etat === 'BON' ? 'success' : m.etat === 'EN PANNE' ? 'error' : 'warning';
-            const row = document.createElement('tr');
-            row.setAttribute('data-id', m.id);
-            row.innerHTML = `
-                <td>MAT-${String(i+1).padStart(3,'0')}</td>
-                <td>${m.libelle || '—'}</td>
-                <td>Matériel</td>
-                <td>${m.chantier_actuel || 'Dépôt'}</td>
-                <td>${m.quantite || 0}</td>
-                <td>Unité</td>
-                <td>—</td>
-                <td>—</td>
-                <td>—</td>
-                <td><span class="status ${etatClass}">${m.etat || '—'}</span></td>
-                <td>
-                    <button class="btn-icon" title="Modifier" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
-                    <button class="btn-icon" title="Supprimer" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
-                </td>`;
-            tbody.appendChild(row);
-        });
-
-        // Mettre à jour stat
-        const statTotal = document.getElementById('stat-total-articles');
-        if (statTotal) statTotal.textContent = data.length;
-        const statBas = document.getElementById('stat-stocks-bas');
-        if (statBas) statBas.textContent = data.filter(m => m.etat === 'EN PANNE').length;
-
-        // Remplir le filtre emplacement
-        const empFilter = document.getElementById('stock-emplacement-filter');
-        if (empFilter) {
-            const chantiers = [...new Set(data.map(m => m.chantier_actuel).filter(Boolean))];
-            chantiers.forEach(c => {
-                if (!empFilter.querySelector(`option[value="${c}"]`)) {
-                    const opt = document.createElement('option');
-                    opt.value = opt.textContent = c;
-                    empFilter.appendChild(opt);
-                }
-            });
-        }
-    }
-
-    // ── Stock par chantier ──
-    if (stockParChantier) {
-        const byChantier = {};
-        data.forEach(m => {
-            const key = m.chantier_actuel || 'Dépôt';
-            if (!byChantier[key]) byChantier[key] = [];
-            byChantier[key].push(m);
-        });
-
-        if (Object.keys(byChantier).length === 0) {
-            stockParChantier.innerHTML = '<p style="color:#94a3b8;text-align:center;font-style:italic">Aucun matériel enregistré</p>';
-            return;
-        }
-
-        stockParChantier.innerHTML = Object.entries(byChantier).map(([chantier, items]) => `
-            <div style="margin-bottom:20px">
-                <h4 style="color:#1C2B3A;border-bottom:2px solid #0066cc;padding-bottom:6px;margin-bottom:10px">
-                    🏗️ ${chantier} <span style="font-size:12px;color:#64748b">(${items.length} article${items.length > 1 ? 's' : ''})</span>
-                </h4>
-                <table class="table" style="font-size:13px">
-                    <thead><tr><th>Article</th><th>Quantité</th><th>État</th></tr></thead>
-                    <tbody>
-                        ${items.map(m => `
-                            <tr>
-                                <td>${m.libelle}</td>
-                                <td>${m.quantite || 0}</td>
-                                <td><span class="status ${m.etat === 'EN MARCHE' || m.etat === 'BON' ? 'success' : 'error'}">${m.etat || '—'}</span></td>
-                            </tr>`).join('')}
-                    </tbody>
-                </table>
-            </div>`).join('');
-    }
-    if (typeof reApplyChantierFilter === 'function') reApplyChantierFilter();
-}
+// LOGISTIQUE / STOCK — géré par stock.js (localStorage) 
 
 // ============================================================
 // POINTAGE — lit depuis Supabase
@@ -1488,23 +1392,6 @@ function filtrerJournalType(typeValue) {
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(populateAllChantiersSelects, 2000);
 });
-
-// ── Fonctions RH pour les congés ───────────────────────────────
-function approveLeave(btn) {
-    const row = btn.closest('tr');
-    const statusCell = row.querySelector('.status');
-    statusCell.className = 'status success';
-    statusCell.textContent = 'Approuvé';
-    showNotification('Congé approuvé ✓', 'success');
-}
-
-function rejectLeave(btn) {
-    const row = btn.closest('tr');
-    const statusCell = row.querySelector('.status');
-    statusCell.className = 'status error';
-    statusCell.textContent = 'Rejeté';
-    showNotification('Congé rejeté', 'info');
-}
 
 // ── Navigation vers admin ───────────────────────────────────────
 function goToAdmin() {
