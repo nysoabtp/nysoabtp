@@ -21,7 +21,7 @@ function fmtDate(d) {
 async function loadAntoka() {
     const el = document.getElementById('antoka-tbody');
     if (!el) return;
-    el.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i> Chargement...</td></tr>';
+    el.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i> Chargement...</td></tr>';
     try {
         const { data, error } = await db.from('antoka').select('*').order('employe');
         if (error) throw error;
@@ -32,7 +32,7 @@ async function loadAntoka() {
         document.getElementById('antoka-total-depart') && (document.getElementById('antoka-total-depart').textContent = fmt(totalDepart));
         document.getElementById('antoka-total-paye')   && (document.getElementById('antoka-total-paye').textContent   = fmt(totalPaye));
         document.getElementById('antoka-total-reste')  && (document.getElementById('antoka-total-reste').textContent  = fmt(totalReste));
-        if (!rows.length) { el.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">Aucun antoka enregistré</td></tr>'; return; }
+        if (!rows.length) { el.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--text-muted)">Aucun antoka enregistré</td></tr>'; return; }
         el.innerHTML = rows.map(r => {
             const pct = r.montant_depart ? Math.round((r.montant_paye||0)/r.montant_depart*100) : 0;
             const color = pct===100 ? 'var(--green)' : pct>50 ? 'var(--orange)' : 'var(--red)';
@@ -42,6 +42,12 @@ async function loadAntoka() {
                 <td style="font-family:monospace">${fmt(r.montant_depart)}</td>
                 <td style="color:var(--green);font-family:monospace">${fmt(r.montant_paye)}</td>
                 <td style="color:${r.reste>0?'var(--red)':'var(--green)'};font-weight:600;font-family:monospace">${fmt(r.reste)}</td>
+                <td style="font-family:monospace">${fmt(r.tranche1)}</td>
+                <td>${fmtDate(r.date_tranche1)}</td>
+                <td style="font-family:monospace">${fmt(r.tranche2)}</td>
+                <td>${fmtDate(r.date_tranche2)}</td>
+                <td style="font-family:monospace">${fmt(r.tranche3)}</td>
+                <td>${fmtDate(r.date_tranche3)}</td>
                 <td>
                     <div style="display:flex;align-items:center;gap:8px">
                         <div style="flex:1;height:6px;background:var(--border);border-radius:10px;overflow:hidden">
@@ -57,7 +63,7 @@ async function loadAntoka() {
             </tr>`;
         }).join('');
     } catch(e) {
-        el.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--red)">${e.message}</td></tr>`;
+        el.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--red)">${e.message}</td></tr>`;
     }
 }
 
@@ -91,24 +97,30 @@ async function saveAntoka(e) {
     const fd = new FormData(e.target);
     const depart = parseFloat(fd.get('montant_depart'))||0;
     const paye   = parseFloat(fd.get('montant_paye'))||0;
+    const t1 = parseFloat(fd.get('tranche1'))||0;
+    const t2 = parseFloat(fd.get('tranche2'))||0;
+    const t3 = parseFloat(fd.get('tranche3'))||0;
     const obj = {
         employe: fd.get('employe'), chantier: fd.get('chantier'),
         montant_depart: depart, montant_paye: paye,
-        reste: Math.max(0, depart - paye), date: fd.get('date'), motif: fd.get('motif')
+        reste: Math.max(0, depart - paye), date: fd.get('date'), motif: fd.get('motif'),
+        tranche1: t1, date_tranche1: fd.get('date_tranche1')||null,
+        tranche2: t2, date_tranche2: fd.get('date_tranche2')||null,
+        tranche3: t3, date_tranche3: fd.get('date_tranche3')||null
     };
     const { error } = await db.from('antoka').insert([obj]);
     if (error) { alert(error.message); return; }
     document.getElementById('modal-antoka').classList.remove('active');
     e.target.reset();
     loadAntoka();
-    showToast('Antoka ajouté ✓');
+    showNotification('Antoka ajouté ✓', 'success');
 }
 
 async function deleteAntoka(id) {
     if (!confirm('Supprimer cet antoka ?')) return;
     await db.from('antoka').delete().eq('id', id);
     loadAntoka();
-    showToast('Supprimé');
+    showNotification('Supprimé', 'success');
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -117,7 +129,7 @@ async function deleteAntoka(id) {
 async function loadCredits() {
     const el = document.getElementById('credits-tbody');
     if (!el) return;
-    el.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    el.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i></td></tr>';
     try {
         const { data, error } = await db.from('credits_fournisseurs').select('*').order('fournisseur');
         if (error) throw error;
@@ -126,7 +138,7 @@ async function loadCredits() {
         const totalReste = rows.reduce((s,r)=>s+(r.reste1||0)+(r.reste2||0)+(r.reste3||0),0);
         document.getElementById('credit-total-dette') && (document.getElementById('credit-total-dette').textContent = fmt(totalDette));
         document.getElementById('credit-total-reste') && (document.getElementById('credit-total-reste').textContent = fmt(totalReste));
-        if (!rows.length) { el.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px">Aucun crédit enregistré</td></tr>'; return; }
+        if (!rows.length) { el.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px">Aucun crédit enregistré</td></tr>'; return; }
         el.innerHTML = rows.map(r => {
             const totalPayé = (r.montant1||0)+(r.montant2||0)+(r.montant3||0);
             const resteTotal = (r.montant_total||0) - totalPayé;
@@ -138,21 +150,30 @@ async function loadCredits() {
                 <td>${fmtDate(r.date1)||'—'}</td>
                 <td style="font-family:monospace">${fmt(r.montant1)}</td>
                 <td>${fmtDate(r.date2)||'—'}</td>
+                <td style="font-family:monospace">${fmt(r.montant2)}</td>
+                <td>${fmtDate(r.date3)||'—'}</td>
+                <td style="font-family:monospace">${fmt(r.montant3)}</td>
                 <td>
                     <button class="btn-icon" title="Ajouter échéance" onclick="openCreditPayment(${r.id})"><i class="fas fa-plus"></i></button>
                     <button class="btn-icon" title="Supprimer" onclick="deleteCredit(${r.id})" style="color:var(--red)"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>`;
         }).join('');
-    } catch(e) { el.innerHTML = `<tr><td colspan="8" style="color:var(--red);padding:20px">${e.message}</td></tr>`; }
+    } catch(e) { el.innerHTML = `<tr><td colspan="11" style="color:var(--red);padding:20px">${e.message}</td></tr>`; }
 }
 
 async function saveCredit(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
+    const mt = parseFloat(fd.get('montant_total'))||0;
+    const m1 = parseFloat(fd.get('montant1'))||0;
+    const m2 = parseFloat(fd.get('montant2'))||0;
+    const m3 = parseFloat(fd.get('montant3'))||0;
     const obj = {
-        fournisseur: fd.get('fournisseur'), montant_total: parseFloat(fd.get('montant_total'))||0,
-        date1: fd.get('date1')||null, montant1: parseFloat(fd.get('montant1'))||0, reste1: parseFloat(fd.get('montant_total'))||0
+        fournisseur: fd.get('fournisseur'), montant_total: mt,
+        date1: fd.get('date1')||null, montant1: m1, reste1: mt - m1,
+        date2: fd.get('date2')||null, montant2: m2, reste2: Math.max(0, mt - m1 - m2),
+        date3: fd.get('date3')||null, montant3: m3, reste3: Math.max(0, mt - m1 - m2 - m3)
     };
     const { error } = await db.from('credits_fournisseurs').insert([obj]);
     if (error) { alert(error.message); return; }
@@ -179,29 +200,39 @@ async function loadCaisse() {
         if (error) throw error;
         const rows = data || [];
         const soldeActuel = rows.length ? (rows[0].solde_fin||0) : 0;
-        const totalSorties = rows.reduce((s,r)=>s+(r.montant||0),0);
-        document.getElementById('caisse-solde')  && (document.getElementById('caisse-solde').textContent  = fmt(soldeActuel));
-        document.getElementById('caisse-sorties')&& (document.getElementById('caisse-sorties').textContent = fmt(totalSorties));
+        const totalEntrees = rows.filter(r=>r.type==='entree').reduce((s,r)=>s+(r.montant||0),0);
+        const totalSorties = rows.filter(r=>r.type==='sortie').reduce((s,r)=>s+(r.montant||0),0);
+        document.getElementById('caisse-solde')   && (document.getElementById('caisse-solde').textContent   = fmt(soldeActuel));
+        document.getElementById('caisse-entrees') && (document.getElementById('caisse-entrees').textContent = fmt(totalEntrees));
+        document.getElementById('caisse-sorties') && (document.getElementById('caisse-sorties').textContent = fmt(totalSorties));
+        document.getElementById('caisse-nb')      && (document.getElementById('caisse-nb').textContent      = rows.length);
         if (!rows.length) { el.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px">Caisse vide</td></tr>'; return; }
         el.innerHTML = rows.map(r => `<tr>
             <td>${fmtDate(r.date)}</td>
             <td>${r.designation||'—'}</td>
-            <td style="color:var(--red);font-family:monospace">-${fmt(r.montant)}</td>
+            <td style="color:${r.type==='entree'?'var(--green)':'var(--red)'};font-family:monospace">${r.type==='entree'?'+':'-'}${fmt(r.montant)}</td>
             <td style="font-family:monospace;font-weight:600">${fmt(r.solde_fin)}</td>
             <td><button class="btn-icon" onclick="deleteCaisse(${r.id})" style="color:var(--red)"><i class="fas fa-trash"></i></button></td>
         </tr>`).join('');
     } catch(e) { el.innerHTML = `<tr><td colspan="5" style="color:var(--red);padding:20px">${e.message}</td></tr>`; }
 }
 
+function ouvrirModalCaisse(type) {
+    document.getElementById('caisse-type-input').value = type;
+    const title = document.getElementById('modal-caisse-title');
+    if (title) title.textContent = type === 'entree' ? 'Entrée de caisse' : 'Sortie de caisse';
+    document.getElementById('modal-caisse').classList.add('active');
+}
+
 async function saveCaisse(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
     const montant = parseFloat(fd.get('montant'))||0;
-    // Récupérer le dernier solde
+    const type = fd.get('type') || 'sortie';
     const { data: last } = await db.from('caisse').select('solde_fin').order('date',{ascending:false}).limit(1);
     const soldeDebut = last && last.length ? (last[0].solde_fin||0) : 0;
-    const soldeFin   = Math.max(0, soldeDebut - montant);
-    const obj = { date: fd.get('date'), designation: fd.get('designation'), montant, solde_debut: soldeDebut, solde_fin: soldeFin };
+    const soldeFin   = type === 'entree' ? soldeDebut + montant : Math.max(0, soldeDebut - montant);
+    const obj = { date: fd.get('date'), designation: fd.get('designation'), montant, type, solde_debut: soldeDebut, solde_fin: soldeFin };
     const { error } = await db.from('caisse').insert([obj]);
     if (error) { alert(error.message); return; }
     document.getElementById('modal-caisse').classList.remove('active');
@@ -264,7 +295,7 @@ async function savePrix(e) {
 async function deletePrix(id) {
     if (!confirm('Supprimer cet article du catalogue ?')) return;
     await db.from('catalogue_prix').delete().eq('id',id);
-    loadCatalogue(); showToast('Supprimé');
+    loadCatalogue(); showNotification('Supprimé', 'success');
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -319,7 +350,7 @@ async function cloturerContrat(id) {
     if (!confirm('Marquer ce contrat comme terminé ?')) return;
     const today = new Date().toISOString().split('T')[0];
     await db.from('contrats').update({ statut:'TERMINE', date_fin: today }).eq('id',id);
-    loadContrats(); showToast('Contrat clôturé ✓');
+    loadContrats(); showNotification('Contrat clôturé ✓', 'success');
 }
 
 async function deleteContrat(id) {

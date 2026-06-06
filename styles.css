@@ -442,6 +442,38 @@ body {
   color: var(--text-primary);
 }
 
+/* ── JOURNAL-STYLE TABLE ────────────────────────────────── */
+.table-journal { border: 2px solid #1a6b3c; border-radius: 4px; }
+.table-journal thead { background: #1a6b3c; }
+.table-journal thead th { color: #fff; font-family: 'DM Sans', sans-serif; letter-spacing: 0.3px; }
+.table-journal tbody tr:nth-child(even) { background: #f0faf0; }
+.table-journal tbody tr:nth-child(odd) { background: #fff; }
+.table-journal tbody tr:hover { background: #d4edda; }
+.table-journal tbody td { font-size: 0.82rem; }
+.table-journal tbody td.numeric, .table-journal td.montant { font-family: 'DM Mono', monospace; text-align: right; }
+.table-journal tbody tr.total-row { background: #1a6b3c20; font-weight: 700; border-top: 2px solid #1a6b3c; }
+
+/* ── PAYSLIP ────────────────────────────────────────────── */
+.payslip { max-width: 600px; margin: 0 auto; background: #fff; border: 2px solid #1C2B3A; border-radius: 12px; overflow: hidden; }
+.payslip-header { background: #1C2B3A; color: #fff; padding: 16px 20px; text-align: center; }
+.payslip-header h3 { color: #fff; font-size: 1.1rem; margin: 0; }
+.payslip-header p { color: rgba(255,255,255,0.7); font-size: 0.8rem; margin: 4px 0 0; }
+.payslip-body { padding: 20px; }
+.payslip-section { margin-bottom: 16px; }
+.payslip-section h4 { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 8px; }
+.payslip-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.84rem; }
+.payslip-row .label { color: var(--text-secondary); }
+.payslip-row .value { font-weight: 600; font-family: 'DM Mono', monospace; }
+.payslip-total { background: #1a6b3c; color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+.payslip-total .label { font-size: 0.9rem; font-weight: 600; }
+.payslip-total .value { font-size: 1.3rem; font-weight: 800; font-family: 'DM Mono', monospace; }
+.payslip-deduction { color: var(--red); }
+.payslip-earning { color: var(--green); }
+.btn-success { background: var(--green); color: #fff; box-shadow: 0 1px 3px rgba(22,163,74,0.3); }
+.btn-success:hover { background: #15803d; }
+.btn-danger { background: var(--red); color: #fff; box-shadow: 0 1px 3px rgba(220,38,38,0.3); }
+.btn-danger:hover { background: #b91c1c; }
+
 /* ── BUTTONS ─────────────────────────────────────────────── */
 .btn {
   padding: 8px 16px;

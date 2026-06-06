@@ -556,6 +556,11 @@
 
     <script src="supabase.js"></script>
     <script src="script.js"></script>
+    <script src="enhancements.js"></script>
+    <script src="stock.js"></script>
+    <script src="devis.js"></script>
+    <script src="import-excel.js"></script>
+    <script src="modules_new.js"></script>
     <script>
         // Check authentication
         window.addEventListener('load', function() {
@@ -568,14 +573,14 @@
         });
 
         // Update section titles
-        const sectionTitles = {
+        Object.assign(sectionTitles, {
             'dashboard': 'Tableau de bord',
             'chantiers': 'Mes Chantiers',
             'equipe': 'Mon Équipe',
             'planning': 'Planning',
             'materiaux': 'Matériaux',
             'rapports': 'Rapports Chantier'
-        };
+        });
 
         // Initialize Chef Charts
         function initializeChefCharts() {

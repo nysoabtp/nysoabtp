@@ -14,6 +14,13 @@ const STATIC_ASSETS = [
   '/icon.svg',
   '/styles.css',
   '/script.js',
+  '/modules_new.js',
+  '/stock.js',
+  '/devis.js',
+  '/enhancements.js',
+  '/import-excel.js',
+  '/supabase.js',
+  '/login.html',
 ];
 
 // ── INSTALL ───────────────────────────────────────────────────

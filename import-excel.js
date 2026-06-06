@@ -723,11 +723,7 @@ async function importLogistique(wb) {
     if (typeof loadCatalogue       === 'function') loadCatalogue();
 }
 
-// ── Alias pour les modules métier ────────────────────────────
-// Ces alias sont intentionnels — les fonctions de base sont polyvalentes :
-//   importPersonnel(wb) : gère BASE, SALAIRE MENSUEL, ANTOKA, CONTRAT ENCOURS
-//   importJournal(wb)   : gère JOURNAL et CAISSE
-//   importAchats(wb)    : gère ACHATS, REFERENCES, CATALOGUE_PRIX, CREDITS
+// ── Imports directs depuis les nouveaux modules ───────────────
 async function importAntoka(wb)    { await importPersonnel(wb); }
 async function importCaisse(wb)    { await importJournal(wb); }
 async function importCatalogue(wb) { await importAchats(wb); }

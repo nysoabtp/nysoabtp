@@ -10,6 +10,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="script.js"></script>
+    <script src="enhancements.js"></script>
+    <script src="stock.js"></script>
+    <script src="devis.js"></script>
+    <script src="import-excel.js"></script>
+    <script src="modules_new.js"></script>
     <style>
         /* ── CONFIG SUPABASE — même valeurs que supabase.js ── */
         :root {
@@ -719,12 +726,6 @@
 </div>
 
 <script>
-// ── SUPABASE CONFIG ────────────────────────────────────────────
-const SUPABASE_URL = 'https://djncsybvloyyesllfxhq.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbmNzeWJ2bG95eWVzbGxmeGhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NDI1OTksImV4cCI6MjA5MzMxODU5OX0.o4MOSg6axYoNdl0XgidLi0eNukR-KwnKvecZxchkcP8';
-const { createClient } = supabase;
-let db = createClient(SUPABASE_URL, SUPABASE_KEY);
-
 // ── NAVIGATION ─────────────────────────────────────────────────
 function showSection(name) {
     document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');

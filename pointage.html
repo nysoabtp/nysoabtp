@@ -346,6 +346,12 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script>
+    <script src="script.js"></script>
+    <script src="enhancements.js"></script>
+    <script src="stock.js"></script>
+    <script src="devis.js"></script>
+    <script src="import-excel.js"></script>
+    <script src="modules_new.js"></script>
 </head>
 <body>
     <div class="container">
@@ -416,6 +422,40 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Pointage Manuel -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-pen"></i> Pointage Manuel</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Nom employé</label>
+                        <input type="text" id="manuel-nom-p" class="form-control" list="manuel-employes-list-p" placeholder="Saisir ou sélectionner un employé">
+                        <datalist id="manuel-employes-list-p"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>Chantier</label>
+                        <select id="manuel-chantier-p" class="form-control">
+                            <option value="">Sélectionner un chantier</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="manuel-date-p" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select id="manuel-type-p" class="form-control">
+                            <option value="arrivee">Arrivée</option>
+                            <option value="depart">Départ</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="enregistrerPointageManuelPointage()">
+                        <i class="fas fa-save"></i> Enregistrer
+                    </button>
                 </div>
             </div>
 
@@ -576,6 +616,12 @@
     </div>
 
     <script>
+        // Vérification authentification
+        const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user'));
+        if (!currentUser) {
+            window.location.href = 'login.html';
+        }
+
         // Storage keys
         const STORAGE_KEYS = {
             personnel: 'erp_personnel',
@@ -594,31 +640,16 @@
             localStorage.setItem(key, JSON.stringify(data));
         }
 
-        // Show notification — alignée sur script.js (version canonique)
-        function showNotification(message, type = 'info') {
-            document.querySelectorAll('.notification').forEach(n => n.remove());
-            const colors = {
-                success: { bg: '#d4edda', text: '#155724', border: '#c3e6cb' },
-                error:   { bg: '#f8d7da', text: '#721c24', border: '#f5c6cb' },
-                warning: { bg: '#fff3cd', text: '#856404', border: '#ffeeba' },
-                info:    { bg: '#d1ecf1', text: '#0c5460', border: '#bee5eb' }
-            };
-            const c = colors[type] || colors.info;
-            const n = document.createElement('div');
-            n.className = 'notification';
-            n.textContent = message;
-            n.style.cssText = `position:fixed;top:20px;right:20px;padding:15px 25px;
-                background:${c.bg};color:${c.text};border:1px solid ${c.border};
-                border-radius:8px;font-weight:600;z-index:9999;
-                box-shadow:0 4px 12px rgba(0,0,0,0.15);`;
-            document.body.appendChild(n);
-            setTimeout(() => n.remove(), 4000);
+        // Show notification
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
         }
 
         // QR Scanner
-        let html5QrCode;
-        let scannedEmployee = null;
-
         function initializeQRScanner() {
             const qrReader = document.getElementById('qr-reader');
             if (!qrReader) return;
@@ -648,7 +679,7 @@
                 document.getElementById('scan-result-text').textContent = `Employé: ${employeeData.nom} (${employeeData.matricule})`;
                 document.getElementById('pointage-form').style.display = 'block';
 
-                await loadChantiers();
+                loadChantiers();
 
                 showNotification('QR Code scanné avec succès!', 'success');
 
@@ -660,35 +691,17 @@
             }
         }
 
-        // loadChantiers — version Supabase (Bug 4 corrigé)
-        // Remplace la version localStorage (projets.reference) par les chantiers Supabase
-        async function loadChantiers() {
+        function loadChantiers() {
+            const projets = loadData(STORAGE_KEYS.projets);
             const select = document.getElementById('chantier-select');
-            if (!select) return;
             select.innerHTML = '<option value="">Sélectionner un chantier</option>';
-            try {
-                const { data, error } = await db.from('chantiers')
-                    .select('nom, code')
-                    .eq('actif', true)
-                    .order('nom');
-                if (error) throw error;
-                data.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.nom;
-                    opt.textContent = c.code ? `${c.nom} (${c.code})` : c.nom;
-                    select.appendChild(opt);
-                });
-            } catch(err) {
-                console.error('[pointage] loadChantiers:', err);
-                // Fallback localStorage si Supabase indisponible
-                const projets = loadData(STORAGE_KEYS.projets) || [];
-                projets.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = p.reference;
-                    opt.textContent = `${p.nom} (${p.reference})`;
-                    select.appendChild(opt);
-                });
-            }
+
+            projets.forEach(projet => {
+                const option = document.createElement('option');
+                option.value = projet.reference;
+                option.textContent = `${projet.nom} (${projet.reference})`;
+                select.appendChild(option);
+            });
         }
 
         function enregistrerPointage() {
@@ -1033,11 +1046,54 @@
             showNotification(`Vue ${role.toUpperCase()} activée`, 'success');
         }
 
+        function enregistrerPointageManuelPointage() {
+            const nom = document.getElementById('manuel-nom-p')?.value;
+            const chantier = document.getElementById('manuel-chantier-p')?.value;
+            const datestr = document.getElementById('manuel-date-p')?.value;
+            const type = document.getElementById('manuel-type-p')?.value;
+            if (!nom) { showNotification('Saisissez un nom d\'employé', 'error'); return; }
+            if (!chantier) { showNotification('Sélectionnez un chantier', 'error'); return; }
+            if (!datestr) { showNotification('Sélectionnez une date', 'error'); return; }
+
+            const pointage = {
+                id: 'PTR-' + String(Date.now()),
+                date: new Date(datestr).toLocaleDateString('fr-FR'),
+                heure: new Date().toLocaleTimeString('fr-FR'),
+                employe: nom,
+                matricule: 'MANUEL',
+                chantier: chantier,
+                type: type === 'arrivee' ? 'Arrivée' : 'Départ',
+                statut: 'Validé',
+                timestamp: Date.now()
+            };
+
+            const pointages = loadData(STORAGE_KEYS.pointage);
+            pointages.push(pointage);
+            saveData(STORAGE_KEYS.pointage, pointages);
+
+            document.getElementById('manuel-nom-p').value = '';
+            document.getElementById('manuel-date-p').value = '';
+            document.getElementById('manuel-chantier-p').value = '';
+
+            loadRecentPointages();
+            updateStats();
+            showNotification('Pointage manuel enregistré ✓', 'success');
+        }
+
+        function chargerEmployesDatalist() {
+            const personnel = loadData(STORAGE_KEYS.personnel);
+            const dl = document.getElementById('manuel-employes-list-p');
+            if (dl) {
+                dl.innerHTML = personnel.map(emp => `<option value="${emp.nom}">`).join('');
+            }
+        }
+
         // Initialize on load
         document.addEventListener('DOMContentLoaded', () => {
             updateStats();
             loadRecentPointages();
             initializeQRScanner();
+            chargerEmployesDatalist();
         });
     </script>
 </body>

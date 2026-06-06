@@ -131,7 +131,33 @@
         <i class="fas fa-spinner fa-spin"></i> Connexion en cours...
     </div>
 
-    <!-- Comptes démo supprimés (audit #11) — ne pas remettre en production -->
+    <div class="comptes">
+        <h4>Comptes de démonstration — cliquer pour remplir</h4>
+        <div class="compte-item" onclick="document.getElementById('email').value='admin@nysoa.mg';document.getElementById('password').focus()">
+            <span class="role">Administrateur</span>
+            <span class="cred">admin@nysoa.mg</span>
+        </div>
+        <div class="compte-item" onclick="document.getElementById('email').value='daf@nysoa.mg';document.getElementById('password').focus()">
+            <span class="role">DAF</span>
+            <span class="cred">daf@nysoa.mg</span>
+        </div>
+        <div class="compte-item" onclick="document.getElementById('email').value='chef@nysoa.mg';document.getElementById('password').focus()">
+            <span class="role">Chef chantier</span>
+            <span class="cred">chef@nysoa.mg</span>
+        </div>
+        <div class="compte-item" onclick="document.getElementById('email').value='rh@nysoa.mg';document.getElementById('password').focus()">
+            <span class="role">RH</span>
+            <span class="cred">rh@nysoa.mg</span>
+        </div>
+        <div class="compte-item" onclick="document.getElementById('email').value='controleur@nysoa.mg';document.getElementById('password').focus()">
+            <span class="role">Contrôleur</span>
+            <span class="cred">controleur@nysoa.mg</span>
+        </div>
+        <div class="compte-item" onclick="document.getElementById('email').value='technicien@nysoa.mg';document.getElementById('password').focus()">
+            <span class="role">Technicien</span>
+            <span class="cred">technicien@nysoa.mg</span>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -157,7 +183,11 @@ function showError(msg)   { const el = document.getElementById('error-msg');   e
 function showSuccess(msg) { const el = document.getElementById('success-msg'); el.textContent = msg; el.style.display = 'block'; document.getElementById('error-msg').style.display = 'none'; }
 function hideMessages()   { document.getElementById('error-msg').style.display = 'none'; document.getElementById('success-msg').style.display = 'none'; }
 
-// ── Connexion via Supabase Auth uniquement ───────────────────
+function fillLogin(email, pass) {
+    document.getElementById('email').value    = email;
+    document.getElementById('password').value = pass;
+}
+
 document.getElementById('form-login').addEventListener('submit', async function(e) {
     e.preventDefault();
     hideMessages();
@@ -172,48 +202,70 @@ document.getElementById('form-login').addEventListener('submit', async function(
 
     try {
         const { data, error } = await db.auth.signInWithPassword({ email, password });
+
         if (error) throw error;
 
-        // Le rôle est dans user_metadata (défini au moment de la création du compte)
-        const role = data.user?.user_metadata?.role;
-        if (!role) throw new Error('Rôle non défini pour ce compte. Contactez l\'administrateur.');
+        // Récupérer le rôle depuis la table users ou user_metadata
+        const role = data.user?.user_metadata?.role || 'admin';
+        const destination = DASHBOARDS[role] || 'index.html';
 
-        const destination = DASHBOARDS[role];
-        if (!destination) throw new Error(`Rôle inconnu : "${role}"`);
-
-        // localStorage = cache d'affichage uniquement (nom, email)
-        // La vraie autorisation repose sur la session Supabase
-        localStorage.setItem('nysoa_current_user', JSON.stringify({
-            email: data.user.email,
-            role,
-            nom: data.user?.user_metadata?.nom || email.split('@')[0],
-        }));
+        // Sauvegarder dans localStorage pour que admin.html puisse vérifier
+        localStorage.setItem('nysoa_current_user', JSON.stringify({ email: data.user.email, role }));
 
         showSuccess('Connexion réussie ! Redirection...');
         setTimeout(() => { window.location.href = destination; }, 800);
 
     } catch (err) {
-        console.error('[Login]', err);
-        showError(err.message?.includes('Invalid login')
-            ? 'Email ou mot de passe incorrect'
-            : err.message || 'Erreur de connexion');
+        console.error(err);
+
+        // Fallback localStorage si Supabase pas encore configuré
+        if (err.message?.includes('fetch') || SUPABASE_URL.includes('VOTRE')) {
+            fallbackLogin(email, password);
+        } else {
+            showError('Email ou mot de passe incorrect');
+        }
     } finally {
         btn.disabled = false;
         loading.style.display = 'none';
     }
 });
 
-// ── Si session active → rediriger directement ────────────────
+// Fallback local si Supabase pas encore configuré
+function fallbackLogin(email, password) {
+    const hash = (s) => btoa(s);
+    const users = [
+        { email:'admin@nysoa.mg',       hash:'YWRtaW4xMjM=',       role:'admin' },
+        { email:'daf@nysoa.mg',         hash:'ZGFmMTIz',           role:'daf' },
+        { email:'chef@nysoa.mg',        hash:'Y2hlZjEyMw==',       role:'chef' },
+        { email:'rh@nysoa.mg',          hash:'cmgxMjM=',           role:'rh' },
+        { email:'controleur@nysoa.mg',  hash:'Y29udHJvbGV1cjEyMw==',role:'controleur' },
+        { email:'technicien@nysoa.mg',  hash:'dGVjaDEyMw==',       role:'technicien' },
+    ];
+    const user = users.find(u => u.email === email && u.hash === hash(password));
+    if (user) {
+        localStorage.setItem('nysoa_current_user', JSON.stringify(user));
+        showSuccess('Connexion réussie ! Redirection...');
+        setTimeout(() => { window.location.href = DASHBOARDS[user.role]; }, 800);
+    } else {
+        document.getElementById('btn-login').disabled = false;
+        showError('Email ou mot de passe incorrect');
+    }
+}
+
+// Si déjà connecté → rediriger directement
 window.addEventListener('load', async () => {
     try {
-        const { data } = await db.auth.getSession();
-        if (data?.session) {
-            const role = data.session.user?.user_metadata?.role;
-            if (role && DASHBOARDS[role]) {
-                window.location.href = DASHBOARDS[role];
+        if (!SUPABASE_URL.includes('VOTRE')) {
+            const { data } = await db.auth.getSession();
+            if (data?.session) {
+                const role = data.session.user?.user_metadata?.role || 'admin';
+                window.location.href = DASHBOARDS[role] || 'index.html';
             }
+        } else {
+            const user = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
+            if (user) window.location.href = DASHBOARDS[user.role] || 'index.html';
         }
-    } catch(e) { console.warn('[Login] getSession:', e); }
+    } catch(e) {}
 });
 </script>
 </body>

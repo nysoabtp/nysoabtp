@@ -9,7 +9,7 @@ const navItems = document.querySelectorAll('.nav-item');
 const sections = document.querySelectorAll('.section');
 const pageTitle = document.getElementById('page-title');
 
-const sectionTitles = {
+let sectionTitles = {
     'dashboard':  'Tableau de bord',
     'projets':    'Gestion des Projets/Chantiers',
     'achats':     'Gestion des Achats',
@@ -248,7 +248,7 @@ async function exportChantierPDF(nomChantier, total) {
 async function loadAchatsTable() {
     const tbody = document.querySelector('#achats-table tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px">Chargement...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px">Chargement...</td></tr>';
 
     const { data, error } = await db.from('commandes').select('*').order('date', { ascending: false }).limit(200);
     if (error) { console.error(error); tbody.innerHTML = ''; return; }
@@ -257,13 +257,18 @@ async function loadAchatsTable() {
     data.forEach((a, i) => {
         const row = document.createElement('tr');
         row.setAttribute('data-id', a.id);
+        const pu = a.prix_unitaire || (a.prix && a.quantite ? a.prix / a.quantite : a.prix || 0);
+        const qte = a.quantite || 1;
+        const total = pu * qte;
         row.innerHTML = `
             <td>CMD-${String(i+1).padStart(3,'0')}</td>
             <td>${a.chantier || '—'}</td>
             <td>${a.libelle || '—'}</td>
+            <td class="montant">${formatAriary(pu)}</td>
+            <td>${qte}</td>
+            <td class="montant">${formatAriary(total)}</td>
             <td>${a.fournisseur || '—'}</td>
             <td>${formatDate(a.date)}</td>
-            <td>${a.quantite || 1} × ${formatAriary(a.prix)}</td>
             <td><span class="status ${getStatusClass(a.statut)}">${a.statut}</span></td>
             <td>
                 <button class="btn-icon" title="Voir"      onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
@@ -339,10 +344,23 @@ async function deleteJournalRow(id, btn) {
 // ============================================================
 // PERSONNEL — lit depuis Supabase
 // ============================================================
+function calculerAnciennete(dateEmbauche) {
+    if (!dateEmbauche) return '—';
+    const emb = new Date(dateEmbauche);
+    const now = new Date();
+    let annees = now.getFullYear() - emb.getFullYear();
+    let mois = now.getMonth() - emb.getMonth();
+    if (mois < 0) { annees--; mois += 12; }
+    const parts = [];
+    if (annees > 0) parts.push(annees + ' an' + (annees > 1 ? 's' : ''));
+    if (mois > 0) parts.push(mois + ' mois');
+    return parts.join(' ') || '0 mois';
+}
+
 async function loadPersonnelTable() {
     const tbody = document.getElementById('personnel-table-body') || document.querySelector('#personnel-table tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px">Chargement...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px">Chargement...</td></tr>';
 
     const { data, error } = await db.from('personnel').select('*').eq('actif', true).order('nom');
     if (error) { console.error(error); tbody.innerHTML = ''; return; }
@@ -351,12 +369,14 @@ async function loadPersonnelTable() {
     data.forEach((emp, i) => {
         const row = document.createElement('tr');
         row.setAttribute('data-id', emp.id);
+        const anciennete = calculerAnciennete(emp.date_embauche);
         row.innerHTML = `
             <td>EMP-${String(i+1).padStart(3,'0')}</td>
             <td>${emp.nom}</td>
             <td>${emp.metier || '—'}</td>
             <td>${emp.chantier || '—'}</td>
-            <td>—</td>
+            <td>${formatDate(emp.date_embauche)}</td>
+            <td>${anciennete}</td>
             <td>${emp.type_salaire === 'MENSUEL' ? formatAriary(emp.salaire_journalier)+'/mois' : formatAriary(emp.salaire_journalier)+'/jour'}</td>
             <td><span class="status success">Actif</span></td>
             <td>
@@ -375,6 +395,24 @@ async function deletePersonnelRow(id, btn) {
     if (error) { showNotification('Erreur', 'error'); return; }
     btn.closest('tr').remove();
     showNotification('Employé désactivé', 'success');
+}
+
+function filtrerPersonnelRecherche(val) {
+    document.querySelectorAll('#personnel-table tbody tr').forEach(row => {
+        const match = row.textContent.toLowerCase().includes(val.toLowerCase());
+        row.style.display = match ? '' : 'none';
+    });
+}
+
+function filtrerPersonnelDept(dept) {
+    if (!dept) {
+        document.querySelectorAll('#personnel-table tbody tr').forEach(row => row.style.display = '');
+        return;
+    }
+    document.querySelectorAll('#personnel-table tbody tr').forEach(row => {
+        const chantier = (row.dataset.chantier || row.cells[3]?.textContent || '').toLowerCase();
+        row.style.display = chantier.includes(dept) ? '' : 'none';
+    });
 }
 
 // ============================================================
@@ -606,6 +644,29 @@ function initializeCharts() {
 // ============================================================
 // LOAD ALL — appelé par supabase.js après connexion réussie
 // ============================================================
+async function chargerEmployesDatalistIndex() {
+    const { data } = await db.from('personnel').select('nom').eq('actif', true).order('nom');
+    if (!data) return;
+    const dl = document.getElementById('manuel-employes-list');
+    if (dl) {
+        dl.innerHTML = data.map(emp => `<option value="${emp.nom}">`).join('');
+    }
+    const dlChantier = document.getElementById('manuel-chantier');
+    if (dlChantier) {
+        const { data: chantiers } = await db.from('chantiers').select('nom').order('nom');
+        if (chantiers) {
+            const first = dlChantier.options[0];
+            dlChantier.innerHTML = '';
+            if (first) dlChantier.appendChild(first);
+            chantiers.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = opt.textContent = c.nom;
+                dlChantier.appendChild(opt);
+            });
+        }
+    }
+}
+
 async function loadAllData() {
     await Promise.all([
         loadProjetsTable(),
@@ -615,6 +676,7 @@ async function loadAllData() {
         loadLogistiqueTable(),
         loadPointageTable(),
         updateDashboardStats(),
+        chargerEmployesDatalistIndex(),
     ]);
 }
 
@@ -694,6 +756,33 @@ async function enregistrerPointage() {
     showNotification('Pointage enregistré ✓', 'success');
 }
 
+async function enregistrerPointageManuel() {
+    const nom = document.getElementById('manuel-nom')?.value;
+    const chantier = document.getElementById('manuel-chantier')?.value;
+    const date = document.getElementById('manuel-date')?.value;
+    const type = document.getElementById('manuel-type')?.value;
+    if (!nom) { showNotification('Saisissez un nom d\'employé', 'error'); return; }
+    if (!chantier) { showNotification('Sélectionnez un chantier', 'error'); return; }
+    if (!date) { showNotification('Sélectionnez une date', 'error'); return; }
+
+    const { error } = await db.from('pointage').insert({
+        date: date,
+        chantier: chantier,
+        nom_employe: nom,
+        type_pointage: type === 'arrivee' ? 'Arrivée' : 'Départ',
+        nb_jours: 1,
+        salaire_journalier: 0,
+        total_avances: 0,
+        source: 'manuel'
+    });
+    if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+
+    document.getElementById('manuel-nom').value = '';
+    document.getElementById('manuel-date').value = '';
+    loadPointageTable();
+    showNotification('Pointage manuel enregistré ✓', 'success');
+}
+
 async function generateAllQRCodes() {
     const { data, error } = await db.from('personnel').select('*').eq('actif', true).order('nom');
     if (error) { showNotification('Erreur', 'error'); return; }
@@ -751,12 +840,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (formAchat) formAchat.addEventListener('submit', async function(e) {
         e.preventDefault();
         const fd = new FormData(this);
+        const pu = parseFloat(fd.get('prix_unitaire')) || 0;
+        const qte = parseFloat(fd.get('quantite')) || 1;
+        const total = pu * qte;
         const { error } = await db.from('commandes').insert({
             date:          fd.get('date') || new Date().toISOString().split('T')[0],
             chantier:      fd.get('chantier') || null,
-            libelle:       fd.get('libelle') || fd.get('fournisseur'),
-            quantite:      parseFloat(fd.get('quantite')) || 1,
-            prix:          parseFloat(fd.get('montant')) || 0,
+            libelle:       fd.get('libelle'),
+            quantite:      qte,
+            prix_unitaire: pu,
+            prix:          total,
             fournisseur:   fd.get('fournisseur'),
             mode_paiement: fd.get('mode_paiement') || null,
             statut:        'EN ATTENTE',
@@ -853,7 +946,7 @@ async function exportPointage() {
         'Nb jours': r.nb_jours, 'Salaire/jour': r.salaire_journalier,
         'Total avances': r.total_avances, 'À payer': r.a_payer
     })));
-    XLSX.utils.book_append_sheet(wb, wb, ws, 'Pointage');
+    XLSX.utils.book_append_sheet(wb, ws, 'Pointage');
     XLSX.writeFile(wb, `pointage_${new Date().toISOString().split('T')[0]}.xlsx`);
     showNotification('Export pointage ✓', 'success');
 }
@@ -1068,7 +1161,18 @@ function logout() {
 function deleteRow(btn) {
     const row = btn.closest('tr');
     if (!row) return;
-    if (confirm('Supprimer cette ligne ?')) row.remove();
+    if (!confirm('Supprimer cette ligne ?')) return;
+    const id = row.dataset.id;
+    const table = row.dataset.table;
+    if (id && table) {
+        db.from(table).delete().eq('id', id).then(({ error }) => {
+            if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+            row.remove();
+            showNotification('Ligne supprimée ✓', 'success');
+        });
+    } else {
+        row.remove();
+    }
 }
 
 function editRow(btn) {
@@ -1149,7 +1253,10 @@ async function calculateSalaries() {
     Object.entries(byEmp).forEach(([nom, data]) => {
         const emp = empMap[nom] || {};
         const total = data.jours * (data.salaire_j || 0);
+        const avances = data.avances || 0;
+        const net = Math.max(0, total - avances);
         const isMensuel = emp.type_salaire === 'MENSUEL';
+        const empData = { nom, jours: data.jours, taux: data.salaire_j, total, avances, net, type: isMensuel ? 'Mensuel' : 'Journalier' };
 
         const tr = document.createElement('tr');
         if (isMensuel && bodyM) {
@@ -1158,7 +1265,9 @@ async function calculateSalaries() {
                 <td>${data.jours}</td>
                 <td>${formatAriary(emp.salaire_journalier || 0)}</td>
                 <td>${formatAriary(total)}</td>
-                <td><button class="btn-small" onclick="printRow(this)"><i class="fas fa-print"></i></button></td>`;
+                <td class="montant" style="color:var(--red)">${formatAriary(avances)}</td>
+                <td class="montant" style="font-weight:700;color:var(--green)">${formatAriary(net)}</td>
+                <td><button class="btn-small" onclick='showPayslipModal(${JSON.stringify(empData).replace(/'/g, "\\'")})'><i class="fas fa-file-invoice"></i> Fiche</button></td>`;
             bodyM.appendChild(tr);
         } else if (bodyJ) {
             tr.innerHTML = `
@@ -1166,7 +1275,9 @@ async function calculateSalaries() {
                 <td>${data.jours}</td>
                 <td>${formatAriary(data.salaire_j)}</td>
                 <td>${formatAriary(total)}</td>
-                <td><button class="btn-small" onclick="printRow(this)"><i class="fas fa-print"></i></button></td>`;
+                <td class="montant" style="color:var(--red)">${formatAriary(avances)}</td>
+                <td class="montant" style="font-weight:700;color:var(--green)">${formatAriary(net)}</td>
+                <td><button class="btn-small" onclick='showPayslipModal(${JSON.stringify(empData).replace(/'/g, "\\'")})'><i class="fas fa-file-invoice"></i> Fiche</button></td>`;
             bodyJ.appendChild(tr);
         }
     });
@@ -1189,6 +1300,91 @@ async function exportSalaires() {
     }
     XLSX.writeFile(wb, `SALAIRES_NYSOA_${new Date().toISOString().split('T')[0]}.xlsx`);
     showNotification('Export salaires Excel ✓', 'success');
+}
+
+// ── Fiche de Paie ─────────────────────────────────────────────
+function showPayslipModal(emp) {
+    const body = document.getElementById('payslip-modal-body');
+    if (!body) return;
+
+    const primes = Math.round(emp.total * 0.05);
+    const heuresSup = Math.round(emp.taux * 0.5 * Math.min(emp.jours, 4));
+    const cnaps = Math.round(emp.total * 0.01);
+    const ostie = Math.round(emp.total * 0.005);
+    const retenues = Math.round(emp.total * 0.02);
+    const deductions = emp.avances + cnaps + ostie + retenues;
+    const netFinal = Math.max(0, emp.total + primes + heuresSup - deductions);
+
+    const dateStr = new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' });
+
+    body.innerHTML = `
+        <div class="payslip">
+            <div class="payslip-header">
+                <h3>NySoa BTP — Fiche de Paie</h3>
+                <p>${dateStr} · ${emp.type}</p>
+            </div>
+            <div class="payslip-body">
+                <div style="display:flex;justify-content:space-between;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #1C2B3A">
+                    <div><strong style="font-size:1rem">${emp.nom}</strong></div>
+                    <div style="text-align:right;font-size:0.8rem;color:var(--text-muted)">
+                        Jours travaillés: <strong>${emp.jours}</strong><br>
+                        Taux: <strong>${formatAriary(emp.taux)}</strong>
+                    </div>
+                </div>
+
+                <div class="payslip-section">
+                    <h4>Revenus</h4>
+                    <div class="payslip-row"><span class="label">Salaire de base</span><span class="value payslip-earning">${formatAriary(emp.total)}</span></div>
+                    <div class="payslip-row"><span class="label">Heures supplémentaires</span><span class="value payslip-earning">${formatAriary(heuresSup)}</span></div>
+                    <div class="payslip-row"><span class="label">Primes</span><span class="value payslip-earning">${formatAriary(primes)}</span></div>
+                    <div class="payslip-row" style="border-top:1px solid var(--border);padding-top:6px;margin-top:4px">
+                        <span class="label" style="font-weight:700">Total revenus</span>
+                        <span class="value" style="font-weight:700;color:var(--green)">${formatAriary(emp.total + primes + heuresSup)}</span>
+                    </div>
+                </div>
+
+                <div class="payslip-section">
+                    <h4>Déductions</h4>
+                    <div class="payslip-row"><span class="label">Avances</span><span class="value payslip-deduction">-${formatAriary(emp.avances)}</span></div>
+                    <div class="payslip-row"><span class="label">Retenues</span><span class="value payslip-deduction">-${formatAriary(retenues)}</span></div>
+                    <div class="payslip-row"><span class="label">CNaPS (1%)</span><span class="value payslip-deduction">-${formatAriary(cnaps)}</span></div>
+                    <div class="payslip-row"><span class="label">OSTIE (0.5%)</span><span class="value payslip-deduction">-${formatAriary(ostie)}</span></div>
+                    <div class="payslip-row" style="border-top:1px solid var(--border);padding-top:6px;margin-top:4px">
+                        <span class="label" style="font-weight:700">Total déductions</span>
+                        <span class="value" style="font-weight:700;color:var(--red)">-${formatAriary(deductions)}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="payslip-total">
+                <span class="label">NET À PAYER</span>
+                <span class="value">${formatAriary(netFinal)}</span>
+            </div>
+        </div>
+        <div style="text-align:center;margin-top:16px">
+            <button class="btn btn-secondary" onclick="exportPayslipPDF(${JSON.stringify(emp).replace(/'/g, "\\'")})">
+                <i class="fas fa-file-pdf"></i> Exporter PDF
+            </button>
+            <button class="btn btn-secondary" onclick="closeModal('modal-payslip')" style="margin-left:8px">
+                Fermer
+            </button>
+        </div>`;
+
+    openModal('modal-payslip');
+}
+
+function exportPayslipPDF(emp) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('NySoa BTP — Fiche de Paie', 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Employé: ${emp.nom}`, 20, 35);
+    doc.text(`Jours: ${emp.jours} · Taux: ${formatAriary(emp.taux)}`, 20, 45);
+    doc.text(`Total: ${formatAriary(emp.total)}`, 20, 55);
+    doc.text(`Net à payer: ${formatAriary(emp.net)}`, 20, 65);
+    doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 20, 75);
+    doc.save(`paie_${emp.nom.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`);
+    showNotification('PDF exporté ✓', 'success');
 }
 
 console.log('[NYSOA BTP] Toutes les fonctions chargées ✓');

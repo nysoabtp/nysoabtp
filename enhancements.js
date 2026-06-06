@@ -218,13 +218,14 @@ function openDetailModal(tableId, rowEl) {
         showProjetDetail(projet);
     } else if (tableId === 'achats-table') {
         const cells = rowEl.querySelectorAll('td');
-        const cmd = cells[0].textContent.trim();
         const achat = {
-            commande: cmd,
-            fournisseur: cells[1].textContent,
-            date: cells[2].textContent,
-            montant: cells[3].textContent,
-            statut: cells[4].textContent.trim()
+            commande: cells[0].textContent.trim(),
+            chantier: cells[1].textContent.trim(),
+            libelle: cells[2].textContent.trim(),
+            fournisseur: cells[3].textContent.trim(),
+            date: cells[4].textContent.trim(),
+            montant: cells[5].textContent.trim(),
+            statut: cells[6].textContent.trim()
         };
         showAchatDetail(achat);
     } else if (tableId === 'personnel-table') {

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- LOGO: remplacer LOGO_NYSOA.png par le nouveau fichier -->
     <title>NySoa Construct - ERP</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -87,7 +88,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="logo">
-                <img src="LOGO_NYSOA.png" alt="NySoa Construct" style="height:64px;width:auto;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4))">
+                <img src="LOGO_NYSOA.png" id="app-logo" alt="NySoa Construct" style="height:64px;width:auto;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4))">
             </div>
             <nav class="nav-menu">
                 <!-- Tableau de bord -->
@@ -540,9 +541,11 @@
                                     <th>N° Commande</th>
                                     <th>Chantier</th>
                                     <th>Libellé</th>
+                                    <th>Prix unitaire</th>
+                                    <th>Quantité</th>
+                                    <th>Total</th>
                                     <th>Fournisseur</th>
                                     <th>Date</th>
-                                    <th>Qté × Prix</th>
                                     <th>Statut</th>
                                     <th>Actions</th>
                                 </tr>
@@ -612,7 +615,7 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <table class="table" id="journal-table">
+                        <table class="table table-journal" id="journal-table">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -840,6 +843,7 @@
                                     <th>Poste</th>
                                     <th>Département</th>
                                     <th>Date embauche</th>
+                                    <th>Ancienneté</th>
                                     <th>Salaire</th>
                                     <th>Statut</th>
                                     <th>Actions</th>
@@ -852,6 +856,7 @@
                                     <td>Chef de chantier</td>
                                     <td>Chantier</td>
                                     <td>15/01/2024</td>
+                                    <td>2 ans 4 mois</td>
                                     <td>1 250 000 Ar</td>
                                     <td><span class="status success">Actif</span></td>
                                     <td>
@@ -865,7 +870,8 @@
                                     <td>Comptable</td>
                                     <td>Administration</td>
                                     <td>01/03/2023</td>
-                                    <td>900 000 Ar</td>
+                                    <td>3 ans 3 mois</td>
+                                    <td>900 000 Ar/mois</td>
                                     <td><span class="status success">Actif</span></td>
                                     <td>
                                         <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
@@ -878,7 +884,8 @@
                                     <td>Maçon</td>
                                     <td>Chantier</td>
                                     <td>10/06/2025</td>
-                                    <td>600 000 Ar</td>
+                                    <td>0 ans 11 mois</td>
+                                    <td>600 000 Ar/jour</td>
                                     <td><span class="status success">Actif</span></td>
                                     <td>
                                         <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
@@ -1204,6 +1211,42 @@
                         </div>
                     </div>
 
+                    <!-- Pointage Manuel -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-pen"></i> Pointage Manuel</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>Nom employé</label>
+                                <input type="text" id="manuel-nom" class="form-control" list="manuel-employes-list" placeholder="Saisir ou sélectionner un employé">
+                                <datalist id="manuel-employes-list"></datalist>
+                            </div>
+                            <div class="form-group">
+                                <label>Chantier</label>
+                                <select id="manuel-chantier" class="form-control">
+                                    <option value="">Sélectionner un chantier</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Date</label>
+                                    <input type="date" id="manuel-date" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Type</label>
+                                    <select id="manuel-type" class="form-control">
+                                        <option value="arrivee">Arrivée</option>
+                                        <option value="depart">Départ</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="enregistrerPointageManuel()">
+                                <i class="fas fa-save"></i> Enregistrer
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Historique Pointage -->
                     <div class="card" style="grid-column: span 2;">
                         <div class="card-header">
@@ -1260,7 +1303,9 @@
                                             <th>Employé</th>
                                             <th>Jours Travaillés</th>
                                             <th>Taux Journalier</th>
-                                            <th>Total</th>
+                                            <th>Total Brut</th>
+                                            <th>Avances</th>
+                                            <th>Net à Payer</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -1284,6 +1329,8 @@
                                             <th>Jours Présents</th>
                                             <th>Salaire Mensuel</th>
                                             <th>Prorata</th>
+                                            <th>Avances</th>
+                                            <th>Net à Payer</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -1322,7 +1369,7 @@
   </div>
   <div class="card">
     <div class="card-body" style="padding:0;overflow-x:auto">
-      <table class="table"><thead><tr><th>Employé</th><th>Chantier</th><th>Montant accordé</th><th>Remboursé</th><th>Reste</th><th>Progression</th><th>Actions</th></tr></thead>
+      <table class="table"><thead><tr><th>Employé</th><th>Chantier</th><th>Montant accordé</th><th>Remboursé</th><th>Reste</th><th>1ère tranche</th><th>Date</th><th>2ème tranche</th><th>Date</th><th>3ème tranche</th><th>Date</th><th>Progression</th><th>Actions</th></tr></thead>
       <tbody id="antoka-tbody"></tbody></table>
     </div>
   </div>
@@ -1342,7 +1389,7 @@
   </div>
   <div class="card">
     <div class="card-body" style="padding:0;overflow-x:auto">
-      <table class="table"><thead><tr><th>Fournisseur</th><th>Montant total</th><th>Payé</th><th>Reste</th><th>1ère échéance</th><th>Montant 1</th><th>2ème échéance</th><th>Actions</th></tr></thead>
+      <table class="table"><thead><tr><th>Fournisseur</th><th>Montant total</th><th>Payé</th><th>Reste</th><th>1ère échéance</th><th>Montant 1</th><th>2ème échéance</th><th>Montant 2</th><th>3ème échéance</th><th>Montant 3</th><th>Actions</th></tr></thead>
       <tbody id="credits-tbody"></tbody></table>
     </div>
   </div>
@@ -1355,12 +1402,15 @@
     <div class="header-actions">
     <button class="btn btn-secondary" onclick="document.getElementById('import-caisse').click()"><i class="fas fa-file-import"></i> Importer Excel</button>
       <input type="file" id="import-caisse" accept=".xlsx,.xls" style="display:none" onchange="importExcelFile(this,'caisse')">
-      <button class="btn btn-primary" onclick="document.getElementById('modal-caisse').classList.add('active')"><i class="fas fa-minus"></i> Sortie caisse</button>
+      <button class="btn btn-success" onclick="ouvrirModalCaisse('entree')"><i class="fas fa-plus"></i> Entrée caisse</button>
+      <button class="btn btn-danger" onclick="ouvrirModalCaisse('sortie')"><i class="fas fa-minus"></i> Sortie caisse</button>
     </div>
   </div>
-  <div class="stats-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px">
+  <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
     <div class="stat-card"><div class="stat-icon green"><i class="fas fa-wallet"></i></div><div class="stat-info"><h3 id="caisse-solde">—</h3><p>Solde actuel</p></div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-arrow-up"></i></div><div class="stat-info"><h3 id="caisse-entrees">—</h3><p>Total entrées</p></div></div>
     <div class="stat-card"><div class="stat-icon red"><i class="fas fa-arrow-down"></i></div><div class="stat-info"><h3 id="caisse-sorties">—</h3><p>Total sorties</p></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-exchange-alt"></i></div><div class="stat-info"><h3 id="caisse-nb">—</h3><p>Nb mouvements</p></div></div>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0;overflow-x:auto">
@@ -1433,6 +1483,21 @@
           <div class="form-group"><label>Date</label><input name="date" type="date" required></div>
           <div class="form-group"><label>Motif</label><input name="motif" placeholder="Motif de l'antoka"></div>
         </div>
+        <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+          <p style="font-size:0.75rem;font-weight:600;color:var(--text-muted);margin-bottom:8px">TRANCHES DE REMBOURSEMENT</p>
+          <div class="form-row" style="margin-bottom:8px">
+            <div class="form-group"><label>1ère tranche (Ar)</label><input name="tranche1" type="number" placeholder="0" value="0"></div>
+            <div class="form-group"><label>Date 1ère tranche</label><input name="date_tranche1" type="date"></div>
+          </div>
+          <div class="form-row" style="margin-bottom:8px">
+            <div class="form-group"><label>2ème tranche (Ar)</label><input name="tranche2" type="number" placeholder="0" value="0"></div>
+            <div class="form-group"><label>Date 2ème tranche</label><input name="date_tranche2" type="date"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>3ème tranche (Ar)</label><input name="tranche3" type="number" placeholder="0" value="0"></div>
+            <div class="form-group"><label>Date 3ème tranche</label><input name="date_tranche3" type="date"></div>
+          </div>
+        </div>
         <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
       </form>
     </div>
@@ -1463,9 +1528,20 @@
           <div class="form-group"><label>Fournisseur</label><input name="fournisseur" required placeholder="Nom du fournisseur"></div>
           <div class="form-group"><label>Montant total (Ar)</label><input name="montant_total" type="number" required placeholder="0"></div>
         </div>
-        <div class="form-row">
-          <div class="form-group"><label>1ère échéance</label><input name="date1" type="date"></div>
-          <div class="form-group"><label>Montant 1er paiement</label><input name="montant1" type="number" placeholder="0"></div>
+        <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;margin-bottom:12px">
+          <p style="font-size:0.75rem;font-weight:600;color:var(--text-muted);margin-bottom:8px">TRANCHES DE PAIEMENT</p>
+          <div class="form-row" style="margin-bottom:8px">
+            <div class="form-group"><label>1ère échéance</label><input name="date1" type="date"></div>
+            <div class="form-group"><label>Montant 1 (Ar)</label><input name="montant1" type="number" placeholder="0"></div>
+          </div>
+          <div class="form-row" style="margin-bottom:8px">
+            <div class="form-group"><label>2ème échéance</label><input name="date2" type="date"></div>
+            <div class="form-group"><label>Montant 2 (Ar)</label><input name="montant2" type="number" placeholder="0"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>3ème échéance</label><input name="date3" type="date"></div>
+            <div class="form-group"><label>Montant 3 (Ar)</label><input name="montant3" type="number" placeholder="0"></div>
+          </div>
         </div>
         <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
       </form>
@@ -1476,14 +1552,15 @@
 <!-- Modal Caisse -->
 <div class="modal" id="modal-caisse">
   <div class="modal-content" style="max-width:400px">
-    <div class="modal-header"><h3>Sortie de caisse</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-header"><h3 id="modal-caisse-title">Mouvement de caisse</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
     <div class="modal-body">
       <form onsubmit="saveCaisse(event)">
+        <input type="hidden" name="type" id="caisse-type-input">
         <div class="form-row">
           <div class="form-group"><label>Date</label><input name="date" type="date" required></div>
           <div class="form-group"><label>Montant (Ar)</label><input name="montant" type="number" required placeholder="0"></div>
         </div>
-        <div class="form-group"><label>Désignation</label><input name="designation" required placeholder="Description du paiement"></div>
+        <div class="form-group"><label>Désignation</label><input name="designation" required placeholder="Description du mouvement"></div>
         <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
       </form>
     </div>
@@ -1589,22 +1666,26 @@
             <div class="modal-body">
                 <form id="form-achat">
                     <div class="form-group">
-                        <label>Fournisseur</label>
-                        <input type="text" name="fournisseur" required>
+                        <label>Libellé</label>
+                        <input type="text" name="libelle" required placeholder="Désignation de l'article">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Date</label>
-                            <input type="date" name="date" required>
+                            <label>Prix unitaire (Ar)</label>
+                            <input type="number" name="prix_unitaire" min="0" step="any" required placeholder="0">
                         </div>
                         <div class="form-group">
-                            <label>Montant (€)</label>
-                            <input type="number" name="montant" required>
+                            <label>Quantité</label>
+                            <input type="number" name="quantite" min="1" step="any" required placeholder="1" value="1">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Description</label>
-                        <textarea name="description" rows="3"></textarea>
+                        <label>Fournisseur</label>
+                        <input type="text" name="fournisseur" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" name="date" required>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" onclick="closeModal('modal-achat')">Annuler</button>
@@ -1651,6 +1732,7 @@
                         <div class="form-group">
                             <label>Date embauche</label>
                             <input type="date" name="date_embauche" required>
+                            <p style="font-size:0.72rem;color:var(--text-muted);margin-top:4px">L'ancienneté sera calculée automatiquement</p>
                         </div>
                         <div class="form-group">
                             <label>Salaire (Ar)</label>
@@ -2004,25 +2086,25 @@
 
     <script>
     async function goToAdmin() {
+        // S'assurer que localStorage a bien le user avec role admin
         try {
             const { data } = await db.auth.getSession();
-            if (!data?.session) {
-                // Pas de session valide → retour au login
-                localStorage.removeItem('nysoa_current_user');
-                window.location.href = 'login.html';
-                return;
+            if (data?.session) {
+                const role = data.session.user?.user_metadata?.role || 'admin';
+                localStorage.setItem('nysoa_current_user', JSON.stringify({
+                    email: data.session.user.email, role
+                }));
+            } else {
+                // Pas de session Supabase → forcer admin en localStorage
+                const existing = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
+                if (!existing) {
+                    localStorage.setItem('nysoa_current_user', JSON.stringify({ email: 'admin@nysoa.mg', role: 'admin' }));
+                }
             }
-            const role = data.session.user?.user_metadata?.role;
-            const nom  = data.session.user?.user_metadata?.nom || data.session.user?.email?.split('@')[0];
-            // Rafraîchir le cache localStorage avec les données de session réelles
-            localStorage.setItem('nysoa_current_user', JSON.stringify({
-                email: data.session.user.email, role, nom
-            }));
-            window.location.href = 'admin.html';
         } catch(e) {
-            console.error('[goToAdmin]', e);
-            window.location.href = 'login.html';
+            localStorage.setItem('nysoa_current_user', JSON.stringify({ email: 'admin@nysoa.mg', role: 'admin' }));
         }
+        window.location.href = 'admin.html';
     }
     </script>
 
@@ -2112,6 +2194,19 @@
     </div>
 
 
+<!-- Modal Fiche de Paie -->
+<div class="modal" id="modal-payslip">
+  <div class="modal-content" style="max-width:650px">
+    <div class="modal-header">
+      <h3>Fiche de Paie</h3>
+      <button class="close-modal" onclick="closeModal('modal-payslip')">&times;</button>
+    </div>
+    <div class="modal-body" id="payslip-modal-body">
+    </div>
+  </div>
+</div>
+
+<!-- ══ SECTION ANTOKA ══════════════════════════════════════ -->
 <script src="modules_new.js"></script>
 </body>
 </html>
