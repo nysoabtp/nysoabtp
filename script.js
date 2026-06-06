@@ -870,9 +870,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const { error } = await db.from('personnel').insert({
             nom:                fd.get('nom') + (fd.get('prenom') ? ' ' + fd.get('prenom') : ''),
             metier:             fd.get('poste') || fd.get('metier'),
-            chantier:           fd.get('chantier') || null,
+            chantier:           fd.get('chantier') || fd.get('departement') || null,
             salaire_journalier: salaire,
             type_salaire:       salaire >= 100000 ? 'MENSUEL' : 'JOURNALIER',
+            date_embauche:      fd.get('date_embauche') || null,
             actif:              true,
         });
         if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
