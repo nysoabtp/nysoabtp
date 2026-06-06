@@ -194,10 +194,10 @@ async function exportJournalToExcel() {
 }
 
 async function exportPointageToExcel() {
-    const { data, error } = await db.from('pointage').select('*').order('semaine_du');
+    const { data, error } = await db.from('pointage').select('*').order('date');
     if (error) return handleError(error, 'exportPointageToExcel');
     const ws = XLSX.utils.json_to_sheet(data.map(r => ({
-        'Semaine du': r.semaine_du, 'Chantier': r.chantier, 'Employé': r.nom_employe,
+        'Semaine du': r.date, 'Chantier': r.chantier, 'Employé': r.nom_employe,
         'Nb jours': r.nb_jours, 'Salaire/jour': r.salaire_journalier,
         'Total avances': r.total_avances, 'À payer': r.a_payer,
     })));

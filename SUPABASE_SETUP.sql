@@ -246,6 +246,57 @@ BEGIN
 END $$;
 
 -- ============================================================
+-- 15. TABLE RAPPORTS CHANTIER
+-- ============================================================
+CREATE TABLE IF NOT EXISTS rapports_chantier (
+    id              BIGSERIAL PRIMARY KEY,
+    date            DATE NOT NULL,
+    chantier        TEXT NOT NULL,
+    meteo           TEXT,
+    ouvriers        INTEGER DEFAULT 0,
+    travaux         TEXT,
+    taches          JSONB DEFAULT '[]',
+    mouvements      JSONB DEFAULT '[]',
+    photos          JSONB DEFAULT '[]',
+    problemes       TEXT,
+    actions         TEXT,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 16. TABLE CONTROLES INOPINES
+CREATE TABLE IF NOT EXISTS controles_inopines (
+    id              BIGSERIAL PRIMARY KEY,
+    chantier        TEXT NOT NULL,
+    datetime        TIMESTAMPTZ,
+    controleur      TEXT,
+    chef_present    TEXT,
+    resultats       JSONB DEFAULT '{}',
+    observations    TEXT,
+    photos          JSONB DEFAULT '[]',
+    score           INTEGER DEFAULT 0,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 17. TABLE GANTT TACHES
+CREATE TABLE IF NOT EXISTS gantt_taches (
+    id              BIGSERIAL PRIMARY KEY,
+    tache           TEXT NOT NULL,
+    chantier        TEXT,
+    debut           DATE NOT NULL,
+    fin             DATE NOT NULL,
+    avancement      INTEGER DEFAULT 0,
+    couleur         TEXT DEFAULT 'blue',
+    responsable     TEXT,
+    notes           TEXT,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Activer RLS
+ALTER TABLE rapports_chantier    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE controles_inopines   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gantt_taches         ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================
 -- VUE pour le graphique dashboard
 -- ============================================================
 CREATE OR REPLACE VIEW v_depenses_par_mois AS

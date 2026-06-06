@@ -521,7 +521,7 @@ async function loadPointageTable() {
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px">Chargement...</td></tr>';
 
-    const { data, error } = await db.from('pointage').select('*').order('semaine_du', { ascending: false }).limit(100);
+    const { data, error } = await db.from('pointage').select('*').order('date', { ascending: false }).limit(100);
     if (error) { console.error(error); tbody.innerHTML = ''; return; }
 
     tbody.innerHTML = '';
@@ -529,7 +529,7 @@ async function loadPointageTable() {
         const row = document.createElement('tr');
         row.setAttribute('data-id', p.id);
         row.innerHTML = `
-            <td>${formatDate(p.semaine_du)}</td>
+            <td>${formatDate(p.date)}</td>
             <td>${p.nom_employe}</td>
             <td>${p.chantier || '—'}</td>
             <td>${p.nb_jours}</td>
@@ -739,7 +739,7 @@ async function enregistrerPointage() {
     semaine.setDate(semaine.getDate() - semaine.getDay() + 1); // lundi
 
     const { error } = await db.from('pointage').insert({
-        semaine_du:         semaine.toISOString().split('T')[0],
+        date:         semaine.toISOString().split('T')[0],
         chantier:           chantier,
         nom_employe:        scannedEmployee.nom,
         salaire_journalier: scannedEmployee.salaire_journalier || 0,
@@ -938,11 +938,11 @@ function exportTableToPDF(tableId, filename) {
 }
 
 async function exportPointage() {
-    const { data, error } = await db.from('pointage').select('*').order('semaine_du');
+    const { data, error } = await db.from('pointage').select('*').order('date');
     if (error || !data.length) { showNotification('Aucun pointage', 'warning'); return; }
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data.map(r => ({
-        'Semaine du': r.semaine_du, 'Chantier': r.chantier, 'Employé': r.nom_employe,
+        'Semaine du': r.date, 'Chantier': r.chantier, 'Employé': r.nom_employe,
         'Nb jours': r.nb_jours, 'Salaire/jour': r.salaire_journalier,
         'Total avances': r.total_avances, 'À payer': r.a_payer
     })));
