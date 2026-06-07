@@ -554,6 +554,22 @@
                 });
             }
         }
+
+        // ── Formulaire Inspection ──────────────────────────────
+        document.getElementById('form-inspection')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const fd = new FormData(this);
+            const { error } = await db.from('controles_inopines').insert({
+                date: fd.get('date'),
+                chantier: fd.get('chantier'),
+                type: fd.get('type'),
+                observations: fd.get('observations') || '',
+            });
+            if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+            closeModal('modal-inspection');
+            this.reset();
+            showNotification('Inspection enregistrée ✓', 'success');
+        });
     </script>
 </body>
 </html>
