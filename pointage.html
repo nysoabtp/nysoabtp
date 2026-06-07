@@ -638,11 +638,12 @@
         // Sync attendance to Supabase (best-effort, table peut ne pas exister)
         async function syncPointageToSupabase(p) {
             try {
-                await db.from('pointage').insert({
+                await db.from('pointage_attendance').insert({
                     date: p.date,
                     heure: p.heure,
                     chantier: p.chantier,
-                    nom_employe: p.employe || p.matricule,
+                    nom_employe: p.employe,
+                    matricule: p.matricule || null,
                     type_pointage: p.type,
                     statut: p.statut || 'Validé',
                     created_at: new Date(p.timestamp || Date.now()).toISOString(),
