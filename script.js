@@ -1057,7 +1057,7 @@ function toggleSidebar() {
 
 function logout() {
     if (confirm('Voulez-vous vous déconnecter ?')) {
-        localStorage.removeItem('nysoa_user');
+        localStorage.removeItem('nysoa_current_user');
         window.location.href = 'login.html';
     }
 }

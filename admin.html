@@ -1589,7 +1589,10 @@ window.addEventListener('load', () => {
     // Vérif accès admin
     const user = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
     if (!user) { window.location.href = 'login.html'; return; }
-    if (user.role !== 'admin') { window.location.href = user.role + '.html'; return; }
+    if (user.role !== 'admin') {
+        const roleMap = { admin:'index', daf:'daf', chef:'chef-chantier', rh:'rh', controleur:'controleur', technicien:'technicien' };
+        window.location.href = (roleMap[user.role] || user.role) + '.html'; return;
+    }
     document.getElementById('user-name').textContent = user.nom || 'Admin';
 
     // Charger config Supabase sauvegardée

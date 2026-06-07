@@ -694,17 +694,13 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 function loadUser() {
-    try {
-        const u = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
-        if (u) {
-            document.getElementById('sidebar-username').textContent = u.name || u.username || 'Utilisateur';
-            document.getElementById('sidebar-role').textContent = u.role || '';
-            // Pre-fill contrôleur name
-            if (u.role === 'controleur' || u.role === 'admin') {
-                document.getElementById('ctrl-nom').value = u.name || u.username || '';
-            }
-        }
-    } catch(e) {}
+    const u = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
+    if (!u) { window.location.href = 'login.html'; return; }
+    document.getElementById('sidebar-username').textContent = u.name || u.username || 'Utilisateur';
+    document.getElementById('sidebar-role').textContent = u.role || '';
+    if (u.role === 'controleur' || u.role === 'admin') {
+        document.getElementById('ctrl-nom').value = u.name || u.username || '';
+    }
 }
 
 function updateDate() {

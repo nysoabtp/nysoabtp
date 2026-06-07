@@ -617,7 +617,7 @@
 
     <script>
         // Vérification authentification
-        const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user'));
+        const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
         if (!currentUser) {
             window.location.href = 'login.html';
         }

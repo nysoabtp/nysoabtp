@@ -2102,23 +2102,10 @@
 
     <script>
     async function goToAdmin() {
-        // S'assurer que localStorage a bien le user avec role admin
-        try {
-            const { data } = await db.auth.getSession();
-            if (data?.session) {
-                const role = data.session.user?.user_metadata?.role || 'admin';
-                localStorage.setItem('nysoa_current_user', JSON.stringify({
-                    email: data.session.user.email, role
-                }));
-            } else {
-                // Pas de session Supabase → forcer admin en localStorage
-                const existing = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
-                if (!existing) {
-                    localStorage.setItem('nysoa_current_user', JSON.stringify({ email: 'admin@nysoa.mg', role: 'admin' }));
-                }
-            }
-        } catch(e) {
-            localStorage.setItem('nysoa_current_user', JSON.stringify({ email: 'admin@nysoa.mg', role: 'admin' }));
+        const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
+        if (!currentUser || currentUser.role !== 'admin') {
+            showNotification('Accès réservé aux administrateurs', 'error');
+            return;
         }
         window.location.href = 'admin.html';
     }
