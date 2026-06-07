@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600">
+  <!-- Background -->
+  <rect width="1000" height="600" fill="white"/>
+  
+  <!-- Left Blue House -->
+  <polygon points="100,300 200,150 300,300 250,300 250,400 150,400 150,300" fill="#00A9CE" opacity="0.9"/>
+  <rect x="160" y="250" width="30" height="30" fill="#FF8C00"/>
+  <rect x="200" y="250" width="30" height="30" fill="#FF8C00"/>
+  <rect x="160" y="290" width="30" height="30" fill="#FF8C00"/>
+  <rect x="200" y="290" width="30" height="30" fill="#FF8C00"/>
+  
+  <!-- Center Orange Parallelogram -->
+  <polygon points="300,200 550,200 700,400 450,400" fill="#FF8C00" opacity="0.95"/>
+  
+  <!-- Right Pink/Magenta House -->
+  <polygon points="550,150 700,150 750,300 650,450 600,450 550,300" fill="#E91E63" opacity="0.9"/>
+  <polygon points="650,150 750,150 800,300 700,450 650,450" fill="#E91E63" opacity="0.9"/>
+  <rect x="680" y="240" width="30" height="30" fill="#FF8C00"/>
+  <rect x="720" y="240" width="30" height="30" fill="#FF8C00"/>
+  <rect x="680" y="280" width="30" height="30" fill="#FF8C00"/>
+  <rect x="720" y="280" width="30" height="30" fill="#FF8C00"/>
+  
+  <!-- Text: NYSOA -->
+  <text x="520" y="480" font-size="120" font-weight="bold" font-family="Arial, sans-serif" fill="#FF8C00">NYSOA</text>
+  
+  <!-- Text: CONSTRUCT -->
+  <text x="380" y="570" font-size="80" font-weight="bold" font-family="Arial, sans-serif" fill="#00A9CE">CONSTRUCT</text>
+  
+  <!-- Text: ENTREPRISE -->
+  <text x="100" y="480" font-size="60" font-weight="bold" font-family="Arial, sans-serif" fill="#FF8C00">ENTREPRISE</text>
+</svg>
