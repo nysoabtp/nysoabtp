@@ -624,9 +624,44 @@
             h.innerHTML = `<div style="text-align:center;padding:20px">
                 <i class="fas fa-image" style="font-size:64px;color:var(--border);margin-bottom:16px;display:block"></i>
                 <p style="color:var(--text-secondary);margin-bottom:8px"><strong>Galerie — ${chantier}</strong></p>
-                <p style="color:var(--text-muted);font-size:0.85rem">Ajoutez des photos depuis le rapport journalier</p>
+                <div id="gallery-photos" style="display:flex;flex-wrap:wrap;gap:12px;margin:16px 0;justify-content:center"></div>
+                <div style="margin-top:12px">
+                    <input type="file" id="gallery-file-input" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="uploadGalleryPhoto('${chantier}', this)">
+                    <button class="btn btn-primary" onclick="document.getElementById('gallery-file-input').click()"><i class="fas fa-upload"></i> Ajouter une photo</button>
+                </div>
             </div>`;
             openModal('modal-gallery');
+            loadGalleryPhotos(chantier);
+        }
+
+        async function loadGalleryPhotos(chantier) {
+            const container = document.getElementById('gallery-photos');
+            if (!container) return;
+            try {
+                const { data: files, error } = await db.storage.from('photos').list(chantier, { sortBy: { column: 'created_at', order: 'desc' } });
+                if (error || !files || !files.length) {
+                    container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Aucune photo pour ce chantier</p>';
+                    return;
+                }
+                const { data: { publicUrl } } = db.storage.from('photos').getPublicUrl('');
+                const baseUrl = publicUrl.replace(/\/$/, '');
+                container.innerHTML = files.map(f => `<img src="${baseUrl}/${encodeURIComponent(chantier)}/${encodeURIComponent(f.name)}" style="width:160px;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" onclick="window.open(this.src)" title="${f.name}">`).join('');
+            } catch(e) {
+                container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Aucune photo pour ce chantier</p>';
+            }
+        }
+
+        async function uploadGalleryPhoto(chantier, input) {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) { showNotification('Fichier trop volumineux (max 5 Mo)', 'error'); return; }
+            const ext = file.name.split('.').pop();
+            const path = `${chantier}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+            const { error } = await db.storage.from('photos').upload(path, file, { contentType: file.type, upsert: false });
+            if (error) { showNotification('Erreur upload: ' + error.message, 'error'); return; }
+            showNotification('Photo ajoutée ✓', 'success');
+            input.value = '';
+            loadGalleryPhotos(chantier);
         }
 
         function viewIncident() {

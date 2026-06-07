@@ -100,7 +100,7 @@
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>156</h3>
+                            <h3 id="stat-total-employes">156</h3>
                             <p>Total employés</p>
                         </div>
                     </div>
@@ -109,7 +109,7 @@
                             <i class="fas fa-user-plus"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>8</h3>
+                            <h3 id="stat-nouvelles-embauches">8</h3>
                             <p>Nouvelles embauches</p>
                         </div>
                     </div>
@@ -118,7 +118,7 @@
                             <i class="fas fa-calendar-check"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>12</h3>
+                            <h3 id="stat-conges-cours">12</h3>
                             <p>Congés en cours</p>
                         </div>
                     </div>
@@ -127,7 +127,7 @@
                             <i class="fas fa-graduation-cap"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>5</h3>
+                            <h3 id="stat-formations">5</h3>
                             <p>Formations planifiées</p>
                         </div>
                     </div>
@@ -698,7 +698,7 @@
             if (!currentUser || currentUser.role !== 'rh') {
                 window.location.href = 'login.html';
             }
-            initializeRHCharts();
+            loadRHData();
             updateDate();
         });
 
@@ -713,62 +713,76 @@
             'rapports': 'Rapports RH'
         });
 
-        // Initialize RH Charts
-        function initializeRHCharts() {
-            // Department Chart
+        async function loadRHData() {
+            try {
+                const { data: personnel } = await db.from('personnel').select('nom, chantier, metier, date_embauche, salaire_journalier, actif').eq('actif', true);
+                const { data: conges } = await db.from('conges').select('id, statut');
+                const { data: pointages } = await db.from('pointage_attendance').select('nom_employe, date').gte('date', new Date(Date.now() - 30*864e5).toISOString().split('T')[0]);
+
+                if (personnel) {
+                    document.getElementById('stat-total-employes').textContent = personnel.length;
+                    const recent = personnel.filter(p => p.date_embauche && new Date(p.date_embauche) > new Date(Date.now() - 90*864e5));
+                    document.getElementById('stat-nouvelles-embauches').textContent = recent.length;
+                }
+                if (conges) {
+                    const enCours = conges.filter(c => c.statut === 'en_attente');
+                    document.getElementById('stat-conges-cours').textContent = enCours.length;
+                }
+                // Formations depuis localStorage
+                const formations = JSON.parse(localStorage.getItem('nysoa_formations') || '[]');
+                document.getElementById('stat-formations').textContent = formations.length;
+
+                initializeRHCharts(personnel);
+                if (typeof loadPersonnelTable === 'function') loadPersonnelTable();
+                verifierPointagesNonSync();
+            } catch(_) { initializeRHCharts(); }
+        }
+
+        async function verifierPointagesNonSync() {
+            try {
+                const mois = new Date().getMonth() + 1;
+                const annee = new Date().getFullYear();
+                const { data: salaires } = await db.from('salaires').select('mois, annee').eq('mois', mois).eq('annee', annee).limit(1);
+                if (salaires && salaires.length) return;
+                const { data: pointages } = await db.from('pointage_attendance').select('nom_employe, date').gte('date', new Date(annee, mois-1, 1).toISOString().split('T')[0]);
+                if (!pointages || !pointages.length) return;
+                const employesAvecPointage = new Set(pointages.map(p => p.nom_employe));
+                if (employesAvecPointage.size > 0) {
+                    showNotification(`${employesAvecPointage.size} employé(s) avec pointages non synchronisés — cliquez sur "Générer fiches"`, 'info');
+                }
+            } catch(_) {}
+        }
+
+        // Initialize RH Charts — live data
+        function initializeRHCharts(personnel) {
             const deptCtx = document.getElementById('deptChart');
             if (deptCtx) {
+                const metiers = {};
+                if (personnel) personnel.forEach(p => { const m = p.metier || 'Autres'; metiers[m] = (metiers[m] || 0) + 1; });
+                const labels = personnel ? Object.keys(metiers) : ['Chantier', 'Administration', 'Technique', 'RH'];
+                const data = personnel ? Object.values(metiers) : [80, 25, 35, 16];
                 new Chart(deptCtx, {
                     type: 'pie',
-                    data: {
-                        labels: ['Chantier', 'Administration', 'Technique', 'RH'],
-                        datasets: [{
-                            data: [80, 25, 35, 16],
-                            backgroundColor: ['#0066cc', '#ff6b35', '#10b981', '#636e72']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'right'
-                            }
-                        }
-                    }
+                    data: { labels, datasets: [{ data, backgroundColor: ['#0066cc', '#ff6b35', '#10b981', '#636e72', '#e84393', '#00b894'] }] },
+                    options: { responsive: true, plugins: { legend: { display: true, position: 'right' } } }
                 });
             }
 
-            // Hiring Chart
             const hiringCtx = document.getElementById('hiringChart');
             if (hiringCtx) {
+                const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+                const hiringByMonth = new Array(12).fill(0);
+                if (personnel) personnel.forEach(p => {
+                    if (p.date_embauche) { const m = new Date(p.date_embauche).getMonth(); if (m >= 0) hiringByMonth[m]++; }
+                });
+                const currentMonth = new Date().getMonth();
                 new Chart(hiringCtx, {
                     type: 'line',
                     data: {
-                        labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
-                        datasets: [{
-                            label: 'Nouvelles embauches',
-                            data: [3, 5, 4, 6, 8, 5],
-                            borderColor: '#0066cc',
-                            backgroundColor: 'rgba(0, 102, 204, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        }]
+                        labels: months.slice(0, currentMonth + 1),
+                        datasets: [{ label: 'Nouvelles embauches', data: hiringByMonth.slice(0, currentMonth + 1), borderColor: '#0066cc', backgroundColor: 'rgba(0, 102, 204, 0.1)', fill: true, tension: 0.4 }]
                     },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
+                    options: { responsive: true, plugins: { legend: { display: true, position: 'top' } }, scales: { y: { beginAtZero: true } } }
                 });
             }
         }
@@ -785,37 +799,35 @@
         }
 
         async function approveLeave(button) {
-            const row = button.closest('tr');
-            const statusCell = row.querySelector('.status');
-            statusCell.className = 'status success';
-            statusCell.textContent = 'Approuvé';
-            const employe = row.dataset.employe;
-            const debut = row.dataset.debut;
-            const fin = row.dataset.fin;
-            if (employe && debut) {
-                const { data: conges } = await db.from('conges').select('id').eq('employe_nom', employe).eq('date_debut', debut).limit(1);
-                if (conges && conges.length) {
-                    await db.from('conges').update({ statut: 'approuve' }).eq('id', conges[0].id);
+            try {
+                const row = button.closest('tr');
+                const statusCell = row.querySelector('.status');
+                statusCell.className = 'status success';
+                statusCell.textContent = 'Approuvé';
+                const employe = row.dataset.employe;
+                const debut = row.dataset.debut;
+                if (employe && debut) {
+                    const { data: conges } = await db.from('conges').select('id').eq('employe_nom', employe).eq('date_debut', debut).limit(1);
+                    if (conges && conges.length) await db.from('conges').update({ statut: 'approuve' }).eq('id', conges[0].id);
                 }
-            }
-            showNotification('Congé approuvé!', 'success');
+                showNotification('Congé approuvé!', 'success');
+            } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
         }
 
         async function rejectLeave(button) {
-            const row = button.closest('tr');
-            const statusCell = row.querySelector('.status');
-            statusCell.className = 'status error';
-            statusCell.textContent = 'Refusé';
-            const employe = row.dataset.employe;
-            const debut = row.dataset.debut;
-            const fin = row.dataset.fin;
-            if (employe && debut) {
-                const { data: conges } = await db.from('conges').select('id').eq('employe_nom', employe).eq('date_debut', debut).limit(1);
-                if (conges && conges.length) {
-                    await db.from('conges').update({ statut: 'rejete' }).eq('id', conges[0].id);
+            try {
+                const row = button.closest('tr');
+                const statusCell = row.querySelector('.status');
+                statusCell.className = 'status error';
+                statusCell.textContent = 'Refusé';
+                const employe = row.dataset.employe;
+                const debut = row.dataset.debut;
+                if (employe && debut) {
+                    const { data: conges } = await db.from('conges').select('id').eq('employe_nom', employe).eq('date_debut', debut).limit(1);
+                    if (conges && conges.length) await db.from('conges').update({ statut: 'rejete' }).eq('id', conges[0].id);
                 }
-            }
-            showNotification('Congé refusé', 'info');
+                showNotification('Congé refusé', 'info');
+            } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
         }
 
         async function submitRecrutement(e) {
