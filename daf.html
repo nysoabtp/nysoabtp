@@ -441,31 +441,8 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>FAC-001</td>
-                                    <td>SCI Immobilier</td>
-                                    <td>750 000 Ar</td>
-                                    <td>10/05/2026</td>
-                                    <td>10/06/2026</td>
-                                    <td><span class="status warning">En attente</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>FAC-002</td>
-                                    <td>Ecobank</td>
-                                    <td>450 000 Ar</td>
-                                    <td>15/04/2026</td>
-                                    <td>15/05/2026</td>
-                                    <td><span class="status success">Payée</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
-                                    </td>
-                                </tr>
+                            <tbody id="factures-tbody">
+                                <tr><td colspan="7" style="text-align:center;color:#888;padding:20px">Chargement…</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -556,6 +533,7 @@
             const user = await checkAuthOrRedirect('daf');
             if (!user) return;
             loadDAFData();
+            loadFactures();
             updateDate();
         });
 
@@ -644,6 +622,57 @@
             }
             loadBudget();
         }
+        async function loadFactures() {
+            const tbody = document.getElementById('factures-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;padding:20px">Chargement…</td></tr>';
+
+            const { data, error } = await db.from('devis')
+                .select('*')
+                .eq('statut', 'FACTURE')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                tbody.innerHTML = '<tr><td colspan="7" style="color:red;padding:20px">Erreur: ' + error.message + '</td></tr>';
+                return;
+            }
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;padding:20px">Aucune facture</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(f => {
+                const montant = (f.montant_ttc || f.montant_ht || f.montant_total || 0)
+                    .toLocaleString('fr-FR') + ' Ar';
+                const date    = f.date_devis ? new Date(f.date_devis).toLocaleDateString('fr-FR') : '—';
+                const statut  = f.statut || 'FACTURE';
+                const badge   = statut === 'PAYEE'   ? 'success' :
+                                statut === 'EN RETARD' ? 'danger' : 'warning';
+                const label   = statut === 'PAYEE'   ? 'Payée' :
+                                statut === 'EN RETARD' ? 'En retard' : 'En attente';
+                return \`<tr>
+                    <td>\${f.numero || '—'}</td>
+                    <td>\${f.client || '—'}</td>
+                    <td>\${montant}</td>
+                    <td>\${date}</td>
+                    <td>—</td>
+                    <td><span class="status \${badge}">\${label}</span></td>
+                    <td>
+                        <button class="btn-icon" title="Voir"><i class="fas fa-eye"></i></button>
+                        <button class="btn-icon" title="Supprimer" onclick="deleteFacture(\${f.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>\`;
+            }).join('');
+        }
+
+        async function deleteFacture(id) {
+            if (!confirm('Supprimer cette facture ?')) return;
+            const { error } = await db.from('devis').delete().eq('id', id);
+            if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+            showNotification('Facture supprimée', 'success');
+            loadFactures();
+        }
+
         async function submitFacture(e) {
             e.preventDefault();
             const fd = new FormData(e.target);
@@ -657,6 +686,7 @@
             closeModal('modal-facture');
             e.target.reset();
             showNotification('Facture créée ✓', 'success');
+            loadFactures();
         }
 
         // === BUDGET TRACKING ===
