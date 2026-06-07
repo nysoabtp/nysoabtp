@@ -741,9 +741,9 @@
 
                 // Paie stats
                 try {
-                    const { data: salaires } = await db.from('salaires').select('montant_net');
+                    const { data: salaires } = await db.from('salaires').select('net_a_payer');
                     if (salaires) {
-                        const totalMasse = salaires.reduce((s, r) => s + (r.montant_net || 0), 0);
+                        const totalMasse = salaires.reduce((s, r) => s + (r.net_a_payer || 0), 0);
                         if (document.getElementById('paie-stat-masse')) document.getElementById('paie-stat-masse').textContent = formatAriary(totalMasse);
                         if (document.getElementById('paie-stat-fiches')) document.getElementById('paie-stat-fiches').textContent = salaires.length;
                     }
