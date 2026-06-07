@@ -1144,6 +1144,17 @@ async function submitJournalForm(e) {
     });
     closeModal('modal-journal');
     e.target.reset();
+    // Réinitialiser les filtres pour que la nouvelle écriture soit visible
+    const dateFilter = document.getElementById('journal-date-filter');
+    const typeFilter = document.getElementById('journal-type-filter');
+    if (dateFilter) dateFilter.value = '';
+    if (typeFilter) typeFilter.value = '';
+    // Réinitialiser aussi le filtre chantier global si actif
+    if (typeof currentChantierFilter !== 'undefined') {
+        const cfSelect = document.getElementById('cf-select-journal');
+        if (cfSelect) cfSelect.value = '';
+        if (typeof clearGlobalChantierFilter === 'function') clearGlobalChantierFilter();
+    }
 }
 
 // ── Remplir le select chantier du modal journal ────────────────
@@ -1505,12 +1516,18 @@ function filtrerJournalDate(dateValue) {
     const table = document.getElementById('journal-table');
     if (!table) return;
     const rows = table.querySelectorAll('tbody tr');
+    // Convertir "yyyy-mm-dd" en format fr-FR "dd/mm/yyyy" pour comparer avec la cellule
+    let filterFormatted = '';
+    if (dateValue) {
+        const [y, m, d] = dateValue.split('-');
+        filterFormatted = `${d}/${m}/${y}`;
+    }
     rows.forEach(row => {
-        if (!dateValue) { row.style.display = ''; return; }
+        if (!filterFormatted) { row.style.display = ''; return; }
         const cell = row.cells[0];
         if (!cell) return;
         const cellDate = cell.textContent.trim();
-        const match = cellDate === dateValue;
+        const match = cellDate === filterFormatted;
         row.style.display = match ? '' : 'none';
     });
 }
@@ -1521,10 +1538,10 @@ function filtrerJournalType(typeValue) {
     const rows = table.querySelectorAll('tbody tr');
     rows.forEach(row => {
         if (!typeValue) { row.style.display = ''; return; }
-        const cell = row.cells[5];
+        const cell = row.cells[5]; // colonne Catégorie
         if (!cell) return;
         const text = cell.textContent.trim().toUpperCase();
-        const match = text === typeValue;
+        const match = text.includes(typeValue.toUpperCase());
         row.style.display = match ? '' : 'none';
     });
 }
