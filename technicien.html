@@ -430,17 +430,38 @@
             if (!user) return;
             loadTechnicienData();
             loadInterventions();
+            loadTachesLocales();
             updateDate();
         });
 
         function loadInterventions() {
             const stored = JSON.parse(localStorage.getItem('nysoa_interventions') || '[]');
-            if (!stored.length) return;
             const tbody = document.querySelector('#interventions .table tbody');
             if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!stored.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#adb5bd">Aucune intervention enregistrée</td></tr>'; return; }
             stored.forEach(iv => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${iv.date}</td><td>${iv.type}</td><td>${iv.lieu}</td><td>${iv.description}</td><td>${iv.duree}</td><td><span class="status ${iv.statut === 'Terminé' ? 'success' : 'warning'}">${iv.statut}</span></td>`;
+                tr.innerHTML = `<td>${iv.date||'—'}</td><td>${iv.type||'—'}</td><td>${iv.lieu||'—'}</td><td>${iv.description||'—'}</td><td>${iv.duree||'—'}</td><td><span class="status ${iv.statut === 'Terminé' ? 'success' : 'warning'}">${iv.statut||'En cours'}</span></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function loadTachesLocales() {
+            const tbody = document.querySelector('#taches .table tbody');
+            if (!tbody) return;
+            const rows = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('nysoa_nouvelle_tache_')) {
+                    try { rows.push(JSON.parse(localStorage.getItem(key))); } catch(_) {}
+                }
+            }
+            rows.sort((a,b) => (b.deadline||'').localeCompare(a.deadline||''));
+            if (!rows.length) return;
+            rows.forEach(t => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${t.nom||'—'}</td><td>${t.chantier||'—'}</td><td>${t.deadline||'—'}</td><td><span class="status warning">${t.priorite||'Moyenne'}</span></td><td><span class="status ${t.termine ? 'success' : 'info'}">${t.statut||'En cours'}</span></td><td><button class="btn-small" onclick="completeTask(this)">Terminer</button></td>`;
                 tbody.appendChild(tr);
             });
         }
@@ -523,7 +544,7 @@
             closeModal('modal-nouvelle-tache');
             e.target.reset();
             showNotification('Tâche créée ✓', 'success');
-            setTimeout(() => location.reload(), 800);
+            loadTachesLocales();
         }
 
         async function submitNouvelleIntervention(e) {
@@ -536,7 +557,7 @@
             closeModal('modal-nouvelle-intervention');
             e.target.reset();
             showNotification('Intervention enregistrée ✓', 'success');
-            setTimeout(() => location.reload(), 800);
+            loadInterventions();
         }
 
         async function completeTask(button) {

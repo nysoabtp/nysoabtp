@@ -695,6 +695,9 @@
         window.addEventListener('load', async function() {
             const user = await checkAuthOrRedirect('rh');
             if (!user) return;
+            loadOffresLocales();
+            loadFormationsLocales();
+            loadCongesTable();
             loadRHData();
             updateDate();
         });
@@ -853,6 +856,7 @@
             closeModal('modal-recrutement');
             e.target.reset();
             showNotification('Offre publiée ✓', 'success');
+            loadOffresLocales();
         }
 
         async function submitConge(e) {
@@ -868,6 +872,7 @@
             closeModal('modal-conge');
             e.target.reset();
             showNotification('Demande de congé enregistrée ✓', 'success');
+            loadCongesTable();
         }
 
         async function submitFormation(e) {
@@ -879,6 +884,47 @@
             closeModal('modal-formation');
             e.target.reset();
             showNotification('Formation planifiée ✓', 'success');
+            loadFormationsLocales();
+        }
+
+        function loadOffresLocales() {
+            const offres = JSON.parse(localStorage.getItem('nysoa_offres_emploi') || '[]');
+            const tbody = document.querySelector('#recrutement .table tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!offres.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#adb5bd">Aucune offre publiée</td></tr>'; return; }
+            offres.forEach(o => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${o.poste||'—'}</td><td>${o.departement||'—'}</td><td>${o.type||'—'}</td><td>${o.date||'—'}</td><td><span class="status success">${o.statut||'Publiée'}</span></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function loadFormationsLocales() {
+            const formations = JSON.parse(localStorage.getItem('nysoa_formations') || '[]');
+            const tbody = document.querySelector('#formation .table tbody, #formations .table tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!formations.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#adb5bd">Aucune formation planifiée</td></tr>'; return; }
+            formations.forEach(f => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${f.formation||'—'}</td><td>${f.participants||'—'}</td><td>${f.date||'—'}</td><td>${f.duree||'—'}</td><td><span class="status info">${f.statut||'Planifiée'}</span></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function loadCongesTable() {
+            const { data } = await db.from('conges').select('*').order('date_debut', { ascending: false }).limit(100);
+            const tbody = document.querySelector('#conges .table tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#adb5bd">Aucune demande de congé</td></tr>'; return; }
+            data.forEach(c => {
+                const statusClass = c.statut === 'approuve' ? 'success' : c.statut === 'refuse' ? 'error' : 'warning';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${c.employe_nom||'—'}</td><td>${c.date_debut||'—'}</td><td>${c.date_fin||'—'}</td><td>${c.duree||'—'} j</td><td>${c.motif||'—'}</td><td><span class="status ${statusClass}">${c.statut||'en_attente'}</span></td>`;
+                tbody.appendChild(tr);
+            });
         }
 
         async function genererFichesPaie() {

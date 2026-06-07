@@ -532,6 +532,8 @@
             const user = await checkAuthOrRedirect('chef');
             if (!user) return;
             loadChefData();
+            loadPlanningLocales();
+            loadDemandesLocales();
             updateDate();
             loadPersonnelTable();
         });
@@ -585,6 +587,7 @@
             closeModal('modal-planning');
             e.target.reset();
             showNotification('Tâche planifiée ✓', 'success');
+            loadPlanningLocales();
         }
 
         async function submitDemandeMateriaux(e) {
@@ -596,6 +599,34 @@
             closeModal('modal-demande-materiaux');
             e.target.reset();
             showNotification('Demande envoyée ✓', 'success');
+            loadDemandesLocales();
+        }
+
+        function loadPlanningLocales() {
+            const tasks = JSON.parse(localStorage.getItem('nysoa_planning_tasks') || '[]');
+            const tbody = document.querySelector('#planning .table tbody, #planning table tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!tasks.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#adb5bd">Aucune tâche planifiée</td></tr>'; return; }
+            tasks.forEach(t => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${t.tache||'—'}</td><td>${t.chantier||'—'}</td><td>${t.date||'—'}</td><td>${t.equipe||'—'}</td><td><span class="status warning">${t.priorite||'—'}</span></td><td><span class="status info">${t.statut||'Planifié'}</span></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function loadDemandesLocales() {
+            const demands = JSON.parse(localStorage.getItem('nysoa_demandes_materiaux') || '[]');
+            const tbody = document.querySelector('#materiaux .table tbody, #stock .table tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!demands.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#adb5bd">Aucune demande</td></tr>'; return; }
+            demands.forEach(d => {
+                const urgColor = d.urgence === 'Haute' ? 'error' : d.urgence === 'Moyenne' ? 'warning' : 'info';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${d.materiau||'—'}</td><td>${d.quantite||'—'} ${d.unite||''}</td><td>${d.chantier||'—'}</td><td><span class="status ${urgColor}">${d.urgence||'—'}</span></td><td><span class="status warning">${d.statut||'En attente'}</span></td><td>${d.date||'—'}</td>`;
+                tbody.appendChild(tr);
+            });
         }
 
         async function viewEmployee(id) {
