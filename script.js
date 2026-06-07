@@ -1608,8 +1608,130 @@ async function downloadReport(btn) {
         const { mois, annee } = parseMoisAnnee(nom);
         let rows = [], headers = [], filename = nom.replace(/[^a-zA-Z0-9]/g,'_');
 
-        // ── BILAN ──
-        if (n.includes('bilan')) {
+        // Ordre: du plus spécifique au plus général (évite 'bilan' qui attrape tout)
+
+        // ── INCIDENT ──
+        if (n.includes('incident')) {
+            const { data } = await db.from('chantiers').select('nom,statut,progression,debut,fin').order('nom');
+            rows = (data || []).slice(0, 20).map(r => ({ Chantier: r.nom, Statut: r.statut, Progression: r.progression+'%' }));
+            if (!rows.length) { showNotification('Aucun incident', 'warning'); return; }
+            headers = ['Chantier', 'Statut', 'Progression'];
+
+        // ── RAPPORT JOURNALIER (chef-chantier: 'Rapport journalier - 13/05/2026') ──
+        } else if (n.includes('journalier') && n.includes('rapport')) {
+            const { data } = await db.from('journal').select('date,designation,montant,categorie,chantier').order('date', { ascending: false }).limit(100);
+            const jour = nom.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+            if (jour) { const j = `${jour[3]}-${jour[2]}-${jour[1]}`; rows = (data||[]).filter(r => r.date && r.date.startsWith(j)); }
+            else { rows = data || []; }
+            if (!rows.length) { showNotification('Aucune écriture pour ce jour', 'warning'); return; }
+            headers = ['Date', 'Désignation', 'Montant (Ar)', 'Catégorie', 'Chantier'];
+
+        // ── GALERIE PHOTOS ──
+        } else if (n.includes('galerie')) {
+            const { data } = await db.from('chantiers').select('nom,debut,fin,statut').order('nom');
+            rows = (data || []).slice(0, 20).map(r => ({ Chantier: r.nom, Période: (r.debut||'—')+' → '+(r.fin||'—'), Statut: r.statut }));
+            if (!rows.length) { showNotification('Aucune galerie', 'warning'); return; }
+            headers = ['Chantier', 'Période', 'Statut'];
+
+        // ── MASSE SALARIALE (avant effectif, avant bilan) ──
+        } else if (n.includes('masse salariale')) {
+            const { data: personnel } = await db.from('personnel').select('nom,metier,chantier,salaire_journalier').eq('actif', true);
+            const { data: salaires } = await db.from('salaires').select('employe,montant,mois,annee').order('mois', { ascending: false }).limit(200);
+            const emp = personnel || [];
+            const moisCharge = (mois && annee) ? (salaires||[]).filter(s => s.mois === String(mois).padStart(2,'0') && s.annee === annee) : (salaires||[]);
+            let totalMasse = 0;
+            rows = emp.map(e => {
+                const s = (moisCharge||[]).filter(s => s.employe === e.nom);
+                const total = s.reduce((sum, s) => sum + (s.montant||0), 0);
+                totalMasse += total;
+                return { Nom: e.nom, Métier: e.metier, Chantier: e.chantier, Journalier: (e.salaire_journalier||0).toLocaleString('fr-FR'), Total_Mois: total.toLocaleString('fr-FR') };
+            });
+            rows.push({ Nom: '', Métier: '', Chantier: 'MASSE SALARIALE TOTALE', Journalier: '', Total_Mois: totalMasse.toLocaleString('fr-FR') });
+            if (!rows.length) { showNotification('Aucune donnée salariale', 'warning'); return; }
+            headers = ['Nom', 'Métier', 'Chantier', 'Journalier (Ar)', 'Total Mois (Ar)'];
+
+        // ── CONGÉS / ABSENCES (avant bilan) ──
+        } else if (n.includes('congé') || n.includes('absence') || n.includes('solde congés')) {
+            const { data } = await db.from('conges').select('employe_nom,type,date_debut,date_fin,statut,valide_par').order('date_debut', { ascending: false }).limit(200);
+            rows = data || [];
+            if (!rows.length) {
+                const { data: p } = await db.from('personnel').select('nom,metier,chantier').eq('actif', true).limit(50);
+                rows = (p || []).map(x => ({ employe_nom: x.nom, type: '—', date_debut: '—', date_fin: '—', statut: 'ACTIF' }));
+            }
+            if (!rows.length) { showNotification('Aucune donnée congés', 'warning'); return; }
+            headers = ['Employé', 'Type', 'Début', 'Fin', 'Statut'];
+
+        // ── SÉCURITÉ / CONTRÔLE (avant bilan) ──
+        } else if (n.includes('sécurité') || n.includes('contrôle')) {
+            const { data } = await db.from('chantiers').select('nom,statut,progression').order('nom');
+            rows = data || []; if (!rows.length) { showNotification('Aucune donnée', 'warning'); return; }
+            headers = ['Chantier', 'Statut', 'Progression %'];
+
+        // ── RECRUTEMENT / EMBAUCHE (avant bilan) ──
+        } else if (n.includes('recrutement') || n.includes('embauche')) {
+            const { data } = await db.from('personnel').select('nom,metier,chantier,date_embauche,type_salaire,salaire_journalier').eq('actif', true).order('date_embauche', { ascending: false }).limit(100);
+            rows = data || []; if (!rows.length) { showNotification('Aucun recrutement', 'warning'); return; }
+            headers = ['Nom', 'Métier', 'Chantier', 'Date embauche', 'Type', 'Salaire (Ar)'];
+
+        // ── EFFECTIF ──
+        } else if (n.includes('effectif')) {
+            const { data } = await db.from('personnel').select('nom,metier,chantier,type_salaire,salaire_journalier').eq('actif', true).order('nom');
+            rows = data || [];
+            if (!rows.length) { showNotification('Aucun employé actif', 'warning'); return; }
+            headers = ['Nom', 'Métier', 'Chantier', 'Type Salaire', 'Salaire (Ar)'];
+
+        // ── STOCK (inventaire / mouvement / valorisation) ──
+        } else if (n.includes('inventaire')) {
+            const { data } = await db.from('commandes').select('designation,fournisseur,quantite,prix,statut,date').order('date', { ascending: false }).limit(200);
+            rows = data || [];
+            if (!rows.length) { showNotification('Aucun stock', 'warning'); return; }
+            const totalVal = rows.reduce((s,r) => s + (r.quantite||0) * (r.prix||0), 0);
+            rows.push({ designation: 'VALORISATION TOTALE', fournisseur: '', quantite: '', prix: '', statut: totalVal.toLocaleString('fr-FR') + ' Ar' });
+            headers = ['Désignation', 'Fournisseur', 'Qté', 'Prix Unit (Ar)', 'Statut'];
+
+        } else if (n.includes('mouvement')) {
+            const { data } = await db.from('commandes').select('designation,date,statut,quantite,prix,fournisseur').order('date', { ascending: false }).limit(200);
+            rows = data || [];
+            if (!rows.length) { showNotification('Aucun mouvement', 'warning'); return; }
+            headers = ['Article', 'Date', 'Statut', 'Qté', 'Prix (Ar)', 'Fournisseur'];
+
+        } else if (n.includes('valorisation')) {
+            const { data } = await db.from('commandes').select('designation,quantite,prix,statut,fournisseur').order('designation');
+            rows = data || [];
+            if (!rows.length) { showNotification('Aucun article', 'warning'); return; }
+            const totalStock = rows.reduce((s,r) => s + (r.quantite||0) * (r.prix||0), 0);
+            rows = rows.map(r => ({ Article: r.designation, Qté: r.quantite||0, PU: (r.prix||0).toLocaleString('fr-FR'), Total: ((r.quantite||0)*(r.prix||0)).toLocaleString('fr-FR'), Fournisseur: r.fournisseur||'—' }));
+            rows.push({ Article: 'VALORISATION TOTALE', Qté: '', PU: '', Total: totalStock.toLocaleString('fr-FR') + ' Ar', Fournisseur: '' });
+            headers = ['Article', 'Qté', 'Prix Unit (Ar)', 'Total (Ar)', 'Fournisseur'];
+
+        // ── QUALITÉ ──
+        } else if (n.includes('qualité')) {
+            const { data } = await db.from('chantiers').select('nom,statut,progression').order('nom');
+            rows = data || [];
+            if (!rows.length) { showNotification('Aucune donnée qualité', 'warning'); return; }
+            headers = ['Chantier', 'Statut', 'Progression %'];
+
+        // ── AVANCEMENT / CHANTIERS ──
+        } else if (n.includes('avancement') || n.includes('chantier')) {
+            const { data } = await db.from('chantiers').select('nom,client,budget,debut,fin,progression,statut').order('nom');
+            rows = data || [];
+            if (!rows.length) { showNotification('Aucune donnée chantier', 'warning'); return; }
+            headers = ['Chantier', 'Client', 'Budget (Ar)', 'Début', 'Fin', 'Progression %', 'Statut'];
+
+        // ── TECHNIQUE / INTERVENTION ──
+        } else if (n.includes('intervention') || n.includes('technique')) {
+            const { data } = await db.from('chantiers').select('nom,statut,debut,fin').order('nom');
+            rows = data || []; if (!rows.length) { showNotification('Aucune donnée', 'warning'); return; }
+            headers = ['Chantier', 'Statut', 'Début', 'Fin'];
+
+        // ── CHECKLIST ──
+        } else if (n.includes('checklist')) {
+            const { data } = await db.from('chantiers').select('nom,statut,debut,fin,progression').order('nom');
+            rows = data || []; if (!rows.length) { showNotification('Aucune donnée', 'warning'); return; }
+            headers = ['Chantier', 'Statut', 'Début', 'Fin', 'Progression %'];
+
+        // ── BILAN (financier — après conges/sécurité/recrutement) ──
+        } else if (n.includes('bilan')) {
             const { data } = await db.from('journal').select('categorie,montant,date').order('date', { ascending: false });
             const all = data || [];
             const filtered = (mois || annee) ? all.filter(r => {
@@ -1651,94 +1773,23 @@ async function downloadReport(btn) {
             headers = ['Rubrique', 'Montant (Ar)'];
             if (!rows.length) { showNotification('Aucune donnée pour ce rapport', 'warning'); return; }
 
-        // ── ÉTAT D'AVANCEMENT / CHANTIERS ──
-        } else if (n.includes('avancement') || n.includes('chantier')) {
-            const { data } = await db.from('chantiers').select('nom,client,budget,debut,fin,progression,statut').order('nom');
-            rows = data || [];
-            if (!rows.length) { showNotification('Aucune donnée chantier', 'warning'); return; }
-            headers = ['Chantier', 'Client', 'Budget (Ar)', 'Début', 'Fin', 'Progression %', 'Statut'];
+        // ── BUDGÉTAIRE ──
+        } else if (n.includes('budgét') || n.includes('budget')) {
+            const { data: jdata } = await db.from('journal').select('date,designation,montant,categorie,chantier').order('date', { ascending: false }).limit(500);
+            const all = jdata || [];
+            const filtered = (mois || annee) ? all.filter(r => {
+                if (!r.date) return false; const d = new Date(r.date);
+                if (annee && d.getFullYear() !== annee) return false;
+                if (mois && d.getMonth() + 1 !== mois) return false;
+                return true;
+            }) : all;
+            if (!filtered.length) { showNotification('Aucune écriture pour cette période', 'warning'); return; }
+            const catMap = {};
+            filtered.forEach(r => { const c = r.categorie || 'AUTRES'; catMap[c] = (catMap[c]||0) + (r.montant||0); });
+            rows = Object.entries(catMap).map(([c,m]) => ({ Catégorie: c, Montant: m.toLocaleString('fr-FR') + ' Ar', Pct: (m/(filtered.reduce((s,r)=>s+Math.abs(r.montant||0),0)||1)*100).toFixed(1) + '%' }));
+            headers = ['Catégorie', 'Montant (Ar)', '%'];
 
-        // ── QUALITÉ ──
-        } else if (n.includes('qualité')) {
-            const { data } = await db.from('chantiers').select('nom,statut,progression').order('nom');
-            rows = data || [];
-            if (!rows.length) { showNotification('Aucune donnée qualité', 'warning'); return; }
-            headers = ['Chantier', 'Statut', 'Progression %'];
-
-        // ── EFFECTIF ──
-        } else if (n.includes('effectif')) {
-            const { data } = await db.from('personnel').select('nom,metier,chantier,type_salaire,salaire_journalier').eq('actif', true).order('nom');
-            rows = data || [];
-            if (!rows.length) { showNotification('Aucun employé actif', 'warning'); return; }
-            headers = ['Nom', 'Métier', 'Chantier', 'Type Salaire', 'Salaire (Ar)'];
-
-        // ── MASSE SALARIALE ──
-        } else if (n.includes('masse salariale')) {
-            const { data: personnel } = await db.from('personnel').select('nom,metier,chantier,salaire_journalier').eq('actif', true);
-            const { data: salaires } = await db.from('salaires').select('employe,montant,mois,annee').order('mois', { ascending: false }).limit(200);
-            const emp = personnel || [];
-            const moisCharge = (mois && annee) ? (salaires||[]).filter(s => s.mois === String(mois).padStart(2,'0') && s.annee === annee) : (salaires||[]);
-            let totalMasse = 0;
-            rows = emp.map(e => {
-                const s = (moisCharge||[]).filter(s => s.employe === e.nom);
-                const total = s.reduce((sum, s) => sum + (s.montant||0), 0);
-                totalMasse += total;
-                return { Nom: e.nom, Métier: e.metier, Chantier: e.chantier, Journalier: (e.salaire_journalier||0).toLocaleString('fr-FR'), Total_Mois: total.toLocaleString('fr-FR') };
-            });
-            rows.push({ Nom: '', Métier: '', Chantier: 'MASSE SALARIALE TOTALE', Journalier: '', Total_Mois: totalMasse.toLocaleString('fr-FR') });
-            if (!rows.length) { showNotification('Aucune donnée salariale', 'warning'); return; }
-            headers = ['Nom', 'Métier', 'Chantier', 'Journalier (Ar)', 'Total Mois (Ar)'];
-
-        // ── CONGÉS ET ABSENCES ──
-        } else if (n.includes('congé') || n.includes('absence')) {
-            const { data } = await db.from('conges').select('employe_nom,type,date_debut,date_fin,statut,valide_par').order('date_debut', { ascending: false }).limit(200);
-            rows = data || [];
-            if (!rows.length) {
-                const { data: p } = await db.from('personnel').select('nom,metier,chantier').eq('actif', true).limit(50);
-                rows = (p || []).map(x => ({ employe_nom: x.nom, type: '—', date_debut: '—', date_fin: '—', statut: 'ACTIF' }));
-            }
-            if (!rows.length) { showNotification('Aucune donnée congés', 'warning'); return; }
-            headers = ['Employé', 'Type', 'Début', 'Fin', 'Statut'];
-
-        // ── INVENTAIRE STOCK ──
-        } else if (n.includes('inventaire')) {
-            const { data } = await db.from('commandes').select('designation,fournisseur,quantite,prix,statut,date').order('date', { ascending: false }).limit(200);
-            rows = data || [];
-            if (!rows.length) { showNotification('Aucun stock', 'warning'); return; }
-            const totalVal = rows.reduce((s,r) => s + (r.quantite||0) * (r.prix||0), 0);
-            rows.push({ designation: 'VALORISATION TOTALE', fournisseur: '', quantite: '', prix: '', statut: totalVal.toLocaleString('fr-FR') + ' Ar' });
-            headers = ['Désignation', 'Fournisseur', 'Qté', 'Prix Unit (Ar)', 'Statut'];
-
-        // ── MOUVEMENTS STOCK ──
-        } else if (n.includes('mouvement')) {
-            const { data } = await db.from('commandes').select('designation,date,statut,quantite,prix,fournisseur').order('date', { ascending: false }).limit(200);
-            rows = data || [];
-            if (!rows.length) { showNotification('Aucun mouvement', 'warning'); return; }
-            headers = ['Article', 'Date', 'Statut', 'Qté', 'Prix (Ar)', 'Fournisseur'];
-
-        // ── VALORISATION STOCK ──
-        } else if (n.includes('valorisation')) {
-            const { data } = await db.from('commandes').select('designation,quantite,prix,statut,fournisseur').order('designation');
-            rows = data || [];
-            if (!rows.length) { showNotification('Aucun article', 'warning'); return; }
-            const totalStock = rows.reduce((s,r) => s + (r.quantite||0) * (r.prix||0), 0);
-            rows = rows.map(r => ({ Article: r.designation, Qté: r.quantite||0, PU: (r.prix||0).toLocaleString('fr-FR'), Total: ((r.quantite||0)*(r.prix||0)).toLocaleString('fr-FR'), Fournisseur: r.fournisseur||'—' }));
-            rows.push({ Article: 'VALORISATION TOTALE', Qté: '', PU: '', Total: totalStock.toLocaleString('fr-FR') + ' Ar', Fournisseur: '' });
-            headers = ['Article', 'Qté', 'Prix Unit (Ar)', 'Total (Ar)', 'Fournisseur'];
-
-        // ── TECHNIQUE / INTERVENTION ──
-        } else if (n.includes('intervention') || n.includes('technique')) {
-            const { data } = await db.from('chantiers').select('nom,statut,debut,fin').order('nom');
-            rows = data || []; if (!rows.length) { showNotification('Aucune donnée', 'warning'); return; }
-            headers = ['Chantier', 'Statut', 'Début', 'Fin'];
-
-        // ── CONTRÔLE / SÉCURITÉ ──
-        } else if (n.includes('contrôle') || n.includes('sécurité')) {
-            const { data } = await db.from('chantiers').select('nom,statut,progression').order('nom');
-            rows = data || []; if (!rows.length) { showNotification('Aucune donnée', 'warning'); return; }
-            headers = ['Chantier', 'Statut', 'Progression %'];
-
-        // ── TRÉSORERIE ──
+        // ── TRÉSORERIE / RENTABILITÉ / PRÉVISION ──
         } else if (n.includes('trésorerie') || n.includes('rentabilité') || n.includes('prévision')) {
             const { data } = await db.from('journal').select('date,designation,montant,categorie,mode_paiement,chantier').order('date', { ascending: false }).limit(500);
             const all = data || [];
@@ -1758,39 +1809,11 @@ async function downloadReport(btn) {
             rows.push({ Date: '', Désignation: 'SOLDE', Montant: (totalIn - totalOut).toLocaleString('fr-FR'), Catégorie: '' });
             headers = ['Date', 'Désignation', 'Montant (Ar)', 'Catégorie'];
 
-        // ── PÉRIODIQUE (journalier/mensuel) ──
+        // ── JOURNALIER / MENSUEL (périodique générique) ──
         } else if (n.includes('journalier') || n.includes('mensuel')) {
             const { data } = await db.from('journal').select('date,designation,montant,categorie,chantier').order('date', { ascending: false }).limit(200);
             rows = data || []; if (!rows.length) { showNotification('Aucune écriture', 'warning'); return; }
             headers = ['Date', 'Désignation', 'Montant (Ar)', 'Catégorie', 'Chantier'];
-
-        // ── CHECKLIST ──
-        } else if (n.includes('checklist')) {
-            const { data } = await db.from('chantiers').select('nom,statut,debut,fin,progression').order('nom');
-            rows = data || []; if (!rows.length) { showNotification('Aucune donnée', 'warning'); return; }
-            headers = ['Chantier', 'Statut', 'Début', 'Fin', 'Progression %'];
-
-        // ── RECRUTEMENT ──
-        } else if (n.includes('recrutement') || n.includes('embauche')) {
-            const { data } = await db.from('personnel').select('nom,metier,chantier,date_embauche,type_salaire,salaire_journalier').eq('actif', true).order('date_embauche', { ascending: false }).limit(100);
-            rows = data || []; if (!rows.length) { showNotification('Aucun recrutement', 'warning'); return; }
-            headers = ['Nom', 'Métier', 'Chantier', 'Date embauche', 'Type', 'Salaire (Ar)'];
-
-        // ── SUIVI BUDGÉTAIRE ──
-        } else if (n.includes('budgét') || n.includes('budget')) {
-            const { data: jdata } = await db.from('journal').select('date,designation,montant,categorie,chantier').order('date', { ascending: false }).limit(500);
-            const all = jdata || [];
-            const filtered = (mois || annee) ? all.filter(r => {
-                if (!r.date) return false; const d = new Date(r.date);
-                if (annee && d.getFullYear() !== annee) return false;
-                if (mois && d.getMonth() + 1 !== mois) return false;
-                return true;
-            }) : all;
-            if (!filtered.length) { showNotification('Aucune écriture pour cette période', 'warning'); return; }
-            const catMap = {};
-            filtered.forEach(r => { const c = r.categorie || 'AUTRES'; catMap[c] = (catMap[c]||0) + (r.montant||0); });
-            rows = Object.entries(catMap).map(([c,m]) => ({ Catégorie: c, Montant: m.toLocaleString('fr-FR') + ' Ar', Pourcentage: (m/(filtered.reduce((s,r)=>s+Math.abs(r.montant||0),0)||1)*100).toFixed(1) + '%' }));
-            headers = ['Catégorie', 'Montant (Ar)', '%'];
 
         } else {
             showNotification(`Rapport « ${nom} » non reconnu`, 'error');
