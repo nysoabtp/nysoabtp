@@ -307,3 +307,23 @@ FROM journal
 WHERE date >= DATE_TRUNC('year', CURRENT_DATE)
 GROUP BY 1
 ORDER BY 1;
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- TABLE: SALAIRES (fiches de paie RH)
+-- ═══════════════════════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS salaires (
+    id          BIGSERIAL PRIMARY KEY,
+    employe_nom TEXT,
+    employe_id  BIGINT,
+    mois        INTEGER NOT NULL,
+    annee       INTEGER NOT NULL,
+    nb_jours    INTEGER DEFAULT 0,
+    salaire_base     NUMERIC(15,2) DEFAULT 0,
+    salaire_mensuel  NUMERIC(15,2) DEFAULT 0,
+    net_a_payer      NUMERIC(15,2) DEFAULT 0,
+    statut      TEXT DEFAULT 'calcule',
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE salaires ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS anon_all_salaires ON salaires USING (true) WITH CHECK (true);

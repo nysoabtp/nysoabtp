@@ -117,8 +117,11 @@ async function initSupabase() {
         if (typeof showNotification === 'function')
             showNotification('Connecté à Supabase ✓', 'success');
 
-        // Charger toutes les données via les fonctions de script.js
-        if (typeof loadAllData === 'function') await loadAllData();
+        // Charger toutes les données uniquement sur la page principale (index)
+        const page = window.location.pathname.split('/').pop() || 'index.html';
+        if (page === 'index.html' || page === '' || page === 'index') {
+            if (typeof loadAllData === 'function') await loadAllData();
+        }
 
         // Initialiser le module devis (seed + liste)
         if (typeof initDevis === 'function') await initDevis();

@@ -1075,15 +1075,16 @@ function printRow(button) {
 
 function exportChart(canvasId, format) {
     const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
+    if (!canvas) { showNotification("Graphique introuvable — ouvrez d'abord la section concernée", 'warning'); return; }
     if (format === 'pdf') {
         const { jsPDF } = window.jspdf;
+        if (!jsPDF) { showNotification('jsPDF non chargé', 'error'); return; }
         const doc = new jsPDF();
         doc.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, 190, 100);
         doc.save(`${canvasId}.pdf`);
     } else if (format === 'excel') {
         const chart = Chart.getChart(canvas);
-        if (!chart) { showNotification('Chart introuvable', 'error'); return; }
+        if (!chart) { showNotification('Graphique non initialisé — cliquez sur la section du graphique puis réessayez', 'warning'); return; }
         const data = chart.data;
         const headers = ['Libellé', ...data.datasets.map(d => d.label)];
         const rows = data.labels.map((label, i) => [label, ...data.datasets.map(d => d.data[i])]);
