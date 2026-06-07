@@ -245,7 +245,7 @@
                     <div class="card-header">
                         <h3>Liste des employés</h3>
                         <div class="filters">
-                            <select class="filter-select">
+                            <select class="filter-select" onchange="filtrerTable(this, 'personnel-table-body', 3)">
                                 <option value="">Tous les départements</option>
                                 <option value="chantier">Chantier</option>
                                 <option value="admin">Administration</option>
@@ -376,7 +376,7 @@
                     <div class="card-header">
                         <h3>Demandes de congés</h3>
                         <div class="filters">
-                            <select class="filter-select">
+                            <select class="filter-select" onchange="filtrerTable(this, 'conges-table-body', 5)">
                                 <option value="">Tous les statuts</option>
                                 <option value="attente">En attente</option>
                                 <option value="approuve">Approuvé</option>
@@ -397,7 +397,7 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="conges-table-body">
                                 <tr>
                                     <td>Rakoto Jean</td>
                                     <td>Congé annuel</td>
@@ -516,7 +516,7 @@
                     <div class="card-header">
                         <h3>Fiches de paie</h3>
                         <div class="filters">
-                            <select class="filter-select">
+                            <select class="filter-select" onchange="filtrerTable(this, 'paie-table-body', 0)">
                                 <option value="">Mois actuel</option>
                                 <option value="mai">Mai 2026</option>
                                 <option value="avril">Avril 2026</option>
@@ -535,7 +535,7 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="paie-table-body">
                                 <tr>
                                     <td>Rakoto Jean</td>
                                     <td>450 000 Ar</td>
@@ -769,6 +769,17 @@
                     }
                 });
             }
+        }
+
+        function filtrerTable(select, tbodyId, colIndex) {
+            const val = select.value.toLowerCase();
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+            Array.from(tbody.rows || tbody.children).forEach(row => {
+                const cell = row.cells ? row.cells[colIndex] : row.querySelector(`td:nth-child(${colIndex + 1})`);
+                const txt = (cell ? cell.textContent : '').toLowerCase();
+                row.style.display = !val || txt.includes(val) ? '' : 'none';
+            });
         }
 
         function approveLeave(button) {

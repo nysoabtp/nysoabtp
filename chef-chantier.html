@@ -504,6 +504,28 @@
     <script src="import-excel.js"></script>
     <script src="modules_new.js"></script>
     <script>
+        async function loadPersonnelTable() {
+            const tbody = document.getElementById('personnel-table-body');
+            if (!tbody) return;
+            const { data } = await db.from('personnel').select('*').eq('actif', true).order('nom');
+            if (!data) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#888;padding:24px">Aucun employé</td></tr>'; return; }
+            tbody.innerHTML = data.map(emp => {
+                const embauche = emp.date_embauche ? new Date(emp.date_embauche).toLocaleDateString('fr-FR') : '—';
+                const anciennete = emp.date_embauche ? Math.floor((Date.now() - new Date(emp.date_embauche)) / (864e5 * 30)) + ' mois' : '—';
+                return `<tr>
+                    <td>${emp.matricule || '—'}</td>
+                    <td>${emp.nom}</td>
+                    <td>${emp.metier || '—'}</td>
+                    <td>${emp.chantier || '—'}</td>
+                    <td>${embauche}</td>
+                    <td>${anciennete}</td>
+                    <td>${emp.salaire_journalier ? emp.salaire_journalier.toLocaleString() + ' Ar/j' : '—'}</td>
+                    <td><span class="status success">Actif</span></td>
+                    <td><button class="btn-small" onclick="showNotification('Détails employé à venir', 'info')">Voir</button></td>
+                </tr>`;
+            }).join('');
+        }
+
         // Check authentication
         window.addEventListener('load', function() {
             const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
@@ -512,6 +534,7 @@
             }
             initializeChefCharts();
             updateDate();
+            loadPersonnelTable();
         });
 
         // Update section titles
