@@ -1,11 +1,13 @@
 // ══════════════════════════════════════════════════════════════
-// NYSOA BTP — modules_new.js
-// Modules : Antoka · Crédit Fournisseurs · Caisse · Catalogue Prix · Contrats
+// NYSOA BTP — modules_new.js (avec fallback localStorage)
 // ══════════════════════════════════════════════════════════════
 
-/* ────────────────────────────────────────────────────────────
-   UTILITAIRES COMMUNS
-   ──────────────────────────────────────────────────────────── */
+// Helpers localStorage
+const LS = {
+    get(k) { try { return JSON.parse(localStorage.getItem('nysoa_' + k) || '[]') } catch { return [] } },
+    set(k, v) { localStorage.setItem('nysoa_' + k, JSON.stringify(v)) }
+};
+
 function fmt(n) {
     if (n === null || n === undefined || n === '') return '—';
     return Number(n).toLocaleString('fr-FR') + ' Ar';
@@ -15,17 +17,54 @@ function fmtDate(d) {
     return new Date(d).toLocaleDateString('fr-FR');
 }
 
-/* ══════════════════════════════════════════════════════════════
-   MODULE 1 — ANTOKA (acomptes employés)
-   ══════════════════════════════════════════════════════════════ */
+async function tryDB(fn, lsKey) {
+    try { return await fn(); }
+    catch (e) {
+        if (lsKey) return LS.get(lsKey);
+        throw e;
+    }
+}
+async function trySave(table, data, lsKey) {
+    try {
+        const { error } = await db.from(table).insert(Array.isArray(data) ? data : [data]);
+        if (error) throw error;
+    } catch (e) {
+        const items = LS.get(lsKey);
+        const entry = { id: Date.now(), ...data };
+        items.push(entry);
+        LS.set(lsKey, items);
+    }
+}
+async function tryUpdate(table, id, data, lsKey) {
+    try {
+        const { error } = await db.from(table).update(data).eq('id', id);
+        if (error) throw error;
+    } catch (e) {
+        const items = LS.get(lsKey);
+        const idx = items.findIndex(i => i.id === id);
+        if (idx >= 0) { items[idx] = { ...items[idx], ...data }; LS.set(lsKey, items); }
+    }
+}
+async function tryDelete(table, id, lsKey) {
+    try {
+        const { error } = await db.from(table).delete().eq('id', id);
+        if (error) throw error;
+    } catch (e) {
+        const items = LS.get(lsKey).filter(i => i.id !== id);
+        LS.set(lsKey, items);
+    }
+}
+
+// ══ MODULE 1 — ANTOKA ════════════════════════════════════════
 async function loadAntoka() {
     const el = document.getElementById('antoka-tbody');
     if (!el) return;
     el.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i> Chargement...</td></tr>';
     try {
-        const { data, error } = await db.from('antoka').select('*').order('employe');
-        if (error) throw error;
-        const rows = data || [];
+        let rows;
+        try { const { data } = await db.from('antoka').select('*').order('employe'); if (data) rows = data; else throw 404; }
+        catch (e) { rows = LS.get('antoka'); }
+        rows = rows || [];
         const totalDepart = rows.reduce((s,r)=>s+(r.montant_depart||0),0);
         const totalPaye   = rows.reduce((s,r)=>s+(r.montant_paye||0),0);
         const totalReste  = rows.reduce((s,r)=>s+(r.reste||0),0);
@@ -72,7 +111,7 @@ function openAntokaPayment(id, employe, reste) {
     document.getElementById('ap-employe').textContent = employe;
     document.getElementById('ap-reste').textContent = fmt(reste);
     document.getElementById('ap-montant').value = '';
-    document.getElementById('modal-antoka-payment').classList.add('active');
+    openModal('modal-antoka-payment');
 }
 
 async function saveAntokaPayment() {
@@ -81,12 +120,13 @@ async function saveAntokaPayment() {
     const date    = document.getElementById('ap-date').value;
     if (!montant || !date) { alert('Remplissez montant et date'); return; }
     try {
-        const { data: row } = await db.from('antoka').select('montant_paye,montant_depart').eq('id',id).single();
+        let row;
+        try { const { data } = await db.from('antoka').select('montant_paye,montant_depart').eq('id',id).single(); row = data; }
+        catch (e) { row = LS.get('antoka').find(i => i.id == id); }
         const newPaye  = (row.montant_paye||0) + montant;
         const newReste = (row.montant_depart||0) - newPaye;
-        const { error } = await db.from('antoka').update({ montant_paye: newPaye, reste: Math.max(0,newReste), date }).eq('id', id);
-        if (error) throw error;
-        document.getElementById('modal-antoka-payment').classList.remove('active');
+        await tryUpdate('antoka', id, { montant_paye: newPaye, reste: Math.max(0,newReste), date }, 'antoka');
+        closeModal('modal-antoka-payment');
         loadAntoka();
         showNotification('Paiement antoka enregistré ✓', 'success');
     } catch(e) { alert(e.message); }
@@ -108,9 +148,8 @@ async function saveAntoka(e) {
         tranche2: t2, date_tranche2: fd.get('date_tranche2')||null,
         tranche3: t3, date_tranche3: fd.get('date_tranche3')||null
     };
-    const { error } = await db.from('antoka').insert([obj]);
-    if (error) { alert(error.message); return; }
-    document.getElementById('modal-antoka').classList.remove('active');
+    await trySave('antoka', obj, 'antoka');
+    closeModal('modal-antoka');
     e.target.reset();
     loadAntoka();
     showNotification('Antoka ajouté ✓', 'success');
@@ -118,22 +157,21 @@ async function saveAntoka(e) {
 
 async function deleteAntoka(id) {
     if (!confirm('Supprimer cet antoka ?')) return;
-    await db.from('antoka').delete().eq('id', id);
+    await tryDelete('antoka', id, 'antoka');
     loadAntoka();
     showNotification('Supprimé', 'success');
 }
 
-/* ══════════════════════════════════════════════════════════════
-   MODULE 2 — CRÉDIT FOURNISSEURS
-   ══════════════════════════════════════════════════════════════ */
+// ══ MODULE 2 — CRÉDIT FOURNISSEURS ══════════════════════════
 async function loadCredits() {
     const el = document.getElementById('credits-tbody');
     if (!el) return;
     el.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i></td></tr>';
     try {
-        const { data, error } = await db.from('credits_fournisseurs').select('*').order('fournisseur');
-        if (error) throw error;
-        const rows = data || [];
+        let rows;
+        try { const { data } = await db.from('credits_fournisseurs').select('*').order('fournisseur'); if (data) rows = data; else throw 404; }
+        catch (e) { rows = LS.get('credits'); }
+        rows = rows || [];
         const totalDette = rows.reduce((s,r)=>s+(r.montant_total||0),0);
         const totalReste = rows.reduce((s,r)=>s+(r.reste1||0)+(r.reste2||0)+(r.reste3||0),0);
         document.getElementById('credit-total-dette') && (document.getElementById('credit-total-dette').textContent = fmt(totalDette));
@@ -175,30 +213,28 @@ async function saveCredit(e) {
         date2: fd.get('date2')||null, montant2: m2, reste2: Math.max(0, mt - m1 - m2),
         date3: fd.get('date3')||null, montant3: m3, reste3: Math.max(0, mt - m1 - m2 - m3)
     };
-    const { error } = await db.from('credits_fournisseurs').insert([obj]);
-    if (error) { alert(error.message); return; }
-    document.getElementById('modal-credit').classList.remove('active');
+    await trySave('credits_fournisseurs', obj, 'credits');
+    closeModal('modal-credit');
     e.target.reset(); loadCredits();
     showNotification('Crédit fournisseur ajouté ✓', 'success');
 }
 
 async function deleteCredit(id) {
     if (!confirm('Supprimer ?')) return;
-    await db.from('credits_fournisseurs').delete().eq('id',id);
+    await tryDelete('credits_fournisseurs', id, 'credits');
     loadCredits(); showNotification('Supprimé', 'success');
 }
 
-/* ══════════════════════════════════════════════════════════════
-   MODULE 3 — CAISSE (Budget interne)
-   ══════════════════════════════════════════════════════════════ */
+// ══ MODULE 3 — CAISSE ═══════════════════════════════════════
 async function loadCaisse() {
     const el = document.getElementById('caisse-tbody');
     if (!el) return;
     el.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i></td></tr>';
     try {
-        const { data, error } = await db.from('caisse').select('*').order('date',{ascending:false}).limit(200);
-        if (error) throw error;
-        const rows = data || [];
+        let rows;
+        try { const { data } = await db.from('caisse').select('*').order('date',{ascending:false}).limit(200); if (data) rows = data; else throw 404; }
+        catch (e) { rows = LS.get('caisse').sort((a,b)=>new Date(b.date)-new Date(a.date)); }
+        rows = rows || [];
         const soldeActuel = rows.length ? (rows[0].solde_fin||0) : 0;
         const totalEntrees = rows.filter(r=>(r.solde_fin||0)>(r.solde_debut||0)).reduce((s,r)=>s+(r.montant||0),0);
         const totalSorties = rows.filter(r=>(r.solde_fin||0)<(r.solde_debut||0)).reduce((s,r)=>s+(r.montant||0),0);
@@ -225,7 +261,7 @@ function ouvrirModalCaisse(type) {
     document.getElementById('caisse-type-input').value = type;
     const title = document.getElementById('modal-caisse-title');
     if (title) title.textContent = type === 'entree' ? 'Entrée de caisse' : 'Sortie de caisse';
-    document.getElementById('modal-caisse').classList.add('active');
+    openModal('modal-caisse');
 }
 
 async function saveCaisse(e) {
@@ -233,26 +269,27 @@ async function saveCaisse(e) {
     const fd = new FormData(e.target);
     const montant = parseFloat(fd.get('montant'))||0;
     const type = fd.get('type') || 'sortie';
-    const { data: last } = await db.from('caisse').select('solde_fin').order('date',{ascending:false}).limit(1);
-    const soldeDebut = last && last.length ? (last[0].solde_fin||0) : 0;
-    const soldeFin   = type === 'entree' ? soldeDebut + montant : Math.max(0, soldeDebut - montant);
-    const obj = { date: fd.get('date'), designation: fd.get('designation'), montant, solde_debut: soldeDebut, solde_fin: soldeFin };
-    const { error } = await db.from('caisse').insert([obj]);
-    if (error) { alert(error.message); return; }
-    document.getElementById('modal-caisse').classList.remove('active');
-    e.target.reset(); loadCaisse();
-    showNotification('Mouvement caisse ajouté ✓', 'success');
+    try {
+        let last;
+        try { const { data } = await db.from('caisse').select('solde_fin').order('date',{ascending:false}).limit(1); last = data; }
+        catch (e) { last = LS.get('caisse').sort((a,b)=>new Date(b.date)-new Date(a.date)); }
+        const soldeDebut = last && last.length ? (last[0].solde_fin||0) : 0;
+        const soldeFin   = type === 'entree' ? soldeDebut + montant : Math.max(0, soldeDebut - montant);
+        const obj = { date: fd.get('date'), designation: fd.get('designation'), montant, solde_debut: soldeDebut, solde_fin: soldeFin };
+        await trySave('caisse', obj, 'caisse');
+        closeModal('modal-caisse');
+        e.target.reset(); loadCaisse();
+        showNotification('Mouvement caisse ajouté ✓', 'success');
+    } catch(e) { alert(e.message); }
 }
 
 async function deleteCaisse(id) {
     if (!confirm('Supprimer ce mouvement ?')) return;
-    await db.from('caisse').delete().eq('id',id);
+    await tryDelete('caisse', id, 'caisse');
     loadCaisse(); showNotification('Supprimé', 'success');
 }
 
-/* ══════════════════════════════════════════════════════════════
-   MODULE 4 — CATALOGUE PRIX
-   ══════════════════════════════════════════════════════════════ */
+// ══ MODULE 4 — CATALOGUE PRIX ══════════════════════════════
 async function loadCatalogue() {
     const el = document.getElementById('catalogue-tbody');
     if (!el) return;
@@ -260,12 +297,19 @@ async function loadCatalogue() {
     const fourn  = (document.getElementById('catalogue-fourn')||{}).value||'';
     el.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i></td></tr>';
     try {
-        let q = db.from('catalogue_prix').select('*').order('designation');
-        if (search) q = q.ilike('designation', `%${search}%`);
-        if (fourn)  q = q.eq('fournisseur', fourn);
-        const { data, error } = await q;
-        if (error) throw error;
-        const rows = data || [];
+        let rows;
+        try {
+            let q = db.from('catalogue_prix').select('*').order('designation');
+            if (search) q = q.ilike('designation', `%${search}%`);
+            if (fourn)  q = q.eq('fournisseur', fourn);
+            const { data } = await q; if (data) rows = data; else throw 404;
+        }
+        catch (e) {
+            rows = LS.get('catalogue');
+            if (search) rows = rows.filter(r => (r.designation||'').toLowerCase().includes(search.toLowerCase()));
+            if (fourn) rows = rows.filter(r => r.fournisseur === fourn);
+        }
+        rows = rows || [];
         document.getElementById('catalogue-count') && (document.getElementById('catalogue-count').textContent = rows.length + ' articles');
         if (!rows.length) { el.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px">Aucun article trouvé</td></tr>'; return; }
         el.innerHTML = rows.map(r => `<tr>
@@ -289,30 +333,28 @@ async function savePrix(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
     const obj = { designation: fd.get('designation'), prix_unitaire: parseFloat(fd.get('prix_unitaire'))||0, unite: fd.get('unite'), fournisseur: fd.get('fournisseur') };
-    const { error } = await db.from('catalogue_prix').insert([obj]);
-    if (error) { alert(error.message); return; }
-    document.getElementById('modal-prix').classList.remove('active');
+    await trySave('catalogue_prix', obj, 'catalogue');
+    closeModal('modal-prix');
     e.target.reset(); loadCatalogue();
     showNotification('Article ajouté au catalogue ✓', 'success');
 }
 
 async function deletePrix(id) {
     if (!confirm('Supprimer cet article du catalogue ?')) return;
-    await db.from('catalogue_prix').delete().eq('id',id);
+    await tryDelete('catalogue_prix', id, 'catalogue');
     loadCatalogue(); showNotification('Supprimé', 'success');
 }
 
-/* ══════════════════════════════════════════════════════════════
-   MODULE 5 — CONTRATS PRESTATAIRES
-   ══════════════════════════════════════════════════════════════ */
+// ══ MODULE 5 — CONTRATS PRESTATAIRES ════════════════════════
 async function loadContrats() {
     const el = document.getElementById('contrats-tbody');
     if (!el) return;
     el.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i></td></tr>';
     try {
-        const { data, error } = await db.from('contrats').select('*').order('created_at',{ascending:false});
-        if (error) throw error;
-        const rows = data || [];
+        let rows;
+        try { const { data } = await db.from('contrats').select('*').order('created_at',{ascending:false}); if (data) rows = data; else throw 404; }
+        catch (e) { rows = LS.get('contrats_prestataires'); }
+        rows = rows || [];
         document.getElementById('contrats-count') && (document.getElementById('contrats-count').textContent = rows.filter(r=>r.statut==='EN COURS').length + ' en cours');
         if (!rows.length) { el.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px">Aucun contrat</td></tr>'; return; }
         el.innerHTML = rows.map(r => {
@@ -343,9 +385,8 @@ async function saveContrat(e) {
         date_debut: fd.get('date_debut')||null, date_fin_prevue: fd.get('date_fin_prevue')||null,
         statut: 'EN COURS'
     };
-    const { error } = await db.from('contrats').insert([obj]);
-    if (error) { alert(error.message); return; }
-    document.getElementById('modal-contrat').classList.remove('active');
+    await trySave('contrats', obj, 'contrats_prestataires');
+    closeModal('modal-contrat');
     e.target.reset(); loadContrats();
     showNotification('Contrat ajouté ✓', 'success');
 }
@@ -353,22 +394,20 @@ async function saveContrat(e) {
 async function cloturerContrat(id) {
     if (!confirm('Marquer ce contrat comme terminé ?')) return;
     const today = new Date().toISOString().split('T')[0];
-    await db.from('contrats').update({ statut:'TERMINE', date_fin: today }).eq('id',id);
+    await tryUpdate('contrats', id, { statut:'TERMINE', date_fin: today }, 'contrats_prestataires');
     loadContrats(); showNotification('Contrat clôturé ✓', 'success');
 }
 
 async function deleteContrat(id) {
     if (!confirm('Supprimer ce contrat ?')) return;
-    await db.from('contrats').delete().eq('id',id);
+    await tryDelete('contrats', id, 'contrats_prestataires');
     loadContrats(); showNotification('Supprimé', 'success');
 }
 
-/* ══════════════════════════════════════════════════════════════
-   INITIALISATION — fermer modals en cliquant dehors
-   ══════════════════════════════════════════════════════════════ */
+// ══ INIT — fermer modals en cliquant dehors ══════════════════
 document.addEventListener('DOMContentLoaded', () => {
     ['modal-antoka','modal-antoka-payment','modal-credit','modal-caisse','modal-prix','modal-contrat'].forEach(id => {
         const m = document.getElementById(id);
-        if (m) m.addEventListener('click', e => { if(e.target === m) m.classList.remove('active'); });
+        if (m) m.addEventListener('click', e => { if(e.target === m) closeModal(id); });
     });
 });

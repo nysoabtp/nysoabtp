@@ -463,14 +463,17 @@ async function updateDashboardStats() {
         const [
             { count: nbChantiers },
             { count: nbPersonnel },
-            { count: nbMat },
             { data: depData }
         ] = await Promise.all([
             db.from('chantiers').select('*', { count: 'exact', head: true }).eq('actif', true),
             db.from('personnel').select('*', { count: 'exact', head: true }).eq('actif', true),
-            db.from('materiels').select('*', { count: 'exact', head: true }),
             db.from('journal').select('montant').gte('date', `${new Date().getFullYear()}-01-01`)
         ]);
+        let nbMat = 0;
+        try {
+            const { count } = await db.from('materiels').select('*', { count: 'exact', head: true });
+            if (count !== null) nbMat = count;
+        } catch(e) { /* table may not exist yet */ }
 
         const totalCA = (depData || []).reduce((s, r) => s + (r.montant || 0), 0);
 
@@ -1586,9 +1589,9 @@ async function downloadReport(btn) {
             headers = ['Nom', 'Métier', 'Chantier'];
             filename = 'conges_absences';
         } else if (n.includes('inventaire') || n.includes('mouvement') || n.includes('valorisation') || n.includes('stock')) {
-            const { data } = await db.from('materiels').select('libelle,chantier_actuel,quantite,etat').order('libelle');
+            const { data } = await db.from('commandes').select('designation,fournisseur,quantite,prix,statut').order('date', { ascending: false }).limit(200);
             rows = data || [];
-            headers = ['Matériel', 'Chantier', 'Quantité', 'État'];
+            headers = ['Désignation', 'Fournisseur', 'Qté', 'Prix (Ar)', 'Statut'];
             filename = 'rapport_stock';
         } else if (n.includes('intervention') || n.includes('technique')) {
             const { data } = await db.from('chantiers').select('nom,statut,debut,fin').order('nom');
@@ -1626,7 +1629,7 @@ async function downloadReport(btn) {
         }
 
         if (!rows.length) {
-            showNotification('Aucune donnée pour ce rapport', 'warning');
+            showNotification('Aucune donnée disponible pour ce rapport — la table n\'existe pas encore ou est vide', 'warning');
             return;
         }
 

@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS budgets (
     date_creation TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Prix catalogue
-CREATE TABLE IF NOT EXISTS prix_catalogue (
+-- Prix catalogue (utilisé comme catalogue_prix par modules_new.js)
+CREATE TABLE IF NOT EXISTS catalogue_prix (
     id BIGSERIAL PRIMARY KEY,
     designation TEXT NOT NULL,
     unite TEXT NOT NULL DEFAULT 'U',
@@ -39,26 +39,25 @@ CREATE TABLE IF NOT EXISTS prix_catalogue (
 );
 
 -- Crédits fournisseur
-CREATE TABLE IF NOT EXISTS credits_fournisseur (
+CREATE TABLE IF NOT EXISTS credits_fournisseurs (
     id BIGSERIAL PRIMARY KEY,
     fournisseur TEXT NOT NULL,
-    montant_initial NUMERIC(15,2) NOT NULL DEFAULT 0,
-    montant_restant NUMERIC(15,2) NOT NULL DEFAULT 0,
-    motif TEXT DEFAULT '',
-    date_credit DATE DEFAULT CURRENT_DATE,
-    echeance DATE,
+    montant_total NUMERIC(15,2) NOT NULL DEFAULT 0,
+    date1 DATE, montant1 NUMERIC(15,2) DEFAULT 0, reste1 NUMERIC(15,2) DEFAULT 0,
+    date2 DATE, montant2 NUMERIC(15,2) DEFAULT 0, reste2 NUMERIC(15,2) DEFAULT 0,
+    date3 DATE, montant3 NUMERIC(15,2) DEFAULT 0, reste3 NUMERIC(15,2) DEFAULT 0,
     statut TEXT DEFAULT 'ACTIF',
     date_creation TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Échéances de crédit
-CREATE TABLE IF NOT EXISTS echeances_credit (
+-- Caisse (mouvements de trésorerie)
+CREATE TABLE IF NOT EXISTS caisse (
     id BIGSERIAL PRIMARY KEY,
-    credit_id BIGINT REFERENCES credits_fournisseur(id) ON DELETE CASCADE,
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    designation TEXT NOT NULL DEFAULT '',
     montant NUMERIC(15,2) NOT NULL DEFAULT 0,
-    date_echeance DATE,
-    payee BOOLEAN DEFAULT FALSE,
-    date_paiement DATE,
+    solde_debut NUMERIC(15,2) DEFAULT 0,
+    solde_fin NUMERIC(15,2) DEFAULT 0,
     date_creation TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -149,6 +148,16 @@ CREATE TABLE IF NOT EXISTS evaluations (
     date_creation TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Matériels / équipements
+CREATE TABLE IF NOT EXISTS materiels (
+    id BIGSERIAL PRIMARY KEY,
+    libelle TEXT NOT NULL,
+    chantier_actuel TEXT DEFAULT '',
+    quantite NUMERIC(10,2) DEFAULT 0,
+    etat TEXT DEFAULT 'BON',
+    date_creation TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ============================================================
 -- PARTIE 3 : RLS Policies pour anon key (SELECT, INSERT, UPDATE, DELETE)
 -- ============================================================
@@ -160,9 +169,9 @@ BEGIN
         'chantiers','personnel','devis','pointage_attendance','journal',
         'conges','salaires','contrats','commandes','mouvements_stock',
         'gantt_taches','rapports_chantier','controles_inopines',
-        'budgets','prix_catalogue','credits_fournisseur','echeances_credit',
+        'budgets','catalogue_prix','credits_fournisseurs','caisse',
         'stocks','besoins_stock','demandes_budget','avances_salaire',
-        'antoka','evaluations'
+        'antoka','evaluations','materiels'
     ])
     LOOP
         EXECUTE format('CREATE POLICY IF NOT EXISTS anon_select ON %I FOR SELECT USING (true);', tbl);

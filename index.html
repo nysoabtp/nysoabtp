@@ -1469,7 +1469,7 @@
 <!-- Modal Antoka -->
 <div class="modal" id="modal-antoka">
   <div class="modal-content">
-    <div class="modal-header"><h3>Nouvel Antoka</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-header"><h3>Nouvel Antoka</h3><button class="close-modal" onclick="closeModal('modal-antoka')">×</button></div>
     <div class="modal-body">
       <form onsubmit="saveAntoka(event)">
         <div class="form-row">
@@ -1499,7 +1499,7 @@
             <div class="form-group"><label>Date 3ème tranche</label><input name="date_tranche3" type="date"></div>
           </div>
         </div>
-        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-antoka')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
       </form>
     </div>
   </div>
@@ -1508,13 +1508,13 @@
 <!-- Modal paiement antoka -->
 <div class="modal" id="modal-antoka-payment">
   <div class="modal-content" style="max-width:380px">
-    <div class="modal-header"><h3>Ajouter un remboursement</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-header"><h3>Ajouter un remboursement</h3><button class="close-modal" onclick="closeModal('modal-antoka-payment')">×</button></div>
     <div class="modal-body">
       <input type="hidden" id="ap-id">
       <p style="margin-bottom:12px;color:var(--text-secondary)">Employé : <strong id="ap-employe"></strong><br>Reste dû : <strong id="ap-reste" style="color:var(--red)"></strong></p>
       <div class="form-group"><label>Montant remboursé (Ar)</label><input id="ap-montant" type="number" placeholder="0" required></div>
       <div class="form-group"><label>Date</label><input id="ap-date" type="date" required></div>
-      <div class="form-actions"><button class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button class="btn btn-primary" onclick="saveAntokaPayment()">Confirmer</button></div>
+      <div class="form-actions"><button class="btn btn-secondary" onclick="closeModal('modal-antoka-payment')">Annuler</button><button class="btn btn-primary" onclick="saveAntokaPayment()">Confirmer</button></div>
     </div>
   </div>
 </div>
@@ -1522,7 +1522,7 @@
 <!-- Modal Crédit Fournisseur -->
 <div class="modal" id="modal-credit">
   <div class="modal-content">
-    <div class="modal-header"><h3>Nouveau Crédit Fournisseur</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-header"><h3>Nouveau Crédit Fournisseur</h3><button class="close-modal" onclick="closeModal('modal-credit')">×</button></div>
     <div class="modal-body">
       <form onsubmit="saveCredit(event)">
         <div class="form-row">
@@ -1544,7 +1544,7 @@
             <div class="form-group"><label>Montant 3 (Ar)</label><input name="montant3" type="number" placeholder="0"></div>
           </div>
         </div>
-        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-credit')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
       </form>
     </div>
   </div>
@@ -1553,7 +1553,7 @@
 <!-- Modal Caisse -->
 <div class="modal" id="modal-caisse">
   <div class="modal-content" style="max-width:400px">
-    <div class="modal-header"><h3 id="modal-caisse-title">Mouvement de caisse</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-header"><h3 id="modal-caisse-title">Mouvement de caisse</h3><button class="close-modal" onclick="closeModal('modal-caisse')">×</button></div>
     <div class="modal-body">
       <form onsubmit="saveCaisse(event)">
         <input type="hidden" name="type" id="caisse-type-input">
@@ -1562,7 +1562,7 @@
           <div class="form-group"><label>Montant (Ar)</label><input name="montant" type="number" required placeholder="0"></div>
         </div>
         <div class="form-group"><label>Désignation</label><input name="designation" required placeholder="Description du mouvement"></div>
-        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-caisse')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
       </form>
     </div>
   </div>
@@ -1571,7 +1571,7 @@
 <!-- Modal Prix -->
 <div class="modal" id="modal-prix">
   <div class="modal-content" style="max-width:400px">
-    <div class="modal-header"><h3>Ajouter au catalogue</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-header"><h3>Ajouter au catalogue</h3><button class="close-modal" onclick="closeModal('modal-prix')">×</button></div>
     <div class="modal-body">
       <form onsubmit="savePrix(event)">
         <div class="form-group"><label>Désignation</label><input name="designation" required placeholder="Nom de l'article"></div>
@@ -1580,7 +1580,7 @@
           <div class="form-group"><label>Unité</label><input name="unite" placeholder="pièce, kg, m..."></div>
         </div>
         <div class="form-group"><label>Fournisseur</label><input name="fournisseur" placeholder="Fournisseur habituel"></div>
-        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-prix')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
       </form>
     </div>
   </div>
@@ -1589,7 +1589,7 @@
 <!-- Modal Contrat -->
 <div class="modal" id="modal-contrat">
   <div class="modal-content">
-    <div class="modal-header"><h3>Nouveau Contrat Prestataire</h3><button class="close-modal" onclick="this.closest('.modal').classList.remove('active')">×</button></div>
+    <div class="modal-header"><h3>Nouveau Contrat Prestataire</h3><button class="close-modal" onclick="closeModal('modal-contrat')">×</button></div>
     <div class="modal-body">
       <form onsubmit="saveContrat(event)">
         <div class="form-group"><label>Désignation des travaux</label><input name="designation" required placeholder="Ex: Peinture façade"></div>
@@ -1602,7 +1602,7 @@
           <div class="form-group"><label>Date début</label><input name="date_debut" type="date"></div>
         </div>
         <div class="form-group"><label>Date fin prévue</label><input name="date_fin_prevue" type="date"></div>
-        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="this.closest('.modal').classList.remove('active')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
+        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-contrat')">Annuler</button><button type="submit" class="btn btn-primary">Enregistrer</button></div>
       </form>
     </div>
   </div>
