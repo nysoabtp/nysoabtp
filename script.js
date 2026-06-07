@@ -486,9 +486,9 @@ async function updateDashboardStats() {
 
         // Achats stats
         try {
-            const { data: achats } = await db.from('commandes').select('montant, statut').gte('date', `${new Date().getFullYear()}-01-01`);
-            if (achats) {
-                const totalDep = achats.reduce((s, r) => s + (r.montant || 0), 0);
+                const { data: achats } = await db.from('commandes').select('prix, quantite, statut').gte('date', `${new Date().getFullYear()}-01-01`);
+                if (achats) {
+                    const totalDep = achats.reduce((s, r) => s + ((r.prix || 0) * (r.quantite || 1)), 0);
                 const enAttente = achats.filter(r => r.statut === 'en_attente' || r.statut === 'attente').length;
                 if (document.getElementById('achat-stat-commandes')) document.getElementById('achat-stat-commandes').textContent = achats.length;
                 if (document.getElementById('achat-stat-depenses')) document.getElementById('achat-stat-depenses').textContent = formatAriary(totalDep);
