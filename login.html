@@ -261,6 +261,7 @@ window.addEventListener('load', async () => {
             const { data } = await db.auth.getSession();
             if (data?.session) {
                 const role = data.session.user?.user_metadata?.role || 'admin';
+                localStorage.setItem('nysoa_current_user', JSON.stringify({ email: data.session.user.email, role }));
                 window.location.href = DASHBOARDS[role] || 'index.html';
             }
         } else {
