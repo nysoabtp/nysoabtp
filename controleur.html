@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <meta name="description" content="Contrôle qualité NYSOA BTP — Inspections, sécurité, rapports de contrôle">
     <title>NySoa Construct - Contrôleur</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -90,7 +92,7 @@
                             <i class="fas fa-clipboard-check"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>24</h3>
+                            <h3 id="stat-inspections">24</h3>
                             <p>Inspections ce mois</p>
                         </div>
                     </div>
@@ -99,7 +101,7 @@
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>92%</h3>
+                            <h3 id="stat-conformite">92%</h3>
                             <p>Taux de conformité</p>
                         </div>
                     </div>
@@ -108,7 +110,7 @@
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>3</h3>
+                            <h3 id="stat-non-conformites">3</h3>
                             <p>Non-conformités</p>
                         </div>
                     </div>
@@ -117,7 +119,7 @@
                             <i class="fas fa-shield-alt"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>100%</h3>
+                            <h3 id="stat-securite">100%</h3>
                             <p>Score sécurité</p>
                         </div>
                     </div>
@@ -451,8 +453,8 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" name="date" required>
+                        <label>Date/heure</label>
+                        <input type="datetime-local" name="datetime" required>
                     </div>
                     <div class="form-group">
                         <label>Observations</label>
@@ -481,7 +483,7 @@
             if (!currentUser || currentUser.role !== 'controleur') {
                 window.location.href = 'login.html';
             }
-            initializeControleurCharts();
+            loadControleurData();
             updateDate();
         });
 
@@ -494,63 +496,56 @@
             'rapports': 'Rapports de Contrôle'
         });
 
-        // Initialize Controleur Charts
-        function initializeControleurCharts() {
-            // Quality Chart
+        async function loadControleurData() {
+            try {
+                const mois = new Date().getMonth() + 1;
+                const annee = new Date().getFullYear();
+                const debutMois = `${annee}-${String(mois).padStart(2, '0')}-01`;
+                const { data: inspections } = await db.from('controles_inopines').select('*').gte('datetime', debutMois);
+                if (inspections) {
+                    document.getElementById('stat-inspections').textContent = inspections.length;
+                    const conformes = inspections.filter(i => !i.observations?.includes('non_conforme') && !i.observations?.toLowerCase().includes('non conforme'));
+                    const pct = inspections.length ? Math.round(conformes.length / inspections.length * 100) : 100;
+                    document.getElementById('stat-conformite').textContent = pct + '%';
+                    document.getElementById('stat-non-conformites').textContent = inspections.length - conformes.length;
+                }
+                initializeControleurCharts(inspections);
+            } catch(_) { initializeControleurCharts(); }
+        }
+
+        function initializeControleurCharts(inspections) {
             const qualityCtx = document.getElementById('qualityChart');
             if (qualityCtx) {
+                const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+                const confByMonth = new Array(12).fill(0);
+                const totalByMonth = new Array(12).fill(0);
+                if (inspections) inspections.forEach(i => {
+                    const m = i.datetime ? new Date(i.datetime).getMonth() : -1;
+                    if (m >= 0) { totalByMonth[m]++; if (!i.observations?.includes('non_conforme')) confByMonth[m]++; }
+                });
+                const currentMonth = new Date().getMonth();
+                const confRate = totalByMonth.map((t, i) => t ? Math.round(confByMonth[i] / t * 100) : null);
+                const labels = months.slice(0, currentMonth + 1);
                 new Chart(qualityCtx, {
                     type: 'line',
                     data: {
-                        labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
-                        datasets: [{
-                            label: 'Taux de conformité (%)',
-                            data: [85, 88, 90, 91, 92, 92],
-                            borderColor: '#0066cc',
-                            backgroundColor: 'rgba(0, 102, 204, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        }]
+                        labels,
+                        datasets: [{ label: 'Taux de conformité (%)', data: confRate.slice(0, currentMonth + 1), borderColor: '#0066cc', backgroundColor: 'rgba(0, 102, 204, 0.1)', fill: true, tension: 0.4 }]
                     },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100
-                            }
-                        }
-                    }
+                    options: { responsive: true, plugins: { legend: { display: true, position: 'top' } }, scales: { y: { beginAtZero: true, max: 100 } } }
                 });
             }
 
-            // Type Chart
             const typeCtx = document.getElementById('typeChart');
             if (typeCtx) {
+                const types = {};
+                if (inspections) inspections.forEach(i => { const t = i.observations?.match(/Type:\s*(\w+)/)?.[1] || 'Général'; types[t] = (types[t] || 0) + 1; });
+                const labels = Object.keys(types).length ? Object.keys(types) : ['Structure', 'Électrique', 'Plomberie', 'Finition'];
+                const data = Object.keys(types).length ? Object.values(types) : [8, 6, 5, 5];
                 new Chart(typeCtx, {
                     type: 'doughnut',
-                    data: {
-                        labels: ['Structure', 'Électrique', 'Plomberie', 'Finition'],
-                        datasets: [{
-                            data: [8, 6, 5, 5],
-                            backgroundColor: ['#0066cc', '#ff6b35', '#10b981', '#636e72']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'right'
-                            }
-                        }
-                    }
+                    data: { labels, datasets: [{ data, backgroundColor: ['#0066cc', '#ff6b35', '#10b981', '#636e72', '#e84393'] }] },
+                    options: { responsive: true, plugins: { legend: { display: true, position: 'right' } } }
                 });
             }
         }
@@ -558,17 +553,22 @@
         // ── Formulaire Inspection ──────────────────────────────
         document.getElementById('form-inspection')?.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const fd = new FormData(this);
-            const { error } = await db.from('controles_inopines').insert({
-                date: fd.get('date'),
-                chantier: fd.get('chantier'),
-                type: fd.get('type'),
-                observations: fd.get('observations') || '',
-            });
-            if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
-            closeModal('modal-inspection');
-            this.reset();
-            showNotification('Inspection enregistrée ✓', 'success');
+            try {
+                const fd = new FormData(this);
+                const type = fd.get('type') || '';
+                const obs = (type ? `Type: ${type} — ` : '') + (fd.get('observations') || '');
+                const user = JSON.parse(localStorage.getItem('nysoa_current_user') || '{}');
+                const { error } = await db.from('controles_inopines').insert({
+                    chantier: fd.get('chantier'),
+                    datetime: fd.get('datetime'),
+                    observations: obs,
+                    controleur: user.email || 'Contrôleur',
+                });
+                if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+                closeModal('modal-inspection');
+                this.reset();
+                showNotification('Inspection enregistrée ✓', 'success');
+            } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
         });
     </script>
 </body>

@@ -200,20 +200,24 @@ async function loadCaisse() {
         if (error) throw error;
         const rows = data || [];
         const soldeActuel = rows.length ? (rows[0].solde_fin||0) : 0;
-        const totalEntrees = rows.filter(r=>r.type==='entree').reduce((s,r)=>s+(r.montant||0),0);
-        const totalSorties = rows.filter(r=>r.type==='sortie').reduce((s,r)=>s+(r.montant||0),0);
+        const totalEntrees = rows.filter(r=>(r.solde_fin||0)>(r.solde_debut||0)).reduce((s,r)=>s+(r.montant||0),0);
+        const totalSorties = rows.filter(r=>(r.solde_fin||0)<(r.solde_debut||0)).reduce((s,r)=>s+(r.montant||0),0);
         document.getElementById('caisse-solde')   && (document.getElementById('caisse-solde').textContent   = fmt(soldeActuel));
         document.getElementById('caisse-entrees') && (document.getElementById('caisse-entrees').textContent = fmt(totalEntrees));
         document.getElementById('caisse-sorties') && (document.getElementById('caisse-sorties').textContent = fmt(totalSorties));
         document.getElementById('caisse-nb')      && (document.getElementById('caisse-nb').textContent      = rows.length);
         if (!rows.length) { el.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px">Caisse vide</td></tr>'; return; }
-        el.innerHTML = rows.map(r => `<tr>
+        el.innerHTML = rows.map(r => {
+            const type = (r.solde_fin||0) > (r.solde_debut||0) ? 'entree' : 'sortie';
+            const color = type === 'entree' ? 'var(--green)' : 'var(--red)';
+            const sign  = type === 'entree' ? '+' : '-';
+            return `<tr>
             <td>${fmtDate(r.date)}</td>
             <td>${r.designation||'—'}</td>
-            <td style="color:${r.type==='entree'?'var(--green)':'var(--red)'};font-family:monospace">${r.type==='entree'?'+':'-'}${fmt(r.montant)}</td>
+            <td style="color:${color};font-family:monospace">${sign}${fmt(r.montant)}</td>
             <td style="font-family:monospace;font-weight:600">${fmt(r.solde_fin)}</td>
             <td><button class="btn-icon" onclick="deleteCaisse(${r.id})" style="color:var(--red)"><i class="fas fa-trash"></i></button></td>
-        </tr>`).join('');
+        </tr>`;}).join('');
     } catch(e) { el.innerHTML = `<tr><td colspan="5" style="color:var(--red);padding:20px">${e.message}</td></tr>`; }
 }
 
@@ -232,7 +236,7 @@ async function saveCaisse(e) {
     const { data: last } = await db.from('caisse').select('solde_fin').order('date',{ascending:false}).limit(1);
     const soldeDebut = last && last.length ? (last[0].solde_fin||0) : 0;
     const soldeFin   = type === 'entree' ? soldeDebut + montant : Math.max(0, soldeDebut - montant);
-    const obj = { date: fd.get('date'), designation: fd.get('designation'), montant, type, solde_debut: soldeDebut, solde_fin: soldeFin };
+    const obj = { date: fd.get('date'), designation: fd.get('designation'), montant, solde_debut: soldeDebut, solde_fin: soldeFin };
     const { error } = await db.from('caisse').insert([obj]);
     if (error) { alert(error.message); return; }
     document.getElementById('modal-caisse').classList.remove('active');

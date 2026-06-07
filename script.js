@@ -474,12 +474,53 @@ async function updateDashboardStats() {
 
         const totalCA = (depData || []).reduce((s, r) => s + (r.montant || 0), 0);
 
-        const cards = document.querySelectorAll('#dashboard .stat-card .stat-info');
-        if (cards[0]) cards[0].querySelector('h3').textContent = nbChantiers || 0;
-        if (cards[1]) cards[1].querySelector('h3').textContent =
-            totalCA >= 1_000_000 ? (totalCA/1_000_000).toFixed(1) + 'MAr' : formatAriary(totalCA);
-        if (cards[2]) cards[2].querySelector('h3').textContent = nbPersonnel || 0;
-        if (cards[3]) cards[3].querySelector('h3').textContent = nbMat || 0;
+        if (document.getElementById('dashboard-stat-projets'))
+            document.getElementById('dashboard-stat-projets').textContent = nbChantiers || 0;
+        if (document.getElementById('dashboard-stat-ca'))
+            document.getElementById('dashboard-stat-ca').textContent =
+                totalCA >= 1_000_000 ? (totalCA/1_000_000).toFixed(1) + 'MAr' : formatAriary(totalCA);
+        if (document.getElementById('dashboard-stat-employes'))
+            document.getElementById('dashboard-stat-employes').textContent = nbPersonnel || 0;
+        if (document.getElementById('dashboard-stat-stock'))
+            document.getElementById('dashboard-stat-stock').textContent = nbMat || 0;
+
+        // Achats stats
+        try {
+            const { data: achats } = await db.from('commandes').select('montant, statut').gte('date', `${new Date().getFullYear()}-01-01`);
+            if (achats) {
+                const totalDep = achats.reduce((s, r) => s + (r.montant || 0), 0);
+                const enAttente = achats.filter(r => r.statut === 'en_attente' || r.statut === 'attente').length;
+                if (document.getElementById('achat-stat-commandes')) document.getElementById('achat-stat-commandes').textContent = achats.length;
+                if (document.getElementById('achat-stat-depenses')) document.getElementById('achat-stat-depenses').textContent = formatAriary(totalDep);
+                if (document.getElementById('achat-stat-attente')) document.getElementById('achat-stat-attente').textContent = enAttente;
+            }
+        } catch(_) {}
+
+        // Personnel stats
+        try {
+            const { data: personnel } = await db.from('personnel').select('metier').eq('actif', true);
+            if (personnel) {
+                if (document.getElementById('personnel-stat-total')) document.getElementById('personnel-stat-total').textContent = personnel.length;
+                const ouvriers = personnel.filter(p => !p.metier?.toLowerCase().includes('admin') && !p.metier?.toLowerCase().includes('cadre')).length;
+                const cadres = personnel.length - ouvriers;
+                if (document.getElementById('personnel-stat-ouvriers')) document.getElementById('personnel-stat-ouvriers').textContent = ouvriers;
+                if (document.getElementById('personnel-stat-cadres')) document.getElementById('personnel-stat-cadres').textContent = cadres;
+            }
+        } catch(_) {}
+
+        // Proformat stats
+        try {
+            const { data: devis } = await db.from('devis').select('statut, date');
+            if (devis) {
+                const mois = new Date().getMonth() + 1;
+                const ceMois = devis.filter(d => d.date && new Date(d.date).getMonth() + 1 === mois);
+                const convertis = devis.filter(d => d.statut === 'FACTURE');
+                const attente = devis.filter(d => d.statut === 'BROUILLON' || d.statut === 'ENVOYE');
+                if (document.getElementById('proformat-stat-mois')) document.getElementById('proformat-stat-mois').textContent = ceMois.length;
+                if (document.getElementById('proformat-stat-convertis')) document.getElementById('proformat-stat-convertis').textContent = convertis.length;
+                if (document.getElementById('proformat-stat-attente')) document.getElementById('proformat-stat-attente').textContent = attente.length;
+            }
+        } catch(_) {}
 
         loadRevenueChart();
         loadProjectChart();

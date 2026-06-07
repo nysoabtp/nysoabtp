@@ -293,7 +293,7 @@
                             <i class="fas fa-briefcase"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>5</h3>
+                            <h3 id="recrut-stat-offres">5</h3>
                             <p>Offres actives</p>
                         </div>
                     </div>
@@ -302,7 +302,7 @@
                             <i class="fas fa-file-alt"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>42</h3>
+                            <h3 id="recrut-stat-candidatures">42</h3>
                             <p>Candidatures</p>
                         </div>
                     </div>
@@ -311,7 +311,7 @@
                             <i class="fas fa-user-clock"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>8</h3>
+                            <h3 id="recrut-stat-entretiens">8</h3>
                             <p>Entretiens planifiés</p>
                         </div>
                     </div>
@@ -499,17 +499,17 @@
                             <i class="fas fa-money-bill-wave"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>75MAr</h3>
+                            <h3 id="paie-stat-masse">75MAr</h3>
                             <p>Masse salariale</p>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon green">
                             <i class="fas fa-check-circle"></i>
-                            <div class="stat-info">
-                                <h3>156</h3>
-                                <p>Fiches générées</p>
-                            </div>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="paie-stat-fiches">156</h3>
+                            <p>Fiches générées</p>
                         </div>
                     </div>
                 </div>
@@ -731,6 +731,23 @@
                 // Formations depuis localStorage
                 const formations = JSON.parse(localStorage.getItem('nysoa_formations') || '[]');
                 document.getElementById('stat-formations').textContent = formations.length;
+
+                // Recrutement stats (localStorage)
+                const recrutOffres = JSON.parse(localStorage.getItem('nysoa_recrutements') || '[]');
+                const recrutCandidatures = JSON.parse(localStorage.getItem('nysoa_candidatures') || '[]');
+                if (document.getElementById('recrut-stat-offres')) document.getElementById('recrut-stat-offres').textContent = recrutOffres.length;
+                if (document.getElementById('recrut-stat-candidatures')) document.getElementById('recrut-stat-candidatures').textContent = recrutCandidatures.length;
+                if (document.getElementById('recrut-stat-entretiens')) document.getElementById('recrut-stat-entretiens').textContent = recrutCandidatures.filter(c => c.statut === 'entretien').length;
+
+                // Paie stats
+                try {
+                    const { data: salaires } = await db.from('salaires').select('montant_net');
+                    if (salaires) {
+                        const totalMasse = salaires.reduce((s, r) => s + (r.montant_net || 0), 0);
+                        if (document.getElementById('paie-stat-masse')) document.getElementById('paie-stat-masse').textContent = formatAriary(totalMasse);
+                        if (document.getElementById('paie-stat-fiches')) document.getElementById('paie-stat-fiches').textContent = salaires.length;
+                    }
+                } catch(_) {}
 
                 initializeRHCharts(personnel);
                 if (typeof loadPersonnelTable === 'function') loadPersonnelTable();

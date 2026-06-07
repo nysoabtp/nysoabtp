@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
     <!-- LOGO: remplacer LOGO_NYSOA.png par le nouveau fichier -->
     <title>NySoa Construct - ERP</title>
     <link rel="stylesheet" href="styles.css">
@@ -14,7 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <style>
@@ -236,7 +237,7 @@
                             <i class="fas fa-project-diagram"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>12</h3>
+                            <h3 id="dashboard-stat-projets">12</h3>
                             <p>Projets en cours</p>
                         </div>
                     </div>
@@ -245,7 +246,7 @@
                             <i class="fas fa-money-bill-wave"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>12.5MAr</h3>
+                            <h3 id="dashboard-stat-ca">12.5MAr</h3>
                             <p>Chiffre d'affaires</p>
                         </div>
                     </div>
@@ -254,7 +255,7 @@
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>45</h3>
+                            <h3 id="dashboard-stat-employes">45</h3>
                             <p>Employés actifs</p>
                         </div>
                     </div>
@@ -263,7 +264,7 @@
                             <i class="fas fa-boxes"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>156</h3>
+                            <h3 id="dashboard-stat-stock">156</h3>
                             <p>Stock total</p>
                         </div>
                     </div>
@@ -506,7 +507,7 @@
                             <i class="fas fa-shopping-cart"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>24</h3>
+                            <h3 id="achat-stat-commandes">24</h3>
                             <p>Commandes ce mois</p>
                         </div>
                     </div>
@@ -515,7 +516,7 @@
                             <i class="fas fa-money-bill-wave"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>125 000 Ar</h3>
+                            <h3 id="achat-stat-depenses">125 000 Ar</h3>
                             <p>Dépenses achats</p>
                         </div>
                     </div>
@@ -524,7 +525,7 @@
                             <i class="fas fa-clock"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>5</h3>
+                            <h3 id="achat-stat-attente">5</h3>
                             <p>En attente</p>
                         </div>
                     </div>
@@ -797,7 +798,7 @@
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>45</h3>
+                            <h3 id="personnel-stat-total">45</h3>
                             <p>Total employés</p>
                         </div>
                     </div>
@@ -806,7 +807,7 @@
                             <i class="fas fa-hard-hat"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>32</h3>
+                            <h3 id="personnel-stat-ouvriers">32</h3>
                             <p>Ouvriers</p>
                         </div>
                     </div>
@@ -815,7 +816,7 @@
                             <i class="fas fa-user-tie"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>13</h3>
+                            <h3 id="personnel-stat-cadres">13</h3>
                             <p>Cadres/Admin</p>
                         </div>
                     </div>
@@ -967,7 +968,7 @@
                             <i class="fas fa-file-contract"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>8</h3>
+                            <h3 id="proformat-stat-mois">8</h3>
                             <p>Proformats ce mois</p>
                         </div>
                     </div>
@@ -976,7 +977,7 @@
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>5</h3>
+                            <h3 id="proformat-stat-convertis">5</h3>
                             <p>Convertis en facture</p>
                         </div>
                     </div>
@@ -985,7 +986,7 @@
                             <i class="fas fa-clock"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>3</h3>
+                            <h3 id="proformat-stat-attente">3</h3>
                             <p>En attente</p>
                         </div>
                     </div>
