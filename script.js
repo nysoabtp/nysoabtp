@@ -1547,6 +1547,51 @@ function goToAdmin() {
     window.location.href = 'admin.html';
 }
 
+// ── Helpers pour rapports ────────────────────────────────────────
+function parseMoisAnnee(nom) {
+    const moisMap = { 'janvier':1,'février':2,'fevrier':2,'mars':3,'avril':4,'mai':5,'juin':6,'juillet':7,'août':8,'aout':8,'septembre':9,'octobre':10,'novembre':11,'décembre':12,'decembre':12 };
+    const n = nom.toLowerCase();
+    let mois, annee;
+    for (const [m, v] of Object.entries(moisMap)) { if (n.includes(m)) { mois = v; break; } }
+    const match = n.match(/\b(20\d{2})\b/);
+    if (match) annee = parseInt(match[1]);
+    return { mois, annee };
+}
+
+function exportToPDF(doc, nom, headers, rows) {
+    const { jsPDF } = window.jspdf;
+    if (!doc) doc = new jsPDF();
+    doc.setFontSize(16); doc.text(nom, 14, 20);
+    doc.setFontSize(9);
+    let y = 30;
+    const pageW = doc.internal.pageSize.width;
+    doc.setFillColor(28, 43, 58); doc.setTextColor(255, 255, 255);
+    doc.rect(14, y - 4, pageW - 28, 7, 'F');
+    let x = 14;
+    headers.forEach(h => { doc.text(h, x + 1, y + 1); x += pageW / headers.length; });
+    doc.setTextColor(0); y += 10;
+    rows.forEach((r, i) => {
+        if (y > 270) { doc.addPage(); y = 20; doc.setFontSize(9); }
+        if (i % 2 === 0) { doc.setFillColor(245, 247, 250); doc.rect(14, y - 4, pageW - 28, 6, 'F'); }
+        let cx = 14;
+        const vals = typeof r === 'object' ? Object.values(r) : [r];
+        vals.forEach((v, vi) => {
+            const txt = v ? (typeof v === 'string' ? v.substring(0, 22) : String(v)) : '—';
+            doc.text(txt, cx + 1, y); cx += pageW / Math.max(vals.length, headers.length);
+        });
+        y += 7;
+    });
+    return doc;
+}
+
+function exportToXLSX(nom, headers, rows) {
+    const wb = XLSX.utils.book_new();
+    const data2 = rows.map(r => Object.assign({}, r));
+    const ws = XLSX.utils.json_to_sheet(data2);
+    XLSX.utils.book_append_sheet(wb, ws, nom.substring(0, 31));
+    XLSX.writeFile(wb, `${nom.replace(/[^a-zA-Z0-9]/g,'_')}.xlsx`);
+}
+
 // ── Téléchargement des rapports ─────────────────────────────────
 async function downloadReport(btn) {
     const li = btn.closest('li');
@@ -1559,125 +1604,201 @@ async function downloadReport(btn) {
     showNotification(`Génération de « ${nom} »...`, 'info');
 
     try {
-        // Déterminer la source de données selon le nom du rapport
-        let rows, headers, filename;
         const n = nom.toLowerCase();
+        const { mois, annee } = parseMoisAnnee(nom);
+        let rows = [], headers = [], filename = nom.replace(/[^a-zA-Z0-9]/g,'_');
 
-        if (n.includes('bilan') || n.includes('résultat') || n.includes('budgét') || n.includes('financier')) {
-            const { data } = await db.from('journal').select('date,designation,montant,categorie,mode_paiement').order('date', { ascending: false }).limit(500);
-            rows = data || [];
-            headers = ['Date', 'Désignation', 'Montant (Ar)', 'Catégorie', 'Paiement'];
-            filename = nom.replace(/[^a-zA-Z0-9]/g,'_');
-        } else if (n.includes('avancement') || n.includes('planning') || n.includes('chantier')) {
+        // ── BILAN ──
+        if (n.includes('bilan')) {
+            const { data } = await db.from('journal').select('categorie,montant,date').order('date', { ascending: false });
+            const all = data || [];
+            const filtered = (mois || annee) ? all.filter(r => {
+                if (!r.date) return false; const d = new Date(r.date);
+                if (annee && d.getFullYear() !== annee) return false;
+                if (mois && d.getMonth() + 1 !== mois) return false;
+                return true;
+            }) : all;
+            const recettes = filtered.filter(r => r.categorie === 'RECETTE' || r.montant > 0).reduce((s,r) => s + (r.montant||0), 0);
+            const depenses = filtered.filter(r => r.categorie !== 'RECETTE' && r.montant < 0).reduce((s,r) => s + Math.abs(r.montant||0), 0);
+            const catMap = {};
+            filtered.forEach(r => { const c = r.categorie || 'AUTRES'; catMap[c] = (catMap[c]||0) + (r.montant||0); });
+            rows = [
+                { Rubrique: 'TOTAL RECETTES', Montant: recettes.toLocaleString('fr-FR') + ' Ar' },
+                { Rubrique: 'TOTAL DÉPENSES', Montant: depenses.toLocaleString('fr-FR') + ' Ar' },
+                { Rubrique: 'SOLDE', Montant: (recettes - depenses).toLocaleString('fr-FR') + ' Ar' },
+            ];
+            Object.entries(catMap).forEach(([c,m]) => { rows.push({ Rubrique: '  ' + c, Montant: m.toLocaleString('fr-FR') + ' Ar' }); });
+            headers = ['Rubrique', 'Montant'];
+            if (!rows.length) { showNotification('Aucune donnée pour ce bilan', 'warning'); return; }
+
+        // ── COMPTE RÉSULTAT ──
+        } else if (n.includes('résultat')) {
+            const { data } = await db.from('journal').select('categorie,montant,date');
+            const all = data || [];
+            const filtered = (mois || annee) ? all.filter(r => {
+                if (!r.date) return false; const d = new Date(r.date);
+                if (annee && d.getFullYear() !== annee) return false;
+                if (mois && d.getMonth() + 1 !== mois) return false;
+                return true;
+            }) : all;
+            const produits = filtered.filter(r => r.categorie === 'RECETTE' || r.montant > 0).reduce((s,r) => s + (r.montant||0), 0);
+            const charges = filtered.filter(r => r.categorie !== 'RECETTE' && r.montant < 0).reduce((s,r) => s + Math.abs(r.montant||0), 0);
+            rows = [
+                { Rubrique: 'Produits (Recettes)', Montant: produits.toLocaleString('fr-FR') },
+                { Rubrique: 'Charges (Dépenses)', Montant: charges.toLocaleString('fr-FR') },
+                { Rubrique: 'RÉSULTAT NET', Montant: (produits - charges).toLocaleString('fr-FR') },
+            ];
+            headers = ['Rubrique', 'Montant (Ar)'];
+            if (!rows.length) { showNotification('Aucune donnée pour ce rapport', 'warning'); return; }
+
+        // ── ÉTAT D'AVANCEMENT / CHANTIERS ──
+        } else if (n.includes('avancement') || n.includes('chantier')) {
             const { data } = await db.from('chantiers').select('nom,client,budget,debut,fin,progression,statut').order('nom');
             rows = data || [];
+            if (!rows.length) { showNotification('Aucune donnée chantier', 'warning'); return; }
             headers = ['Chantier', 'Client', 'Budget (Ar)', 'Début', 'Fin', 'Progression %', 'Statut'];
-            filename = nom.replace(/[^a-zA-Z0-9]/g,'_');
+
+        // ── QUALITÉ ──
         } else if (n.includes('qualité')) {
             const { data } = await db.from('chantiers').select('nom,statut,progression').order('nom');
             rows = data || [];
+            if (!rows.length) { showNotification('Aucune donnée qualité', 'warning'); return; }
             headers = ['Chantier', 'Statut', 'Progression %'];
-            filename = 'rapport_qualite';
-        } else if (n.includes('effectif') || n.includes('masse salariale')) {
+
+        // ── EFFECTIF ──
+        } else if (n.includes('effectif')) {
             const { data } = await db.from('personnel').select('nom,metier,chantier,type_salaire,salaire_journalier').eq('actif', true).order('nom');
             rows = data || [];
+            if (!rows.length) { showNotification('Aucun employé actif', 'warning'); return; }
             headers = ['Nom', 'Métier', 'Chantier', 'Type Salaire', 'Salaire (Ar)'];
-            filename = 'rapport_rh';
+
+        // ── MASSE SALARIALE ──
+        } else if (n.includes('masse salariale')) {
+            const { data: personnel } = await db.from('personnel').select('nom,metier,chantier,salaire_journalier').eq('actif', true);
+            const { data: salaires } = await db.from('salaires').select('employe,montant,mois,annee').order('mois', { ascending: false }).limit(200);
+            const emp = personnel || [];
+            const moisCharge = (mois && annee) ? (salaires||[]).filter(s => s.mois === String(mois).padStart(2,'0') && s.annee === annee) : (salaires||[]);
+            let totalMasse = 0;
+            rows = emp.map(e => {
+                const s = (moisCharge||[]).filter(s => s.employe === e.nom);
+                const total = s.reduce((sum, s) => sum + (s.montant||0), 0);
+                totalMasse += total;
+                return { Nom: e.nom, Métier: e.metier, Chantier: e.chantier, Journalier: (e.salaire_journalier||0).toLocaleString('fr-FR'), Total_Mois: total.toLocaleString('fr-FR') };
+            });
+            rows.push({ Nom: '', Métier: '', Chantier: 'MASSE SALARIALE TOTALE', Journalier: '', Total_Mois: totalMasse.toLocaleString('fr-FR') });
+            if (!rows.length) { showNotification('Aucune donnée salariale', 'warning'); return; }
+            headers = ['Nom', 'Métier', 'Chantier', 'Journalier (Ar)', 'Total Mois (Ar)'];
+
+        // ── CONGÉS ET ABSENCES ──
         } else if (n.includes('congé') || n.includes('absence')) {
-            const { data } = await db.from('personnel').select('nom,metier,chantier').eq('actif', true).order('nom');
+            const { data } = await db.from('conges').select('employe_nom,type,date_debut,date_fin,statut,valide_par').order('date_debut', { ascending: false }).limit(200);
             rows = data || [];
-            headers = ['Nom', 'Métier', 'Chantier'];
-            filename = 'conges_absences';
-        } else if (n.includes('inventaire') || n.includes('mouvement') || n.includes('valorisation') || n.includes('stock')) {
-            const { data } = await db.from('commandes').select('designation,fournisseur,quantite,prix,statut').order('date', { ascending: false }).limit(200);
+            if (!rows.length) {
+                const { data: p } = await db.from('personnel').select('nom,metier,chantier').eq('actif', true).limit(50);
+                rows = (p || []).map(x => ({ employe_nom: x.nom, type: '—', date_debut: '—', date_fin: '—', statut: 'ACTIF' }));
+            }
+            if (!rows.length) { showNotification('Aucune donnée congés', 'warning'); return; }
+            headers = ['Employé', 'Type', 'Début', 'Fin', 'Statut'];
+
+        // ── INVENTAIRE STOCK ──
+        } else if (n.includes('inventaire')) {
+            const { data } = await db.from('commandes').select('designation,fournisseur,quantite,prix,statut,date').order('date', { ascending: false }).limit(200);
             rows = data || [];
-            headers = ['Désignation', 'Fournisseur', 'Qté', 'Prix (Ar)', 'Statut'];
-            filename = 'rapport_stock';
+            if (!rows.length) { showNotification('Aucun stock', 'warning'); return; }
+            const totalVal = rows.reduce((s,r) => s + (r.quantite||0) * (r.prix||0), 0);
+            rows.push({ designation: 'VALORISATION TOTALE', fournisseur: '', quantite: '', prix: '', statut: totalVal.toLocaleString('fr-FR') + ' Ar' });
+            headers = ['Désignation', 'Fournisseur', 'Qté', 'Prix Unit (Ar)', 'Statut'];
+
+        // ── MOUVEMENTS STOCK ──
+        } else if (n.includes('mouvement')) {
+            const { data } = await db.from('commandes').select('designation,date,statut,quantite,prix,fournisseur').order('date', { ascending: false }).limit(200);
+            rows = data || [];
+            if (!rows.length) { showNotification('Aucun mouvement', 'warning'); return; }
+            headers = ['Article', 'Date', 'Statut', 'Qté', 'Prix (Ar)', 'Fournisseur'];
+
+        // ── VALORISATION STOCK ──
+        } else if (n.includes('valorisation')) {
+            const { data } = await db.from('commandes').select('designation,quantite,prix,statut,fournisseur').order('designation');
+            rows = data || [];
+            if (!rows.length) { showNotification('Aucun article', 'warning'); return; }
+            const totalStock = rows.reduce((s,r) => s + (r.quantite||0) * (r.prix||0), 0);
+            rows = rows.map(r => ({ Article: r.designation, Qté: r.quantite||0, PU: (r.prix||0).toLocaleString('fr-FR'), Total: ((r.quantite||0)*(r.prix||0)).toLocaleString('fr-FR'), Fournisseur: r.fournisseur||'—' }));
+            rows.push({ Article: 'VALORISATION TOTALE', Qté: '', PU: '', Total: totalStock.toLocaleString('fr-FR') + ' Ar', Fournisseur: '' });
+            headers = ['Article', 'Qté', 'Prix Unit (Ar)', 'Total (Ar)', 'Fournisseur'];
+
+        // ── TECHNIQUE / INTERVENTION ──
         } else if (n.includes('intervention') || n.includes('technique')) {
             const { data } = await db.from('chantiers').select('nom,statut,debut,fin').order('nom');
-            rows = data || [];
+            rows = data || []; if (!rows.length) { showNotification('Aucune donnée', 'warning'); return; }
             headers = ['Chantier', 'Statut', 'Début', 'Fin'];
-            filename = 'rapport_technique';
+
+        // ── CONTRÔLE / SÉCURITÉ ──
         } else if (n.includes('contrôle') || n.includes('sécurité')) {
             const { data } = await db.from('chantiers').select('nom,statut,progression').order('nom');
-            rows = data || [];
+            rows = data || []; if (!rows.length) { showNotification('Aucune donnée', 'warning'); return; }
             headers = ['Chantier', 'Statut', 'Progression %'];
-            filename = 'rapport_controle';
+
+        // ── TRÉSORERIE ──
+        } else if (n.includes('trésorerie') || n.includes('rentabilité') || n.includes('prévision')) {
+            const { data } = await db.from('journal').select('date,designation,montant,categorie,mode_paiement,chantier').order('date', { ascending: false }).limit(500);
+            const all = data || [];
+            const filtered = (mois || annee) ? all.filter(r => {
+                if (!r.date) return false; const d = new Date(r.date);
+                if (annee && d.getFullYear() !== annee) return false;
+                if (mois && d.getMonth() + 1 !== mois) return false;
+                return true;
+            }) : all;
+            if (!filtered.length && !all.length) { showNotification('Aucune écriture', 'warning'); return; }
+            const totalIn = filtered.filter(r => r.montant > 0).reduce((s,r)=>s+(r.montant||0),0);
+            const totalOut = filtered.filter(r => r.montant < 0).reduce((s,r)=>s+Math.abs(r.montant||0),0);
+            rows = filtered.map(x => ({ Date: x.date||'—', Désignation: (x.designation||'').substring(0,25), Montant: (x.montant||0).toLocaleString('fr-FR'), Catégorie: x.categorie||'—' }));
+            rows.push({ Date: '', Désignation: '', Montant: '', Catégorie: '' });
+            rows.push({ Date: '', Désignation: 'TOTAL ENCAISSEMENTS', Montant: totalIn.toLocaleString('fr-FR'), Catégorie: '' });
+            rows.push({ Date: '', Désignation: 'TOTAL DÉCAISSEMENTS', Montant: totalOut.toLocaleString('fr-FR'), Catégorie: '' });
+            rows.push({ Date: '', Désignation: 'SOLDE', Montant: (totalIn - totalOut).toLocaleString('fr-FR'), Catégorie: '' });
+            headers = ['Date', 'Désignation', 'Montant (Ar)', 'Catégorie'];
+
+        // ── PÉRIODIQUE (journalier/mensuel) ──
         } else if (n.includes('journalier') || n.includes('mensuel')) {
             const { data } = await db.from('journal').select('date,designation,montant,categorie,chantier').order('date', { ascending: false }).limit(200);
-            rows = data || [];
+            rows = data || []; if (!rows.length) { showNotification('Aucune écriture', 'warning'); return; }
             headers = ['Date', 'Désignation', 'Montant (Ar)', 'Catégorie', 'Chantier'];
-            filename = 'rapport_periodique';
-        } else if (n.includes('rentabilité') || n.includes('trésorerie') || n.includes('prévision')) {
-            const { data } = await db.from('journal').select('date,designation,montant,categorie,mode_paiement').order('date', { ascending: false }).limit(500);
-            rows = data || [];
-            headers = ['Date', 'Désignation', 'Montant (Ar)', 'Catégorie', 'Paiement'];
-            filename = nom.replace(/[^a-zA-Z0-9]/g,'_');
+
+        // ── CHECKLIST ──
         } else if (n.includes('checklist')) {
             const { data } = await db.from('chantiers').select('nom,statut,debut,fin,progression').order('nom');
-            rows = data || [];
+            rows = data || []; if (!rows.length) { showNotification('Aucune donnée', 'warning'); return; }
             headers = ['Chantier', 'Statut', 'Début', 'Fin', 'Progression %'];
-            filename = 'rapport_checklist';
+
+        // ── RECRUTEMENT ──
         } else if (n.includes('recrutement') || n.includes('embauche')) {
             const { data } = await db.from('personnel').select('nom,metier,chantier,date_embauche,type_salaire,salaire_journalier').eq('actif', true).order('date_embauche', { ascending: false }).limit(100);
-            rows = data || [];
+            rows = data || []; if (!rows.length) { showNotification('Aucun recrutement', 'warning'); return; }
             headers = ['Nom', 'Métier', 'Chantier', 'Date embauche', 'Type', 'Salaire (Ar)'];
-            filename = 'rapport_recrutement';
+
+        // ── SUIVI BUDGÉTAIRE ──
+        } else if (n.includes('budgét') || n.includes('budget')) {
+            const { data: jdata } = await db.from('journal').select('date,designation,montant,categorie,chantier').order('date', { ascending: false }).limit(500);
+            const all = jdata || [];
+            const filtered = (mois || annee) ? all.filter(r => {
+                if (!r.date) return false; const d = new Date(r.date);
+                if (annee && d.getFullYear() !== annee) return false;
+                if (mois && d.getMonth() + 1 !== mois) return false;
+                return true;
+            }) : all;
+            if (!filtered.length) { showNotification('Aucune écriture pour cette période', 'warning'); return; }
+            const catMap = {};
+            filtered.forEach(r => { const c = r.categorie || 'AUTRES'; catMap[c] = (catMap[c]||0) + (r.montant||0); });
+            rows = Object.entries(catMap).map(([c,m]) => ({ Catégorie: c, Montant: m.toLocaleString('fr-FR') + ' Ar', Pourcentage: (m/(filtered.reduce((s,r)=>s+Math.abs(r.montant||0),0)||1)*100).toFixed(1) + '%' }));
+            headers = ['Catégorie', 'Montant (Ar)', '%'];
+
         } else {
             showNotification(`Rapport « ${nom} » non reconnu`, 'error');
             return;
         }
 
-        if (!rows.length) {
-            showNotification('Aucune donnée disponible pour ce rapport — la table n\'existe pas encore ou est vide', 'warning');
-            return;
-        }
-
-        if (format === 'pdf') {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFontSize(16);
-            doc.text(nom, 14, 20);
-            doc.setFontSize(9);
-            let y = 30;
-            const pageW = doc.internal.pageSize.width;
-            doc.setFillColor(28, 43, 58);
-            doc.setTextColor(255, 255, 255);
-            doc.rect(14, y - 4, pageW - 28, 7, 'F');
-            let x = 14;
-            headers.forEach(h => {
-                doc.text(h, x + 1, y + 1);
-                x += pageW / headers.length;
-            });
-            doc.setTextColor(0);
-            y += 10;
-            rows.forEach((r, i) => {
-                if (y > 270) { doc.addPage(); y = 20; doc.setTextColor(28, 43, 58); doc.setFontSize(9); }
-                if (i % 2 === 0) { doc.setFillColor(245, 247, 250); doc.rect(14, y - 4, pageW - 28, 6, 'F'); }
-                let cx = 14;
-                const vals = typeof r === 'object' ? Object.values(r) : [r];
-                vals.forEach((v, vi) => {
-                    const txt = v ? (vi === 0 || typeof v === 'string' ? String(v).substring(0, 18) : String(v)) : '—';
-                    doc.text(txt, cx + 1, y);
-                    cx += pageW / Math.max(vals.length, headers.length);
-                });
-                y += 7;
-            });
-            doc.save(`${filename}.pdf`);
-        } else {
-            const wb = XLSX.utils.book_new();
-            const data2 = rows.map(r => {
-                const obj = {};
-                headers.forEach((h, i) => {
-                    const keys = Object.keys(r);
-                    obj[h] = keys[i] ? r[keys[i]] : '—';
-                });
-                return obj;
-            });
-            const ws = XLSX.utils.json_to_sheet(data2);
-            XLSX.utils.book_append_sheet(wb, ws, nom.substring(0, 31));
-            XLSX.writeFile(wb, `${filename}.xlsx`);
-        }
+        if (format === 'pdf') { const doc = exportToPDF(null, nom, headers, rows); doc.save(`${filename}.pdf`); }
+        else { exportToXLSX(nom, headers, rows); }
         showNotification(`${nom} téléchargé ✓`, 'success');
     } catch (e) {
         console.error('[Rapport]', e);
