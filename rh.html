@@ -859,14 +859,16 @@
             showNotification('Génération des fiches de paie en cours...', 'info');
             try {
                 const { data: personnel } = await db.from('personnel').select('*').eq('actif', true);
-                const { data: pointages } = await db.from('pointage_attendance').select('matricule, date, heures, statut');
+                const { data: pointages } = await db.from('pointage_attendance').select('nom_employe, date, statut');
                 if (!personnel || !personnel.length) { showNotification('Aucun employé actif trouvé', 'error'); return; }
                 const mois = new Date().getMonth() + 1;
                 const annee = new Date().getFullYear();
                 let count = 0;
                 for (const emp of personnel) {
-                    const empPointages = (pointages || []).filter(p => p.matricule === emp.matricule && new Date(p.date).getMonth() + 1 === mois && new Date(p.date).getFullYear() === annee);
-                    const nbJours = empPointages.length;
+                    const empJours = new Set((pointages || [])
+                        .filter(p => p.nom_employe === emp.nom && new Date(p.date).getMonth() + 1 === mois && new Date(p.date).getFullYear() === annee)
+                        .map(p => p.date));
+                    const nbJours = empJours.size;
                     const salaire = (emp.salaire_journalier || 0) * nbJours;
                     const { error } = await db.from('salaires').insert({
                         employe_nom: emp.nom, employe_id: emp.id,
