@@ -635,6 +635,21 @@
             return data ? JSON.parse(data) : [];
         }
 
+        // Sync attendance to Supabase (best-effort, table peut ne pas exister)
+        async function syncPointageToSupabase(p) {
+            try {
+                await db.from('pointage').insert({
+                    date: p.date,
+                    heure: p.heure,
+                    chantier: p.chantier,
+                    nom_employe: p.employe || p.matricule,
+                    type_pointage: p.type,
+                    statut: p.statut || 'Validé',
+                    created_at: new Date(p.timestamp || Date.now()).toISOString(),
+                });
+            } catch (_) { /* table non disponible — localStorage suffit */ }
+        }
+
         // Save data to localStorage
         function saveData(key, data) {
             localStorage.setItem(key, JSON.stringify(data));
@@ -733,6 +748,7 @@
             const pointages = loadData(STORAGE_KEYS.pointage);
             pointages.push(pointage);
             saveData(STORAGE_KEYS.pointage, pointages);
+            syncPointageToSupabase(pointage);
 
             document.getElementById('scan-result').style.display = 'none';
             document.getElementById('pointage-form').style.display = 'none';
@@ -1070,6 +1086,7 @@
             const pointages = loadData(STORAGE_KEYS.pointage);
             pointages.push(pointage);
             saveData(STORAGE_KEYS.pointage, pointages);
+            syncPointageToSupabase(pointage);
 
             document.getElementById('manuel-nom-p').value = '';
             document.getElementById('manuel-date-p').value = '';
