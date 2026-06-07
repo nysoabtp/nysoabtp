@@ -724,6 +724,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const { error } = await db.from('chantiers').insert({
             nom:         fd.get('nom'),
             client:      fd.get('client'),
+            description: fd.get('description') || null,
             budget:      parseFloat(fd.get('budget')) || 0,
             debut:       fd.get('debut') || null,
             fin:         fd.get('fin') || null,
@@ -788,10 +789,17 @@ document.addEventListener('DOMContentLoaded', () => {
         showNotification('Employé ajouté ✓', 'success');
     });
 
-    // Devis (local, pas de table Supabase)
+    // Devis (local)
     const formDevis = document.getElementById('form-devis');
     if (formDevis) formDevis.addEventListener('submit', function(e) {
         e.preventDefault();
+        const fd = new FormData(this);
+        const devis = Object.fromEntries(fd.entries());
+        devis.id = 'DEV-' + Date.now();
+        devis.date = new Date().toISOString();
+        const liste = JSON.parse(localStorage.getItem('nysoa_devis') || '[]');
+        liste.push(devis);
+        localStorage.setItem('nysoa_devis', JSON.stringify(liste));
         closeModal('modal-devis');
         this.reset();
         showNotification('Devis créé ✓', 'success');
@@ -801,6 +809,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const formProformat = document.getElementById('form-proformat');
     if (formProformat) formProformat.addEventListener('submit', function(e) {
         e.preventDefault();
+        const fd = new FormData(this);
+        const pf = Object.fromEntries(fd.entries());
+        pf.id = 'PF-' + Date.now();
+        pf.date = new Date().toISOString();
+        const liste = JSON.parse(localStorage.getItem('nysoa_proformats') || '[]');
+        liste.push(pf);
+        localStorage.setItem('nysoa_proformats', JSON.stringify(liste));
         closeModal('modal-proformat');
         this.reset();
         showNotification('Proformat créé ✓', 'success');

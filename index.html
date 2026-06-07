@@ -2100,17 +2100,6 @@
         }
     </script>
 
-    <script>
-    async function goToAdmin() {
-        const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
-        if (!currentUser || currentUser.role !== 'admin') {
-            showNotification('Accès réservé aux administrateurs', 'error');
-            return;
-        }
-        window.location.href = 'admin.html';
-    }
-    </script>
-
     <!-- ═══════════════════════════════════════════════════════
          ÉDITEUR DE DEVIS — overlay plein écran
     ═══════════════════════════════════════════════════════════ -->

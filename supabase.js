@@ -118,6 +118,7 @@ async function addPersonnel(emp) {
         chantier:          emp.chantier    || null,
         salaire_journalier: parseFloat(emp.salaire) || 0,
         metier:            emp.metier      || null,
+        date_embauche:     emp.date_embauche || null,
         type_salaire:      parseFloat(emp.salaire) >= 100000 ? 'MENSUEL' : 'JOURNALIER',
         actif:             true,
     });
@@ -148,34 +149,6 @@ async function deleteAchat(id) {
     if (error) return handleError(error, 'deleteAchat');
     showNotification('Achat supprimé', 'success');
     if (typeof loadAchatsTable === 'function') loadAchatsTable();
-}
-
-// ── QR Code ───────────────────────────────────────────────────
-async function generateAllQRCodes() {
-    const { data, error } = await db.from('personnel').select('*').eq('actif', true).order('nom');
-    if (error) return handleError(error, 'generateAllQRCodes');
-
-    const container = document.getElementById('qr-codes-container');
-    if (!container) return;
-    container.innerHTML = '';
-
-    data.forEach(emp => {
-        const div = document.createElement('div');
-        div.style.cssText = 'text-align:center;padding:10px;border:1px solid #ddd;border-radius:5px;';
-        const canvas = document.createElement('canvas');
-        canvas.id = `qr-${emp.id}`;
-        div.appendChild(canvas);
-        div.innerHTML += `<p style="font-size:12px;font-weight:bold;margin-top:5px">${emp.nom}</p>
-                          <p style="font-size:10px;color:#666">${emp.metier || ''}</p>`;
-        container.appendChild(div);
-        if (typeof QRCode !== 'undefined') {
-            QRCode.toCanvas(canvas, JSON.stringify({
-                id: emp.id, nom: emp.nom, metier: emp.metier,
-                chantier: emp.chantier, salaire_journalier: emp.salaire_journalier
-            }), { width: 120, margin: 2, color: { dark: '#1C2B3A', light: '#ffffff' } });
-        }
-    });
-    showNotification(`${data.length} QR Codes générés ✓`, 'success');
 }
 
 // ── Export Excel depuis Supabase ──────────────────────────────
