@@ -2087,6 +2087,10 @@
     <script src="devis.js"></script>
     <script src="import-excel.js"></script>
     <script>
+        // Auth guard
+        const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
+        if (!currentUser) window.location.href = 'login.html';
+
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
