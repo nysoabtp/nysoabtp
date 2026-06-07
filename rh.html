@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <meta name="description" content="Gestion RH NYSOA BTP — Employés, paie, recrutement, congés">
     <title>NySoa Construct - RH</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -280,7 +282,7 @@
             <section id="recrutement" class="section">
                 <div class="section-header">
                     <h2>Recrutement</h2>
-                    <button class="btn btn-primary" onclick="showNotification('Fonctionnalité à venir — Recrutement', 'info')">
+                    <button class="btn btn-primary" onclick="openModal('modal-recrutement')">
                         <i class="fas fa-plus"></i> Nouvelle offre
                     </button>
                 </div>
@@ -367,7 +369,7 @@
             <section id="conges" class="section">
                 <div class="section-header">
                     <h2>Gestion des Congés</h2>
-                    <button class="btn btn-primary" onclick="showNotification('Fonctionnalité à venir — Congés', 'info')">
+                    <button class="btn btn-primary" onclick="openModal('modal-conge')">
                         <i class="fas fa-plus"></i> Nouvelle demande
                     </button>
                 </div>
@@ -398,7 +400,7 @@
                                 </tr>
                             </thead>
                             <tbody id="conges-table-body">
-                                <tr>
+                                <tr data-employe="Rakoto Jean" data-debut="2026-05-15" data-fin="2026-05-19">
                                     <td>Rakoto Jean</td>
                                     <td>Congé annuel</td>
                                     <td>15/05/2026</td>
@@ -432,7 +434,7 @@
             <section id="formations" class="section">
                 <div class="section-header">
                     <h2>Formations</h2>
-                    <button class="btn btn-primary" onclick="showNotification('Fonctionnalité à venir — Formations', 'info')">
+                    <button class="btn btn-primary" onclick="openModal('modal-formation')">
                         <i class="fas fa-plus"></i> Nouvelle formation
                     </button>
                 </div>
@@ -486,7 +488,7 @@
             <section id="paie" class="section">
                 <div class="section-header">
                     <h2>Gestion de la Paie</h2>
-                    <button class="btn btn-primary" onclick="showNotification('Génération des fiches de paie à venir', 'info')">
+                    <button class="btn btn-primary" onclick="genererFichesPaie()">
                         <i class="fas fa-calculator"></i> Générer fiches
                     </button>
                 </div>
@@ -782,21 +784,156 @@
             });
         }
 
-        function approveLeave(button) {
+        async function approveLeave(button) {
             const row = button.closest('tr');
             const statusCell = row.querySelector('.status');
             statusCell.className = 'status success';
             statusCell.textContent = 'Approuvé';
+            const employe = row.dataset.employe;
+            const debut = row.dataset.debut;
+            const fin = row.dataset.fin;
+            if (employe && debut) {
+                const { data: conges } = await db.from('conges').select('id').eq('employe_nom', employe).eq('date_debut', debut).limit(1);
+                if (conges && conges.length) {
+                    await db.from('conges').update({ statut: 'approuve' }).eq('id', conges[0].id);
+                }
+            }
             showNotification('Congé approuvé!', 'success');
         }
 
-        function rejectLeave(button) {
+        async function rejectLeave(button) {
             const row = button.closest('tr');
             const statusCell = row.querySelector('.status');
             statusCell.className = 'status error';
             statusCell.textContent = 'Refusé';
+            const employe = row.dataset.employe;
+            const debut = row.dataset.debut;
+            const fin = row.dataset.fin;
+            if (employe && debut) {
+                const { data: conges } = await db.from('conges').select('id').eq('employe_nom', employe).eq('date_debut', debut).limit(1);
+                if (conges && conges.length) {
+                    await db.from('conges').update({ statut: 'rejete' }).eq('id', conges[0].id);
+                }
+            }
             showNotification('Congé refusé', 'info');
         }
+
+        async function submitRecrutement(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const offres = JSON.parse(localStorage.getItem('nysoa_offres_emploi') || '[]');
+            offres.unshift({ poste: fd.get('poste'), departement: fd.get('departement'), type: fd.get('type'), lieu: fd.get('lieu'), date: fd.get('date'), statut: 'Publiée' });
+            localStorage.setItem('nysoa_offres_emploi', JSON.stringify(offres));
+            closeModal('modal-recrutement');
+            e.target.reset();
+            showNotification('Offre publiée ✓', 'success');
+        }
+
+        async function submitConge(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const debut = fd.get('date_debut'), fin = fd.get('date_fin');
+            const duree = Math.ceil((new Date(fin) - new Date(debut)) / 864e5) + 1;
+            const { error } = await db.from('conges').insert({
+                employe_nom: fd.get('employe_nom'), date_debut: debut, date_fin: fin,
+                duree, motif: fd.get('motif'), statut: 'en_attente'
+            });
+            if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+            closeModal('modal-conge');
+            e.target.reset();
+            showNotification('Demande de congé enregistrée ✓', 'success');
+        }
+
+        async function submitFormation(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const formations = JSON.parse(localStorage.getItem('nysoa_formations') || '[]');
+            formations.unshift({ formation: fd.get('formation'), participants: fd.get('participants'), date: fd.get('date'), duree: fd.get('duree'), formateur: fd.get('formateur'), statut: 'Planifiée' });
+            localStorage.setItem('nysoa_formations', JSON.stringify(formations));
+            closeModal('modal-formation');
+            e.target.reset();
+            showNotification('Formation planifiée ✓', 'success');
+        }
+
+        async function genererFichesPaie() {
+            showNotification('Génération des fiches de paie en cours...', 'info');
+            try {
+                const { data: personnel } = await db.from('personnel').select('*').eq('actif', true);
+                const { data: pointages } = await db.from('pointage_attendance').select('matricule, date, heures, statut');
+                if (!personnel || !personnel.length) { showNotification('Aucun employé actif trouvé', 'error'); return; }
+                const mois = new Date().getMonth() + 1;
+                const annee = new Date().getFullYear();
+                let count = 0;
+                for (const emp of personnel) {
+                    const empPointages = (pointages || []).filter(p => p.matricule === emp.matricule && new Date(p.date).getMonth() + 1 === mois && new Date(p.date).getFullYear() === annee);
+                    const nbJours = empPointages.length;
+                    const salaire = (emp.salaire_journalier || 0) * nbJours;
+                    const { error } = await db.from('salaires').insert({
+                        employe_nom: emp.nom, employe_id: emp.id,
+                        mois, annee, nb_jours: nbJours, salaire_base: emp.salaire_journalier || 0,
+                        salaire_mensuel: salaire, net_a_payer: salaire, statut: 'calcule'
+                    });
+                    if (!error) count++;
+                }
+                showNotification(`${count} fiches de paie générées ✓`, 'success');
+            } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
+        }
     </script>
+
+    <!-- Modal Recrutement -->
+    <div id="modal-recrutement" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Nouvelle offre d'emploi</h3><button class="close-modal" onclick="closeModal('modal-recrutement')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitRecrutement(event)">
+                    <div class="form-group"><label>Poste *</label><input name="poste" type="text" class="form-input" required></div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1"><label>Département</label><select name="departement" class="form-input"><option>Maçonnerie</option><option>Électricité</option><option>Plomberie</option><option>Administration</option><option>Finances</option></select></div>
+                        <div class="form-group" style="flex:1"><label>Type</label><select name="type" class="form-input"><option>CDI</option><option>CDD</option><option>Stage</option><option>Freelance</option></select></div>
+                    </div>
+                    <div class="form-group"><label>Lieu</label><input name="lieu" type="text" class="form-input"></div>
+                    <div class="form-group"><label>Date de publication</label><input name="date" type="date" class="form-input"></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Publier</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Congé -->
+    <div id="modal-conge" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Nouvelle demande de congé</h3><button class="close-modal" onclick="closeModal('modal-conge')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitConge(event)">
+                    <div class="form-group"><label>Employé *</label><input name="employe_nom" type="text" class="form-input" required></div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1"><label>Date début</label><input name="date_debut" type="date" class="form-input" required></div>
+                        <div class="form-group" style="flex:1"><label>Date fin</label><input name="date_fin" type="date" class="form-input" required></div>
+                    </div>
+                    <div class="form-group"><label>Motif</label><textarea name="motif" class="form-input" rows="3"></textarea></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Enregistrer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Formation -->
+    <div id="modal-formation" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Nouvelle formation</h3><button class="close-modal" onclick="closeModal('modal-formation')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitFormation(event)">
+                    <div class="form-group"><label>Formation *</label><input name="formation" type="text" class="form-input" required></div>
+                    <div class="form-group"><label>Participants</label><input name="participants" type="text" class="form-input" placeholder="ex: 10 personnes"></div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1"><label>Date</label><input name="date" type="date" class="form-input"></div>
+                        <div class="form-group" style="flex:1"><label>Durée</label><input name="duree" type="text" class="form-input" placeholder="ex: 2 jours"></div>
+                    </div>
+                    <div class="form-group"><label>Formateur</label><input name="formateur" type="text" class="form-input"></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Planifier</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

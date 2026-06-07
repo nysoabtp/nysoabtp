@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <meta name="description" content="Espace technicien NYSOA BTP — Projets, tâches, interventions">
     <title>NySoa Construct - Technicien</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -90,7 +92,7 @@
                             <i class="fas fa-project-diagram"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>5</h3>
+                            <h3 id="stat-projets">5</h3>
                             <p>Projets actifs</p>
                         </div>
                     </div>
@@ -99,7 +101,7 @@
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>12</h3>
+                            <h3 id="stat-taches-terminees">12</h3>
                             <p>Tâches terminées</p>
                         </div>
                     </div>
@@ -108,7 +110,7 @@
                             <i class="fas fa-clock"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>8</h3>
+                            <h3 id="stat-taches-cours">8</h3>
                             <p>Tâches en cours</p>
                         </div>
                     </div>
@@ -117,7 +119,7 @@
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>2</h3>
+                            <h3 id="stat-interventions-urgentes">2</h3>
                             <p>Interventions urgentes</p>
                         </div>
                     </div>
@@ -258,7 +260,7 @@
             <section id="taches" class="section">
                 <div class="section-header">
                     <h2>Mes Tâches</h2>
-                    <button class="btn btn-primary" onclick="showNotification('Fonctionnalité de gestion des tâches à venir', 'info')">
+                    <button class="btn btn-primary" onclick="openModal('modal-nouvelle-tache')">
                         <i class="fas fa-plus"></i> Nouvelle tâche
                     </button>
                 </div>
@@ -288,7 +290,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
+                                <tr data-task="Inspection électrique" data-chantier="Résidence Les Palmiers">
                                     <td>Inspection électrique</td>
                                     <td>Résidence Les Palmiers</td>
                                     <td>15/05/2026</td>
@@ -299,7 +301,7 @@
                                         <button class="btn-icon" onclick="completeTask(this)"><i class="fas fa-check"></i></button>
                                     </td>
                                 </tr>
-                                <tr>
+                                <tr data-task="Révision plomberie" data-chantier="Centre Commercial">
                                     <td>Révision plomberie</td>
                                     <td>Centre Commercial</td>
                                     <td>20/05/2026</td>
@@ -320,7 +322,7 @@
             <section id="interventions" class="section">
                 <div class="section-header">
                     <h2>Interventions</h2>
-                    <button class="btn btn-primary" onclick="showNotification('Fonctionnalité d\'intervention à venir', 'info')">
+                    <button class="btn btn-primary" onclick="openModal('modal-nouvelle-intervention')">
                         <i class="fas fa-plus"></i> Nouvelle intervention
                     </button>
                 </div>
@@ -429,9 +431,39 @@
             if (!currentUser || currentUser.role !== 'technicien') {
                 window.location.href = 'login.html';
             }
-            initializeTechnicienCharts();
+            loadTechnicienData();
+            loadInterventions();
             updateDate();
         });
+
+        function loadInterventions() {
+            const stored = JSON.parse(localStorage.getItem('nysoa_interventions') || '[]');
+            if (!stored.length) return;
+            const tbody = document.querySelector('#interventions .table tbody');
+            if (!tbody) return;
+            stored.forEach(iv => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${iv.date}</td><td>${iv.type}</td><td>${iv.lieu}</td><td>${iv.description}</td><td>${iv.duree}</td><td><span class="status ${iv.statut === 'Terminé' ? 'success' : 'warning'}">${iv.statut}</span></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function loadTechnicienData() {
+            try {
+                const { data: chantiers } = await db.from('chantiers').select('*').eq('actif', true);
+                const { data: tachesAll } = await db.from('chantiers').select('taches').limit(100);
+                if (chantiers) {
+                    document.getElementById('stat-projets').textContent = chantiers.length;
+                }
+                if (tachesAll) {
+                    let total = 0, done = 0;
+                    tachesAll.forEach(c => { if (c.taches) { const t = typeof c.taches === 'string' ? JSON.parse(c.taches) : c.taches; if (Array.isArray(t)) { t.forEach(task => { total++; if (task.termine || task.statut === 'Terminé') done++; }); } } });
+                    document.getElementById('stat-taches-terminees').textContent = done;
+                    document.getElementById('stat-taches-cours').textContent = total - done;
+                }
+                initializeTechnicienCharts(chantiers);
+            } catch(_) { initializeTechnicienCharts(); }
+        }
 
         // Update section titles
         Object.assign(sectionTitles, {
@@ -443,7 +475,11 @@
         });
 
         // Initialize Technicien Charts
-        function initializeTechnicienCharts() {
+        function initializeTechnicienCharts(chantiers) {
+            const projLabels = chantiers ? chantiers.map(c => c.nom || c.code) : ['Électrique', 'Plomberie', 'Climatisation', 'Structure'];
+            const chantierCounts = chantiers ? chantiers.map(c => c.progression || 50) : [8, 6, 4, 5];
+            const colors = ['#0066cc', '#ef4444', '#ff6b35', '#10b981', '#e84393'];
+
             // Task Chart
             const taskCtx = document.getElementById('taskChart');
             if (taskCtx) {
@@ -451,60 +487,116 @@
                     type: 'doughnut',
                     data: {
                         labels: ['Haute', 'Moyenne', 'Basse'],
-                        datasets: [{
-                            data: [3, 5, 4],
-                            backgroundColor: ['#ef4444', '#ff6b35', '#10b981']
-                        }]
+                        datasets: [{ data: [3, 5, 4], backgroundColor: ['#ef4444', '#ff6b35', '#10b981'] }]
                     },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'right'
-                            }
-                        }
-                    }
+                    options: { responsive: true, plugins: { legend: { display: true, position: 'right' } } }
                 });
             }
 
-            // Intervention Chart
+            // Intervention Chart — use progression data from chantiers
             const interventionCtx = document.getElementById('interventionChart');
             if (interventionCtx) {
                 new Chart(interventionCtx, {
                     type: 'bar',
                     data: {
-                        labels: ['Électrique', 'Plomberie', 'Climatisation', 'Structure'],
-                        datasets: [{
-                            label: 'Interventions',
-                            data: [8, 6, 4, 5],
-                            backgroundColor: '#0066cc'
-                        }]
+                        labels: projLabels,
+                        datasets: [{ label: 'Progression', data: chantierCounts, backgroundColor: colors.slice(0, projLabels.length) }]
                     },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
+                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } }
                 });
             }
         }
 
-        function completeTask(button) {
+        async function submitNouvelleTache(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const tache = { nom: fd.get('tache'), chantier: fd.get('chantier'), deadline: fd.get('deadline'), priorite: fd.get('priorite') || 'Moyenne', statut: 'En cours', termine: false };
+            const chantier = fd.get('chantier');
+            if (chantier) {
+                const { data: chantiers } = await db.from('chantiers').select('id, taches').eq('nom', chantier).limit(1);
+                if (chantiers && chantiers.length) {
+                    const c = chantiers[0];
+                    let taches = typeof c.taches === 'string' ? JSON.parse(c.taches || '[]') : (c.taches || []);
+                    if (!Array.isArray(taches)) taches = [];
+                    taches.push(tache);
+                    await db.from('chantiers').update({ taches: JSON.stringify(taches) }).eq('id', c.id);
+                }
+            }
+            localStorage.setItem('nysoa_nouvelle_tache_' + Date.now(), JSON.stringify(tache));
+            closeModal('modal-nouvelle-tache');
+            e.target.reset();
+            showNotification('Tâche créée ✓', 'success');
+            setTimeout(() => location.reload(), 800);
+        }
+
+        async function submitNouvelleIntervention(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const iv = { date: fd.get('date'), type: fd.get('type'), lieu: fd.get('lieu'), description: fd.get('description'), duree: fd.get('duree'), statut: 'En cours' };
+            const stored = JSON.parse(localStorage.getItem('nysoa_interventions') || '[]');
+            stored.unshift(iv);
+            localStorage.setItem('nysoa_interventions', JSON.stringify(stored));
+            closeModal('modal-nouvelle-intervention');
+            e.target.reset();
+            showNotification('Intervention enregistrée ✓', 'success');
+            setTimeout(() => location.reload(), 800);
+        }
+
+        async function completeTask(button) {
             const row = button.closest('tr');
             const statusCell = row.querySelector('.status');
             statusCell.className = 'status success';
             statusCell.textContent = 'Terminé';
+            const task = row.dataset.task;
+            const chantier = row.dataset.chantier;
+            if (task && chantier) {
+                const { data: chantiers } = await db.from('chantiers').select('id, taches').eq('nom', chantier).limit(1);
+                if (chantiers && chantiers.length) {
+                    const c = chantiers[0];
+                    let taches = typeof c.taches === 'string' ? JSON.parse(c.taches || '[]') : (c.taches || []);
+                    if (Array.isArray(taches)) {
+                        taches = taches.map(t => (typeof t === 'string' ? t : t.nom || t.tache || '') === task ? (typeof t === 'string' ? t + ' (Terminé)' : { ...t, termine: true, statut: 'Terminé' }) : t);
+                        await db.from('chantiers').update({ taches: JSON.stringify(taches) }).eq('id', c.id).then(({ error }) => {
+                            if (error) console.error('Erreur persistence tâche:', error);
+                        });
+                    }
+                }
+            }
             showNotification('Tâche terminée!', 'success');
         }
     </script>
+
+    <!-- Modal Nouvelle tâche -->
+    <div id="modal-nouvelle-tache" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Nouvelle tâche</h3><button class="close-modal" onclick="closeModal('modal-nouvelle-tache')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitNouvelleTache(event)">
+                    <div class="form-group"><label>Tâche</label><input name="tache" type="text" class="form-input" required></div>
+                    <div class="form-group"><label>Chantier</label><select name="chantier" class="form-input" required></select></div>
+                    <div class="form-group"><label>Date limite</label><input name="deadline" type="date" class="form-input"></div>
+                    <div class="form-group"><label>Priorité</label><select name="priorite" class="form-input"><option>Haute</option><option selected>Moyenne</option><option>Basse</option></select></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Créer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nouvelle intervention -->
+    <div id="modal-nouvelle-intervention" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Nouvelle intervention</h3><button class="close-modal" onclick="closeModal('modal-nouvelle-intervention')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitNouvelleIntervention(event)">
+                    <div class="form-group"><label>Date</label><input name="date" type="date" class="form-input" required></div>
+                    <div class="form-group"><label>Type</label><select name="type" class="form-input"><option>Réparation</option><option>Maintenance</option><option>Installation</option><option>Inspection</option></select></div>
+                    <div class="form-group"><label>Lieu</label><input name="lieu" type="text" class="form-input" required></div>
+                    <div class="form-group"><label>Description</label><textarea name="description" class="form-input" rows="3" required></textarea></div>
+                    <div class="form-group"><label>Durée estimée</label><input name="duree" type="text" class="form-input" placeholder="ex: 2h"></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Enregistrer</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -724,10 +724,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const { error } = await db.from('chantiers').insert({
             nom:         fd.get('nom'),
             client:      fd.get('client'),
-            description: fd.get('description') || null,
             budget:      parseFloat(fd.get('budget')) || 0,
             debut:       fd.get('debut') || null,
             fin:         fd.get('fin') || null,
+            code:        'PRJ-' + Date.now().toString(36).toUpperCase(),
             progression: 0,
             statut:      'EN COURS',
             actif:       true,
@@ -789,9 +789,9 @@ document.addEventListener('DOMContentLoaded', () => {
         showNotification('Employé ajouté ✓', 'success');
     });
 
-    // Devis (local)
+    // Devis (local + Supabase)
     const formDevis = document.getElementById('form-devis');
-    if (formDevis) formDevis.addEventListener('submit', function(e) {
+    if (formDevis) formDevis.addEventListener('submit', async function(e) {
         e.preventDefault();
         const fd = new FormData(this);
         const devis = Object.fromEntries(fd.entries());
@@ -800,14 +800,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const liste = JSON.parse(localStorage.getItem('nysoa_devis') || '[]');
         liste.push(devis);
         localStorage.setItem('nysoa_devis', JSON.stringify(liste));
+        // Sync Supabase
+        try {
+            await db.from('devis').insert({
+                numero: devis.id,
+                date: new Date().toISOString().split('T')[0],
+                client: devis.client,
+                objet: devis.projet + ' — ' + (devis.description || ''),
+                total: parseFloat(devis.montant) || 0,
+                statut: 'BROUILLON',
+            });
+        } catch (_) { /* offline — données sauvegardées en local */ }
         closeModal('modal-devis');
         this.reset();
         showNotification('Devis créé ✓', 'success');
     });
 
-    // Proformat (local)
+    // Proformat (local + Supabase)
     const formProformat = document.getElementById('form-proformat');
-    if (formProformat) formProformat.addEventListener('submit', function(e) {
+    if (formProformat) formProformat.addEventListener('submit', async function(e) {
         e.preventDefault();
         const fd = new FormData(this);
         const pf = Object.fromEntries(fd.entries());
@@ -816,6 +827,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const liste = JSON.parse(localStorage.getItem('nysoa_proformats') || '[]');
         liste.push(pf);
         localStorage.setItem('nysoa_proformats', JSON.stringify(liste));
+        try {
+            await db.from('devis').insert({
+                numero: pf.id,
+                date: fd.get('date') || new Date().toISOString().split('T')[0],
+                client: pf.client,
+                objet: pf.projet + ' — ' + (pf.description || ''),
+                total: parseFloat(pf.montant) || 0,
+                statut: 'PROFORMAT',
+            });
+        } catch (_) { /* offline */ }
         closeModal('modal-proformat');
         this.reset();
         showNotification('Proformat créé ✓', 'success');
@@ -967,18 +988,44 @@ document.querySelectorAll('.filter-select').forEach(select => {
 // Fonctions utilitaires UI
 function viewRow(button) {
     const cells = button.closest('tr').querySelectorAll('td');
-    let info = '';
-    cells.forEach((c, i) => { if (i < cells.length - 1) info += c.textContent.trim() + '\n'; });
-    alert('Détails:\n\n' + info);
+    const headers = button.closest('table').querySelectorAll('th');
+    let html = '<table style="width:100%;border-collapse:collapse">';
+    cells.forEach((c, i) => {
+        if (i < cells.length - 1) {
+            const label = headers[i] ? headers[i].textContent.trim() : `Colonne ${i + 1}`;
+            html += `<tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold;width:40%">${label}</td><td style="padding:8px;border-bottom:1px solid #ddd">${c.textContent.trim()}</td></tr>`;
+        }
+    });
+    html += '</table>';
+    const modal = document.getElementById('modal-view') || (() => {
+        const m = document.createElement('div');
+        m.id = 'modal-view';
+        m.className = 'modal';
+        m.style.cssText = 'display:flex;position:fixed;z-index:9999;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);align-items:center;justify-content:center';
+        m.innerHTML = '<div class="modal-content" style="background:white;border-radius:12px;padding:25px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto"><span class="close" style="float:right;font-size:24px;cursor:pointer">&times;</span><h2 style="margin-bottom:20px">Détails</h2><div id="view-details"></div></div>';
+        document.body.appendChild(m);
+        m.querySelector('.close').onclick = () => { m.style.display = 'none'; };
+        m.onclick = (e) => { if (e.target === m) m.style.display = 'none'; };
+        return m;
+    })();
+    modal.querySelector('#view-details').innerHTML = html;
+    modal.style.display = 'flex';
 }
 
 function printRow(button) {
-    const cells = button.closest('tr').querySelectorAll('td');
-    let content = '<table border="1" style="border-collapse:collapse;width:100%">';
-    cells.forEach((c, i) => { if (i < cells.length - 1) content += `<tr><td style="padding:10px">${c.textContent}</td></tr>`; });
-    content += '</table>';
+    const row = button.closest('tr');
+    const headers = button.closest('table').querySelectorAll('th');
+    const cells = row.querySelectorAll('td');
+    let content = '<table border="1" style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif">';
+    content += '<thead><tr>';
+    headers.forEach(h => { if (h.textContent.trim() !== 'Actions') content += `<th style="padding:10px;background:#1C2B3A;color:white;text-align:left">${h.textContent.trim()}</th>`; });
+    content += '</tr></thead><tbody><tr>';
+    cells.forEach((c, i) => {
+        if (i < cells.length - 1) content += `<td style="padding:10px;border:1px solid #ddd">${c.textContent.trim()}</td>`;
+    });
+    content += '</tr></tbody></table>';
     const w = window.open('', '_blank');
-    w.document.write(`<html><head><title>Impression</title></head><body><h2>Détail</h2>${content}<script>window.print();<\/script></body></html>`);
+    w.document.write(`<html><head><title>Impression</title><style>body{font-family:Arial,sans-serif;padding:40px}h2{color:#1C2B3A;margin-bottom:20px}@media print{body{padding:20px}}</style></head><body><h2>NySoa BTP — Détail</h2>${content}<script>setTimeout(function(){window.print();window.close();},500);<\/script></body></html>`);
     w.document.close();
 }
 
@@ -990,6 +1037,16 @@ function exportChart(canvasId, format) {
         const doc = new jsPDF();
         doc.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, 190, 100);
         doc.save(`${canvasId}.pdf`);
+    } else if (format === 'excel') {
+        const chart = Chart.getChart(canvas);
+        if (!chart) { showNotification('Chart introuvable', 'error'); return; }
+        const data = chart.data;
+        const headers = ['Libellé', ...data.datasets.map(d => d.label)];
+        const rows = data.labels.map((label, i) => [label, ...data.datasets.map(d => d.data[i])]);
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Données');
+        XLSX.writeFile(wb, `${canvasId}.xlsx`);
     }
     showNotification('Graphique exporté ✓', 'success');
 }
@@ -1098,15 +1155,13 @@ function deleteRow(btn) {
 function editRow(btn) {
     const row = btn.closest('tr');
     if (!row) return;
-    // Rendre les cellules éditables
     const cells = row.querySelectorAll('td:not(:last-child)');
     cells.forEach(cell => {
         if (!cell.querySelector('input')) {
             const val = cell.textContent.trim();
-            cell.innerHTML = `<input class="inline-edit" value="${val}" style="width:100%;border:1px solid #0066cc;border-radius:3px;padding:2px 4px;">`;
+            cell.innerHTML = `<input class="inline-edit" value="${val.replace(/"/g, '&quot;')}" style="width:100%;border:1px solid #0066cc;border-radius:3px;padding:2px 4px;">`;
         }
     });
-    // Changer le bouton edit en bouton save
     btn.innerHTML = '<i class="fas fa-save"></i>';
     btn.onclick = function() { saveRow(this); };
 }
@@ -1114,31 +1169,61 @@ function editRow(btn) {
 function saveRow(btn) {
     const row = btn.closest('tr');
     if (!row) return;
-    row.querySelectorAll('.inline-edit').forEach(input => {
-        input.parentElement.textContent = input.value;
+    const id = row.dataset.id;
+    const table = row.dataset.table;
+    const updates = {};
+    row.querySelectorAll('.inline-edit').forEach((input, idx) => {
+        const val = input.value;
+        input.parentElement.textContent = val;
+        const key = `col_${idx}`;
+        updates[key] = val;
     });
     btn.innerHTML = '<i class="fas fa-edit"></i>';
     btn.onclick = function() { editRow(this); };
-    showNotification('Ligne mise à jour', 'success');
+    if (id && table) {
+        const headers = row.closest('table').querySelectorAll('th');
+        const payload = {};
+        let colIdx = 0;
+        row.querySelectorAll('td:not(:last-child)').forEach((td, i) => {
+            const label = headers[i]?.textContent.trim().toLowerCase().replace(/[^a-z_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || `col_${i}`;
+            payload[label] = td.textContent.trim();
+        });
+        db.from(table).update(payload).eq('id', id).then(({ error }) => {
+            if (error) showNotification('Erreur: ' + error.message, 'error');
+            else showNotification('Ligne mise à jour ✓', 'success');
+        });
+    } else {
+        showNotification('Ligne mise à jour (local)', 'success');
+    }
 }
 
 // ── Devis / Proformat ─────────────────────────────────────────
-function convertToProformat(btn) {
+async function convertToProformat(btn) {
     const row = btn.closest('tr');
     if (!row) return;
     const cells = row.querySelectorAll('td');
     const client  = cells[1]?.textContent || '';
     const projet  = cells[2]?.textContent || '';
     const montant = cells[3]?.textContent || '';
+    const id = row.dataset.id;
+    if (id) {
+        const { error } = await db.from('devis').update({ statut: 'ENVOYE' }).eq('id', id);
+        if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+    }
     showNotification(`Proformat créé pour ${client} — ${projet} (${montant})`, 'success');
 }
 
-function convertToFacture(btn) {
+async function convertToFacture(btn) {
     const row = btn.closest('tr');
     if (!row) return;
     const cells = row.querySelectorAll('td');
     const client  = cells[1]?.textContent || '';
     const montant = cells[3]?.textContent || '';
+    const id = row.dataset.id;
+    if (id) {
+        const { error } = await db.from('devis').update({ statut: 'FACTURE' }).eq('id', id);
+        if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+    }
     showNotification(`Facture créée pour ${client} (${montant})`, 'success');
 }
 

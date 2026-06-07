@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <meta name="description" content="Suivi de chantier NYSOA BTP — Rapports journaliers, Gantt, contrôles">
     <title>NySoa Construct — Suivi Chantier</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -1028,8 +1030,40 @@ function renderRapportList(rapports) {
     }).join('');
 }
 
-function exportRapportsPDF() { showNotif('Export PDF en cours...','info'); }
-function exportRapportsExcel() { showNotif('Export Excel en cours...','info'); }
+function exportRapportsPDF() {
+    if (!rapports.length) { showNotif('Aucun rapport à exporter', 'error'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16); doc.text('Rapports Chantier — NySoa BTP', 14, 20);
+    doc.setFontSize(10);
+    let y = 30;
+    rapports.slice(0, 20).forEach(r => {
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.setFontSize(12); doc.setFont(undefined, 'bold');
+        doc.text(`${r.chantier || 'Chantier'} — ${r.date || ''}`, 14, y); y += 6;
+        doc.setFont(undefined, 'normal'); doc.setFontSize(9);
+        doc.text(`Ouvriers: ${r.ouvriers || 0} | Météo: ${r.meteo || 'N/C'}`, 14, y); y += 5;
+        const lignes = doc.splitTextToSize(r.travaux || '', 180);
+        lignes.forEach(l => { if (y > 275) { doc.addPage(); y = 20; } doc.text(l, 14, y); y += 4.5; });
+        if (r.problemes) {
+            doc.setTextColor(192, 57, 43); const pl = doc.splitTextToSize('[Probleme] ' + r.problemes, 180);
+            pl.forEach(l => { if (y > 275) { doc.addPage(); y = 20; } doc.text(l, 14, y); y += 4.5; });
+            doc.setTextColor(0, 0, 0);
+        }
+        y += 4;
+    });
+    doc.save(`RAPPORTS_NYSOA_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotif('Export PDF Rapports ✓', 'success');
+}
+function exportRapportsExcel() {
+    if (!rapports.length) { showNotif('Aucun rapport à exporter', 'error'); return; }
+    const rows = rapports.map(r => ({ 'Chantier': r.chantier, 'Date': r.date, 'Météo': r.meteo || '', 'Ouvriers': r.ouvriers || 0, 'Travaux': r.travaux || '', 'Problèmes': r.problemes || '', 'Observations': r.observations || '' }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Rapports');
+    XLSX.writeFile(wb, `RAPPORTS_NYSOA_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showNotif('Export Excel Rapports ✓', 'success');
+}
 
 // ═══════════════════════════════════════════════════════════════
 // CHECKLISTS
@@ -1392,7 +1426,28 @@ function exportGanttExcel() {
     XLSX.writeFile(wb, `GANTT_NYSOA_${new Date().toISOString().split('T')[0]}.xlsx`);
     showNotif('Export Excel Gantt ✓', 'success');
 }
-function exportGanttPDF() { showNotif('Export PDF Gantt en cours...', 'info'); }
+function exportGanttPDF() {
+    if (!ganttTasks || !ganttTasks.length) { showNotif('Aucune tâche Gantt à exporter', 'error'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.setFontSize(16); doc.text('Diagramme Gantt — NySoa BTP', 14, 15);
+    doc.setFontSize(8);
+    const headers = ['Tâche', 'Chantier', 'Début', 'Fin', 'Avancement'];
+    const colW = [60, 50, 35, 35, 25];
+    let x = 14, y = 25;
+    doc.setFont(undefined, 'bold');
+    headers.forEach((h, i) => { doc.text(h, x, y); x += colW[i]; });
+    y += 5; doc.setFont(undefined, 'normal');
+    ganttTasks.forEach(t => {
+        if (y > 185) { doc.addPage(); y = 20; x = 14; }
+        x = 14;
+        const vals = [t.tache || '', t.chantier || '', t.debut || '', t.fin || '', `${t.avancement || 0}%`];
+        vals.forEach((v, i) => { doc.text(v, x, y); x += colW[i]; });
+        y += 5;
+    });
+    doc.save(`GANTT_NYSOA_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotif('Export PDF Gantt ✓', 'success');
+}
 
 // ═══════════════════════════════════════════════════════════════
 // UTILITAIRES

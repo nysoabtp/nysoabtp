@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <meta name="description" content="Chef de chantier NYSOA BTP — Équipe, planning, matériaux, rapports">
     <title>NySoa Construct - Chef de Chantier</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -94,7 +96,7 @@
                             <i class="fas fa-hard-hat"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>3</h3>
+                            <h3 id="stat-chantiers">3</h3>
                             <p>Chantiers actifs</p>
                         </div>
                     </div>
@@ -103,7 +105,7 @@
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>28</h3>
+                            <h3 id="stat-ouvriers">28</h3>
                             <p>Ouvriers</p>
                         </div>
                     </div>
@@ -112,7 +114,7 @@
                             <i class="fas fa-clock"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>85%</h3>
+                            <h3 id="stat-progression">85%</h3>
                             <p>Progression moyenne</p>
                         </div>
                     </div>
@@ -121,7 +123,7 @@
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>2</h3>
+                            <h3 id="stat-problemes">2</h3>
                             <p>Problèmes signalés</p>
                         </div>
                     </div>
@@ -262,7 +264,7 @@
             <section id="equipe" class="section">
                 <div class="section-header">
                     <h2>Mon Équipe</h2>
-                    <button class="btn btn-primary" onclick="showNotification('Ajoutez un employé depuis la page RH', 'info')">
+                    <button class="btn btn-primary" onclick="openModal('modal-ajouter-ouvrier')">
                         <i class="fas fa-plus"></i> Ajouter ouvrier
                     </button>
                 </div>
@@ -296,7 +298,7 @@
             <section id="planning" class="section">
                 <div class="section-header">
                     <h2>Planning</h2>
-                    <button class="btn btn-primary" onclick="showNotification('Fonctionnalité de planification à venir', 'info')">
+                    <button class="btn btn-primary" onclick="openModal('modal-planning')">
                         <i class="fas fa-plus"></i> Nouvelle tâche
                     </button>
                 </div>
@@ -352,7 +354,7 @@
             <section id="materiaux" class="section">
                 <div class="section-header">
                     <h2>Matériaux</h2>
-                    <button class="btn btn-primary" onclick="showNotification('Fonctionnalité de demande matériaux à venir', 'info')">
+                    <button class="btn btn-primary" onclick="openModal('modal-demande-materiaux')">
                         <i class="fas fa-plus"></i> Demande matériaux
                     </button>
                 </div>
@@ -466,12 +468,12 @@
                                 <li>
                                     <i class="fas fa-camera"></i>
                                     <span>Galerie - Résidence Palmiers</span>
-                                    <button class="btn-small" onclick="showNotification('Galerie photos à venir', 'info')">Voir</button>
+                                    <button class="btn-small" onclick="viewGallery('Résidence Palmiers')">Voir</button>
                                 </li>
                                 <li>
                                     <i class="fas fa-camera"></i>
                                     <span>Galerie - Centre Commercial</span>
-                                    <button class="btn-small" onclick="showNotification('Galerie photos à venir', 'info')">Voir</button>
+                                    <button class="btn-small" onclick="viewGallery('Centre Commercial')">Voir</button>
                                 </li>
                             </ul>
                         </div>
@@ -486,7 +488,7 @@
                                 <li>
                                     <i class="fas fa-exclamation-triangle"></i>
                                     <span>Incident - Mai 2026</span>
-                                    <button class="btn-small" onclick="showNotification('Galerie photos à venir', 'info')">Voir</button>
+                                    <button class="btn-small" onclick="viewIncident()">Voir</button>
                                 </li>
                             </ul>
                         </div>
@@ -521,7 +523,7 @@
                     <td>${anciennete}</td>
                     <td>${emp.salaire_journalier ? emp.salaire_journalier.toLocaleString() + ' Ar/j' : '—'}</td>
                     <td><span class="status success">Actif</span></td>
-                    <td><button class="btn-small" onclick="showNotification('Détails employé à venir', 'info')">Voir</button></td>
+                    <td><button class="btn-small" onclick="viewEmployee(${emp.id})">Voir</button></td>
                 </tr>`;
             }).join('');
         }
@@ -532,10 +534,25 @@
             if (!currentUser || currentUser.role !== 'chef') {
                 window.location.href = 'login.html';
             }
-            initializeChefCharts();
+            loadChefData();
             updateDate();
             loadPersonnelTable();
         });
+
+        async function loadChefData() {
+            try {
+                const { data: chantiers } = await db.from('chantiers').select('*').eq('actif', true);
+                const { data: personnel } = await db.from('personnel').select('*').eq('actif', true);
+                const { data: materiels } = await db.from('materiels').select('*');
+                if (chantiers) {
+                    document.getElementById('stat-chantiers').textContent = chantiers.length;
+                    const avgProgress = chantiers.reduce((s,c) => s + (c.progression || 0), 0) / (chantiers.length || 1);
+                    document.getElementById('stat-progression').textContent = Math.round(avgProgress) + '%';
+                }
+                if (personnel) document.getElementById('stat-ouvriers').textContent = personnel.length;
+                initializeChefCharts(chantiers, personnel, materiels);
+            } catch(_) { initializeChefCharts(); }
+        }
 
         // Update section titles
         Object.assign(sectionTitles, {
@@ -547,62 +564,204 @@
             'rapports': 'Rapports Chantier'
         });
 
+        async function submitAjouterOuvrier(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const { error } = await db.from('personnel').insert({
+                matricule: fd.get('matricule'), nom: fd.get('nom'), metier: fd.get('metier'),
+                chantier: fd.get('chantier'), date_embauche: fd.get('date_embauche'),
+                salaire_journalier: parseFloat(fd.get('salaire') || 0), actif: true
+            });
+            if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+            closeModal('modal-ajouter-ouvrier');
+            e.target.reset();
+            showNotification('Ouvrier ajouté ✓', 'success');
+            loadPersonnelTable();
+        }
+
+        async function submitPlanning(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const tasks = JSON.parse(localStorage.getItem('nysoa_planning_tasks') || '[]');
+            tasks.unshift({ tache: fd.get('tache'), chantier: fd.get('chantier'), date: fd.get('date'), equipe: fd.get('equipe'), priorite: fd.get('priorite'), statut: 'Planifié' });
+            localStorage.setItem('nysoa_planning_tasks', JSON.stringify(tasks));
+            closeModal('modal-planning');
+            e.target.reset();
+            showNotification('Tâche planifiée ✓', 'success');
+        }
+
+        async function submitDemandeMateriaux(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const demands = JSON.parse(localStorage.getItem('nysoa_demandes_materiaux') || '[]');
+            demands.unshift({ materiau: fd.get('materiau'), quantite: fd.get('quantite'), unite: fd.get('unite'), chantier: fd.get('chantier'), urgence: fd.get('urgence'), statut: 'En attente', date: new Date().toISOString().split('T')[0] });
+            localStorage.setItem('nysoa_demandes_materiaux', JSON.stringify(demands));
+            closeModal('modal-demande-materiaux');
+            e.target.reset();
+            showNotification('Demande envoyée ✓', 'success');
+        }
+
+        async function viewEmployee(id) {
+            const { data } = await db.from('personnel').select('*').eq('id', id).single();
+            if (!data) { showNotification('Employé introuvable', 'error'); return; }
+            const h = document.getElementById('employee-details');
+            if (!h) return;
+            h.innerHTML = `
+                <table style="width:100%;border-collapse:collapse">
+                    <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">Matricule</td><td style="padding:8px;border-bottom:1px solid #ddd">${data.matricule || '—'}</td></tr>
+                    <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">Nom</td><td style="padding:8px;border-bottom:1px solid #ddd">${data.nom}</td></tr>
+                    <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">Métier</td><td style="padding:8px;border-bottom:1px solid #ddd">${data.metier || '—'}</td></tr>
+                    <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">Chantier</td><td style="padding:8px;border-bottom:1px solid #ddd">${data.chantier || '—'}</td></tr>
+                    <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">Date embauche</td><td style="padding:8px;border-bottom:1px solid #ddd">${data.date_embauche ? new Date(data.date_embauche).toLocaleDateString('fr-FR') : '—'}</td></tr>
+                    <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">Salaire</td><td style="padding:8px;border-bottom:1px solid #ddd">${data.salaire_journalier ? data.salaire_journalier.toLocaleString() + ' Ar/j' : '—'}</td></tr>
+                </table>`;
+            openModal('modal-view-employee');
+        }
+
+        function viewGallery(chantier) {
+            const h = document.getElementById('gallery-content');
+            if (!h) return;
+            h.innerHTML = `<div style="text-align:center;padding:20px">
+                <i class="fas fa-image" style="font-size:64px;color:var(--border);margin-bottom:16px;display:block"></i>
+                <p style="color:var(--text-secondary);margin-bottom:8px"><strong>Galerie — ${chantier}</strong></p>
+                <p style="color:var(--text-muted);font-size:0.85rem">Ajoutez des photos depuis le rapport journalier</p>
+            </div>`;
+            openModal('modal-gallery');
+        }
+
+        function viewIncident() {
+            const h = document.getElementById('gallery-content');
+            if (!h) return;
+            h.innerHTML = `<div style="padding:10px">
+                <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:12px">
+                    <strong style="color:#dc2626">Incident signalé — Mai 2026</strong>
+                    <p style="color:var(--text-secondary);margin-top:8px">Chantier: Résidence Les Palmiers<br>Date: 12/05/2026<br>Description: Chute de matériel depuis échafaudage — aucun blessé<br>Action: Sécurisation de la zone, rappel des consignes de sécurité</p>
+                </div>
+            </div>`;
+            openModal('modal-gallery');
+        }
+
         // Initialize Chef Charts
-        function initializeChefCharts() {
+        function initializeChefCharts(chantiers, personnel) {
+            const projLabels = chantiers ? chantiers.map(c => c.nom || c.code) : ['Résidence Palmiers', 'Centre Commercial', 'Bureau Ecobank'];
+            const projData   = chantiers ? chantiers.map(c => c.progression || 0) : [75, 45, 90];
+            const colors     = ['#0066cc', '#ff6b35', '#10b981', '#636e72', '#e84393', '#00b894'];
+
             // Project Progress Chart
             const projectProgressCtx = document.getElementById('projectProgressChart');
             if (projectProgressCtx) {
                 new Chart(projectProgressCtx, {
                     type: 'bar',
                     data: {
-                        labels: ['Résidence Palmiers', 'Centre Commercial', 'Bureau Ecobank'],
+                        labels: projLabels,
                         datasets: [{
                             label: 'Progression (%)',
-                            data: [75, 45, 90],
-                            backgroundColor: ['#0066cc', '#ff6b35', '#10b981']
+                            data: projData,
+                            backgroundColor: projLabels.map((_, i) => colors[i % colors.length])
                         }]
                     },
                     options: {
                         responsive: true,
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100
-                            }
-                        }
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, max: 100 } }
                     }
                 });
             }
 
             // Team Chart
+            const metiers = {};
+            if (personnel) personnel.forEach(p => { const m = p.metier || 'Autres'; metiers[m] = (metiers[m] || 0) + 1; });
+            const teamLabels = personnel ? Object.keys(metiers) : ['Maçons', 'Électriciens', 'Plombiers', 'Autres'];
+            const teamData   = personnel ? Object.values(metiers) : [12, 8, 5, 3];
+
             const teamCtx = document.getElementById('teamChart');
             if (teamCtx) {
                 new Chart(teamCtx, {
                     type: 'doughnut',
                     data: {
-                        labels: ['Maçons', 'Électriciens', 'Plombiers', 'Autres'],
+                        labels: teamLabels,
                         datasets: [{
-                            data: [12, 8, 5, 3],
-                            backgroundColor: ['#0066cc', '#ff6b35', '#10b981', '#636e72']
+                            data: teamData,
+                            backgroundColor: colors.slice(0, teamLabels.length)
                         }]
                     },
                     options: {
                         responsive: true,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'right'
-                            }
-                        }
+                        plugins: { legend: { display: true, position: 'right' } }
                     }
                 });
             }
         }
     </script>
+
+    <!-- Modal Ajouter ouvrier -->
+    <div id="modal-ajouter-ouvrier" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Ajouter un ouvrier</h3><button class="close-modal" onclick="closeModal('modal-ajouter-ouvrier')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitAjouterOuvrier(event)">
+                    <div class="form-group"><label>Matricule</label><input name="matricule" type="text" class="form-input" required></div>
+                    <div class="form-group"><label>Nom complet *</label><input name="nom" type="text" class="form-input" required></div>
+                    <div class="form-group"><label>Métier</label><select name="metier" class="form-input"><option>Maçon</option><option>Électricien</option><option>Plombier</option><option>Peintre</option><option>Menuisier</option><option>Manœuvre</option><option>Conducteur d'engins</option><option>Ferronnier</option><option>Carreleur</option></select></div>
+                    <div class="form-group"><label>Chantier</label><select name="chantier" class="form-input"></select></div>
+                    <div class="form-group"><label>Date d'embauche</label><input name="date_embauche" type="date" class="form-input"></div>
+                    <div class="form-group"><label>Salaire journalier (Ar)</label><input name="salaire" type="number" step="any" class="form-input"></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Enregistrer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Planning -->
+    <div id="modal-planning" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Nouvelle tâche planning</h3><button class="close-modal" onclick="closeModal('modal-planning')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitPlanning(event)">
+                    <div class="form-group"><label>Tâche *</label><input name="tache" type="text" class="form-input" required></div>
+                    <div class="form-group"><label>Chantier</label><select name="chantier" class="form-input"></select></div>
+                    <div class="form-group"><label>Date</label><input name="date" type="date" class="form-input"></div>
+                    <div class="form-group"><label>Équipe</label><input name="equipe" type="text" class="form-input" placeholder="ex: Équipe A (8 pers.)"></div>
+                    <div class="form-group"><label>Priorité</label><select name="priorite" class="form-input"><option>Haute</option><option selected>Moyenne</option><option>Basse</option></select></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Planifier</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Demande matériaux -->
+    <div id="modal-demande-materiaux" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Demande de matériaux</h3><button class="close-modal" onclick="closeModal('modal-demande-materiaux')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitDemandeMateriaux(event)">
+                    <div class="form-group"><label>Matériau *</label><input name="materiau" type="text" class="form-input" required></div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1"><label>Quantité</label><input name="quantite" type="number" step="any" class="form-input"></div>
+                        <div class="form-group" style="flex:1"><label>Unité</label><select name="unite" class="form-input"><option>Sac</option><option>m³</option><option>m</option><option>kg</option><option>L</option><option>Piece</option></select></div>
+                    </div>
+                    <div class="form-group"><label>Chantier</label><select name="chantier" class="form-input"></select></div>
+                    <div class="form-group"><label>Urgence</label><select name="urgence" class="form-input"><option selected>Normale</option><option>Urgente</option><option>Très urgente</option></select></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Envoyer la demande</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Voir employé -->
+    <div id="modal-view-employee" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Détails employé</h3><button class="close-modal" onclick="closeModal('modal-view-employee')">&times;</button></div>
+            <div class="modal-body" id="employee-details"></div>
+        </div>
+    </div>
+
+    <!-- Modal Galerie / Incident -->
+    <div id="modal-gallery" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Galerie</h3><button class="close-modal" onclick="closeModal('modal-gallery')">&times;</button></div>
+            <div class="modal-body" id="gallery-content"></div>
+        </div>
+    </div>
 </body>
 </html>

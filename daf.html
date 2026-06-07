@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <meta name="description" content="Direction Administrative et Financière NYSOA BTP — Comptabilité, budget, factures">
     <title>NySoa Construct - DAF</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -90,7 +92,7 @@
                             <i class="fas fa-money-bill-wave"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>12.5MAr</h3>
+                            <h3 id="stat-ca">12.5MAr</h3>
                             <p>Chiffre d'affaires</p>
                         </div>
                     </div>
@@ -99,7 +101,7 @@
                             <i class="fas fa-arrow-down"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>9MAr</h3>
+                            <h3 id="stat-depenses">9MAr</h3>
                             <p>Dépenses</p>
                         </div>
                     </div>
@@ -108,7 +110,7 @@
                             <i class="fas fa-balance-scale"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>3.5MAr</h3>
+                            <h3 id="stat-benefice">3.5MAr</h3>
                             <p>Bénéfice net</p>
                         </div>
                     </div>
@@ -117,7 +119,7 @@
                             <i class="fas fa-file-invoice"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>45</h3>
+                            <h3 id="stat-factures">45</h3>
                             <p>Factures en attente</p>
                         </div>
                     </div>
@@ -227,7 +229,7 @@
             <section id="comptabilite" class="section">
                 <div class="section-header">
                     <h2>Comptabilité</h2>
-                    <button class="btn btn-primary" onclick="showNotification('Ajoutez une écriture dans Journal depuis l\'ERP principal', 'info')">
+                    <button class="btn btn-primary" onclick="openModal('modal-journal')">
                         <i class="fas fa-plus"></i> Nouvelle écriture
                     </button>
                 </div>
@@ -342,7 +344,7 @@
             <section id="factures" class="section">
                 <div class="section-header">
                     <h2>Gestion des Factures</h2>
-                    <button class="btn btn-primary" onclick="showNotification('Fonctionnalité de facturation à venir', 'info')">
+                    <button class="btn btn-primary" onclick="openModal('modal-facture')">
                         <i class="fas fa-plus"></i> Nouvelle Facture
                     </button>
                 </div>
@@ -488,9 +490,28 @@
             if (!currentUser || currentUser.role !== 'daf') {
                 window.location.href = 'login.html';
             }
-            initializeDAFCharts();
+            loadDAFData();
             updateDate();
         });
+
+        async function loadDAFData() {
+            try {
+                const { data: journal } = await db.from('journal').select('*').limit(500);
+                const { data: chantiers } = await db.from('chantiers').select('nom, budget').eq('actif', true);
+                if (journal) {
+                    const recettes = journal.filter(r => r.categorie === 'RECETTE' || r.montant > 0);
+                    const depenses = journal.filter(r => r.categorie !== 'RECETTE' && r.montant >= 0);
+                    const totalCA = recettes.reduce((s, r) => s + (r.montant || 0), 0);
+                    const totalDep = depenses.reduce((s, r) => s + (r.montant || 0), 0);
+                    document.getElementById('stat-ca') && (document.getElementById('stat-ca').textContent = (totalCA / 1e6).toFixed(1) + 'MAr');
+                    document.getElementById('stat-depenses') && (document.getElementById('stat-depenses').textContent = (totalDep / 1e6).toFixed(1) + 'MAr');
+                    document.getElementById('stat-benefice') && (document.getElementById('stat-benefice').textContent = ((totalCA - totalDep) / 1e6).toFixed(1) + 'MAr');
+                    document.getElementById('stat-factures') && (document.getElementById('stat-factures').textContent = journal.length);
+                }
+                initializeDAFCharts(journal, chantiers);
+                if (typeof loadJournalTable === 'function') loadJournalTable();
+            } catch(_) { initializeDAFCharts(); }
+        }
 
         // Update section titles
         Object.assign(sectionTitles, {
@@ -502,70 +523,132 @@
         });
 
         // Initialize DAF Charts
-        function initializeDAFCharts() {
+        function initializeDAFCharts(journal, chantiers) {
+            const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+            // Cashflow from journal
+            const encaiss = new Array(12).fill(0);
+            const decaiss = new Array(12).fill(0);
+            if (journal) {
+                journal.forEach(r => {
+                    const m = r.date ? new Date(r.date).getMonth() : -1;
+                    if (m >= 0) {
+                        if (r.categorie === 'RECETTE' || r.montant > 0) encaiss[m] += (r.montant || 0) / 1e6;
+                        else decaiss[m] += (r.montant || 0) / 1e6;
+                    }
+                });
+            }
+
             // Cashflow Chart
             const cashflowCtx = document.getElementById('cashflowChart');
             if (cashflowCtx) {
                 new Chart(cashflowCtx, {
                     type: 'bar',
                     data: {
-                        labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+                        labels: months.slice(0, new Date().getMonth() + 1),
                         datasets: [{
                             label: 'Encaissements (MAr)',
-                            data: [8, 9, 10, 11, 12.5, 14],
+                            data: encaiss.slice(0, new Date().getMonth() + 1),
                             backgroundColor: '#10b981'
                         }, {
                             label: 'Décaissements (MAr)',
-                            data: [6, 7, 8, 8.5, 9, 10],
+                            data: decaiss.slice(0, new Date().getMonth() + 1),
                             backgroundColor: '#ef4444'
                         }]
                     },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
+                    options: { responsive: true, plugins: { legend: { display: true, position: 'top' } }, scales: { y: { beginAtZero: true } } }
                 });
             }
 
-            // Budget Chart
+            // Budget by category from journal
+            const cats = {};
+            if (journal) journal.forEach(r => { const c = r.categorie || 'Autres'; cats[c] = (cats[c] || 0) + (r.montant || 0); });
+            const budgetLabels = Object.keys(cats).length ? Object.keys(cats) : ['Matériaux', 'Main d\'œuvre', 'Équipements', 'Frais généraux'];
+            const budgetData = Object.keys(cats).length ? Object.values(cats) : [40, 35, 15, 10];
+
             const budgetCtx = document.getElementById('budgetChart');
             if (budgetCtx) {
                 new Chart(budgetCtx, {
                     type: 'pie',
                     data: {
-                        labels: ['Matériaux', 'Main d\'œuvre', 'Équipements', 'Frais généraux'],
-                        datasets: [{
-                            data: [40, 35, 15, 10],
-                            backgroundColor: [
-                                '#0066cc',
-                                '#ff6b35',
-                                '#10b981',
-                                '#636e72'
-                            ]
-                        }]
+                        labels: budgetLabels,
+                        datasets: [{ data: budgetData, backgroundColor: ['#0066cc', '#ff6b35', '#10b981', '#636e72', '#e84393', '#00b894'] }]
                     },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'right'
-                            }
-                        }
-                    }
+                    options: { responsive: true, plugins: { legend: { display: true, position: 'right' } } }
                 });
             }
         }
+        async function submitFacture(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const numero = 'FACT-' + Date.now().toString(36).toUpperCase();
+            const { error } = await db.from('devis').insert({
+                numero, client: fd.get('client'), projet: fd.get('projet'),
+                date_devis: fd.get('date'), montant_ht: parseFloat(fd.get('montant_ht') || 0),
+                montant_ttc: parseFloat(fd.get('montant_ttc') || 0), statut: 'FACTURE'
+            });
+            if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+            closeModal('modal-facture');
+            e.target.reset();
+            showNotification('Facture créée ✓', 'success');
+        }
     </script>
+
+    <!-- Modal Journal (réutilisé du composant standard) -->
+    <div id="modal-journal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Nouvelle Écriture Comptable</h3><button class="close-modal" onclick="closeModal('modal-journal')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitJournalForm(event)">
+                    <div class="form-row">
+                        <div class="form-group"><label>Date *</label><input type="date" name="date" required></div>
+                        <div class="form-group"><label>Chantier</label><select name="chantier"><option value="">— Sélectionner —</option></select></div>
+                    </div>
+                    <div class="form-group"><label>Désignation *</label><input type="text" name="designation" placeholder="Ex: Achat ciment..." required></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Montant (Ar) *</label><input type="number" name="montant" min="0" step="any" required></div>
+                        <div class="form-group"><label>Catégorie</label><select name="categorie">
+                            <option>SALAIRE JOURNALIER</option><option>SALAIRE MENSUEL</option><option>ANTOKA</option>
+                            <option>APPROVISIONNEMENT</option><option>MATERIEL</option><option>SERVICE</option>
+                            <option>FRAIS DE TRANSPORT</option><option>FONCTIONNEMENT</option><option>COMMUNICATION</option>
+                            <option>BONUS</option><option>SAKAFO</option>
+                        </select></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Mode de paiement</label><select name="mode_paiement">
+                            <option>ESPECE</option><option>CHEQUE</option><option>MOBILE MONEY</option>
+                            <option>VIREMENT BANCAIRE</option><option>A CREDIT</option>
+                        </select></div>
+                        <div class="form-group"><label>Travaux</label><select name="travaux">
+                            <option value="">—</option><option>MAÇONNERIE</option><option>CARRELAGE</option>
+                            <option>PLOMBERIE</option><option>ELECTRICITE</option><option>PEINTURE</option>
+                            <option>MENUISERIE</option><option>NETTOYAGE</option>
+                        </select></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-journal')">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Facture -->
+    <div id="modal-facture" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Nouvelle Facture</h3><button class="close-modal" onclick="closeModal('modal-facture')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitFacture(event)">
+                    <div class="form-group"><label>Client *</label><input name="client" type="text" class="form-input" required></div>
+                    <div class="form-group"><label>Projet</label><input name="projet" type="text" class="form-input"></div>
+                    <div class="form-group"><label>Date</label><input name="date" type="date" class="form-input" required></div>
+                    <div class="form-group"><label>Montant HT (Ar)</label><input name="montant_ht" type="number" step="any" class="form-input"></div>
+                    <div class="form-group"><label>Montant TTC (Ar)</label><input name="montant_ttc" type="number" step="any" class="form-input"></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Créer la facture</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
