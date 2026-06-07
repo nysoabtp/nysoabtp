@@ -254,21 +254,26 @@ function fallbackLogin(email, password) {
     }
 }
 
-// Si déjà connecté → rediriger directement
+// Si déjà connecté avec une session valide → rediriger directement
 window.addEventListener('load', async () => {
     try {
-        if (!SUPABASE_URL.includes('VOTRE')) {
-            const { data } = await db.auth.getSession();
-            if (data?.session) {
-                const role = data.session.user?.user_metadata?.role || 'admin';
-                localStorage.setItem('nysoa_current_user', JSON.stringify({ email: data.session.user.email, role }));
-                window.location.href = DASHBOARDS[role] || 'index.html';
-            }
-        } else {
-            const user = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
-            if (user) window.location.href = DASHBOARDS[user.role] || 'index.html';
+        const { data, error } = await db.auth.getSession();
+        if (error || !data?.session) return; // Pas de session → rester sur login
+
+        // Vérifier que le token n'est pas expiré
+        const expiresAt = (data.session.expires_at || 0) * 1000;
+        if (Date.now() > expiresAt) {
+            await db.auth.signOut();
+            localStorage.removeItem('nysoa_current_user');
+            return;
         }
-    } catch(e) {}
+
+        const role = data.session.user?.user_metadata?.role || 'admin';
+        localStorage.setItem('nysoa_current_user', JSON.stringify({ email: data.session.user.email, role }));
+        window.location.href = DASHBOARDS[role] || 'index.html';
+    } catch(e) {
+        console.warn('[Login] getSession error:', e);
+    }
 });
 </script>
 </body>

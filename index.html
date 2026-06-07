@@ -2087,9 +2087,11 @@
     <script src="devis.js"></script>
     <script src="import-excel.js"></script>
     <script>
-        // Auth guard
-        const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
-        if (!currentUser) window.location.href = 'login.html';
+        // Auth guard — vérifie la session Supabase réelle
+        (async () => {
+            const user = await checkAuthOrRedirect('admin');
+            // checkAuthOrRedirect redirige si non authentifié ou mauvais rôle
+        })();
 
         // Service Worker Registration
         if ('serviceWorker' in navigator) {

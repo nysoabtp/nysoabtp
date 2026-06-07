@@ -529,11 +529,9 @@
         }
 
         // Check authentication
-        window.addEventListener('load', function() {
-            const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
-            if (!currentUser || currentUser.role !== 'chef') {
-                window.location.href = 'login.html';
-            }
+        window.addEventListener('load', async function() {
+            const user = await checkAuthOrRedirect('chef');
+            if (!user) return;
             loadChefData();
             updateDate();
             loadPersonnelTable();

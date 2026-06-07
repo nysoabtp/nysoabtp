@@ -30,6 +30,81 @@ function handleError(err, context) {
         showNotification(`Erreur ${context}: ${err.message || ''}`, 'error');
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// AUTH — Fonctions centralisées (login / logout / guard)
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Vérifie la session Supabase réelle et le rôle attendu.
+ * À appeler au chargement de chaque page protégée.
+ * @param {string|null} expectedRole  ex: 'daf', 'chef', 'admin' — null = tout rôle accepté
+ * @returns {object|null}  user { email, role } ou null (+ redirection déjà lancée)
+ */
+async function checkAuthOrRedirect(expectedRole = null) {
+    try {
+        const { data: { session }, error } = await db.auth.getSession();
+
+        if (error || !session) {
+            localStorage.removeItem('nysoa_current_user');
+            window.location.href = 'login.html';
+            return null;
+        }
+
+        // Vérifier que le token n'est pas expiré
+        const expiresAt = (session.expires_at || 0) * 1000;
+        if (Date.now() > expiresAt) {
+            await db.auth.signOut();
+            localStorage.removeItem('nysoa_current_user');
+            window.location.href = 'login.html';
+            return null;
+        }
+
+        const role = session.user?.user_metadata?.role || 'admin';
+        const user = { email: session.user.email, role };
+
+        // Synchroniser le localStorage avec la session réelle
+        localStorage.setItem('nysoa_current_user', JSON.stringify(user));
+
+        // Rediriger si le rôle ne correspond pas à la page
+        if (expectedRole && role !== expectedRole) {
+            const roleMap = {
+                admin: 'index',
+                daf: 'daf',
+                chef: 'chef-chantier',
+                rh: 'rh',
+                controleur: 'controleur',
+                technicien: 'technicien'
+            };
+            window.location.href = (roleMap[role] || 'index') + '.html';
+            return null;
+        }
+
+        return user;
+    } catch (e) {
+        console.error('[Auth] checkAuthOrRedirect:', e);
+        localStorage.removeItem('nysoa_current_user');
+        window.location.href = 'login.html';
+        return null;
+    }
+}
+
+/**
+ * Déconnexion complète : invalide la session Supabase + vide localStorage.
+ */
+async function logout() {
+    if (!confirm('Voulez-vous vous déconnecter ?')) return;
+    try {
+        await db.auth.signOut();
+    } catch (e) {
+        console.warn('[Auth] signOut error (ignoré):', e);
+    }
+    localStorage.removeItem('nysoa_current_user');
+    window.location.href = 'login.html';
+}
+
+console.log('[NYSOA BTP] auth.js fonctions chargées ✓');
+
 // ══════════════════════════════════════════════════════════════
 // INITIALISATION
 // ══════════════════════════════════════════════════════════════

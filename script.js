@@ -1171,12 +1171,8 @@ function toggleSidebar() {
     if (sidebar) sidebar.classList.toggle('open');
 }
 
-function logout() {
-    if (confirm('Voulez-vous vous déconnecter ?')) {
-        localStorage.removeItem('nysoa_current_user');
-        window.location.href = 'login.html';
-    }
-}
+// logout() est défini dans supabase.js (centralisé avec db.auth.signOut)
+// Cette déclaration locale est supprimée pour éviter le doublon.
 
 // ── Actions sur les lignes de tableau ────────────────────────
 function deleteRow(btn) {

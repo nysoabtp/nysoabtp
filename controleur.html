@@ -478,11 +478,9 @@
     <script src="modules_new.js"></script>
     <script>
         // Check authentication
-        window.addEventListener('load', function() {
-            const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
-            if (!currentUser || currentUser.role !== 'controleur') {
-                window.location.href = 'login.html';
-            }
+        window.addEventListener('load', async function() {
+            const user = await checkAuthOrRedirect('controleur');
+            if (!user) return;
             loadControleurData();
             updateDate();
         });

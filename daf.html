@@ -552,11 +552,9 @@
     <script src="modules_new.js"></script>
     <script>
         // Check authentication
-        window.addEventListener('load', function() {
-            const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
-            if (!currentUser || currentUser.role !== 'daf') {
-                window.location.href = 'login.html';
-            }
+        window.addEventListener('load', async function() {
+            const user = await checkAuthOrRedirect('daf');
+            if (!user) return;
             loadDAFData();
             updateDate();
         });

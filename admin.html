@@ -1581,20 +1581,13 @@ async function deleteGanttTache(id) {
 }
 
 
-function logout() {
-    localStorage.removeItem('nysoa_current_user');
-    window.location.href = 'login.html';
-}
+// logout() est défini dans supabase.js (centralisé avec db.auth.signOut)
 
 // ── INIT ───────────────────────────────────────────────────────
-window.addEventListener('load', () => {
-    // Vérif accès admin
-    const user = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
-    if (!user) { window.location.href = 'login.html'; return; }
-    if (user.role !== 'admin') {
-        const roleMap = { admin:'index', daf:'daf', chef:'chef-chantier', rh:'rh', controleur:'controleur', technicien:'technicien' };
-        window.location.href = (roleMap[user.role] || user.role) + '.html'; return;
-    }
+window.addEventListener('load', async () => {
+    // Vérif accès admin via session Supabase réelle
+    const user = await checkAuthOrRedirect('admin');
+    if (!user) return;
     document.getElementById('user-name').textContent = user.nom || 'Admin';
 
     // Charger config Supabase sauvegardée
