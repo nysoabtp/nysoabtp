@@ -1459,6 +1459,26 @@ async function downloadReport(btn) {
             rows = data || [];
             headers = ['Chantier', 'Statut', 'Progression %'];
             filename = 'rapport_controle';
+        } else if (n.includes('journalier') || n.includes('mensuel')) {
+            const { data } = await db.from('journal').select('date,designation,montant,categorie,chantier').order('date', { ascending: false }).limit(200);
+            rows = data || [];
+            headers = ['Date', 'Désignation', 'Montant (Ar)', 'Catégorie', 'Chantier'];
+            filename = 'rapport_periodique';
+        } else if (n.includes('rentabilité') || n.includes('trésorerie') || n.includes('prévision')) {
+            const { data } = await db.from('journal').select('date,designation,montant,categorie,mode_paiement').order('date', { ascending: false }).limit(500);
+            rows = data || [];
+            headers = ['Date', 'Désignation', 'Montant (Ar)', 'Catégorie', 'Paiement'];
+            filename = nom.replace(/[^a-zA-Z0-9]/g,'_');
+        } else if (n.includes('checklist')) {
+            const { data } = await db.from('chantiers').select('nom,statut,debut,fin,progression').order('nom');
+            rows = data || [];
+            headers = ['Chantier', 'Statut', 'Début', 'Fin', 'Progression %'];
+            filename = 'rapport_checklist';
+        } else if (n.includes('recrutement') || n.includes('embauche')) {
+            const { data } = await db.from('personnel').select('nom,metier,chantier,date_embauche,type_salaire,salaire_journalier').eq('actif', true).order('date_embauche', { ascending: false }).limit(100);
+            rows = data || [];
+            headers = ['Nom', 'Métier', 'Chantier', 'Date embauche', 'Type', 'Salaire (Ar)'];
+            filename = 'rapport_recrutement';
         } else {
             showNotification(`Rapport « ${nom} » non reconnu`, 'error');
             return;
