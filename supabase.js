@@ -43,31 +43,36 @@ function handleError(err, context) {
  */
 async function checkAuthOrRedirect(expectedRole = null) {
     try {
-        const { data: { session }, error } = await db.auth.getSession();
+        const { data: { session: sbSession }, error } = await db.auth.getSession();
+        let user = null;
 
-        if (error || !session) {
+        if (sbSession && !error) {
+            const expiresAt = (sbSession.expires_at || 0) * 1000;
+            if (Date.now() <= expiresAt) {
+                const role = sbSession.user?.user_metadata?.role || 'admin';
+                user = { email: sbSession.user.email, role };
+                localStorage.setItem('nysoa_current_user', JSON.stringify(user));
+            } else {
+                await db.auth.signOut();
+            }
+        }
+
+        // Fallback localStorage si Supabase non configuré
+        if (!user) {
+            const stored = localStorage.getItem('nysoa_current_user');
+            if (stored) {
+                try { user = JSON.parse(stored); } catch (_) { user = null; }
+            }
+        }
+
+        if (!user) {
             localStorage.removeItem('nysoa_current_user');
             window.location.href = 'login.html';
             return null;
         }
-
-        // Vérifier que le token n'est pas expiré
-        const expiresAt = (session.expires_at || 0) * 1000;
-        if (Date.now() > expiresAt) {
-            await db.auth.signOut();
-            localStorage.removeItem('nysoa_current_user');
-            window.location.href = 'login.html';
-            return null;
-        }
-
-        const role = session.user?.user_metadata?.role || 'admin';
-        const user = { email: session.user.email, role };
-
-        // Synchroniser le localStorage avec la session réelle
-        localStorage.setItem('nysoa_current_user', JSON.stringify(user));
 
         // Rediriger si le rôle ne correspond pas à la page
-        if (expectedRole && role !== expectedRole) {
+        if (expectedRole && user.role !== expectedRole) {
             const roleMap = {
                 admin: 'admin',
                 daf: 'daf',
@@ -76,7 +81,7 @@ async function checkAuthOrRedirect(expectedRole = null) {
                 controleur: 'controleur',
                 technicien: 'technicien'
             };
-            window.location.href = (roleMap[role] || 'index') + '.html';
+            window.location.href = (roleMap[user.role] || 'index') + '.html';
             return null;
         }
 
