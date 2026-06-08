@@ -227,6 +227,10 @@
             <a class="nav-item" onclick="showSection('controles')">
                 <i class="fas fa-clipboard-check"></i><span>Contrôles</span>
             </a>
+            <a class="nav-item" onclick="showSection('validations')" id="nav-validations">
+                <i class="fas fa-clipboard-list"></i><span>Validations</span>
+                <span id="validation-badge" style="display:none;background:#ef4444;color:white;font-size:11px;padding:1px 7px;border-radius:10px;margin-left:auto">0</span>
+            </a>
             <a class="nav-item" onclick="showSection('gantt')">
                 <i class="fas fa-tasks"></i><span>Avancement Gantt</span>
             </a>
@@ -719,6 +723,52 @@
                             <button class="btn btn-primary" style="flex:1" onclick="saveGanttTache()"><i class="fas fa-save"></i> Enregistrer</button>
                             <button class="btn btn-secondary" onclick="document.getElementById('gt-modal').style.display='none'">Annuler</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION VALIDATIONS -->
+        <div id="section-validations" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-clipboard-list" style="color:var(--orange);margin-right:10px"></i>Validations</h1>
+                <p>Approuver ou rejeter les demandes des différents services</p>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-bottom:16px">
+                <button class="btn btn-primary" onclick="loadValidations('EN_ATTENTE')" style="flex:1"><i class="fas fa-hourglass-half"></i> En attente</button>
+                <button class="btn btn-secondary" onclick="loadValidations('APPROUVE')" style="flex:1"><i class="fas fa-check-circle"></i> Approuvées</button>
+                <button class="btn btn-secondary" onclick="loadValidations('REJETE')" style="flex:1"><i class="fas fa-times-circle"></i> Rejetées</button>
+                <button class="btn btn-secondary" onclick="loadValidations()" style="flex:1"><i class="fas fa-list"></i> Toutes</button>
+            </div>
+
+            <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <table class="table" style="margin:0">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Émetteur</th>
+                            <th>Date</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="validations-table-body">
+                        <tr><td colspan="5" style="text-align:center;padding:30px;color:#94a3b8">Cliquez sur un filtre pour charger</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Modal détail validation -->
+            <div id="validation-detail-modal" class="modal" style="display:none">
+                <div class="modal-content" style="max-width:640px">
+                    <div class="modal-header">
+                        <h3 id="vd-title">Détail de la demande</h3>
+                        <button onclick="closeModal('validation-detail-modal')" style="background:none;border:none;font-size:1.4rem;cursor:pointer">&times;</button>
+                    </div>
+                    <div class="modal-body" id="vd-body"></div>
+                    <div class="modal-footer" id="vd-footer">
+                        <button class="btn btn-secondary" onclick="closeModal('validation-detail-modal')">Fermer</button>
                     </div>
                 </div>
             </div>
@@ -1581,6 +1631,108 @@ async function deleteGanttTache(id) {
 }
 
 
+// ── VALIDATIONS ─────────────────────────────────────────────────
+async function loadValidations(statutFilter) {
+    const tbody = document.getElementById('validations-table-body');
+    if (!tbody) return;
+    try {
+        let q = db.from('validations').select('*').order('created_at', { ascending: false }).limit(100);
+        if (statutFilter) q = q.eq('statut', statutFilter);
+        const { data } = await q;
+        tbody.innerHTML = '';
+        if (!data || !data.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:#94a3b8">Aucune demande</td></tr>';
+            return;
+        }
+        data.forEach(v => {
+            const statusClass = v.statut === 'APPROUVE' ? 'success' : v.statut === 'REJETE' ? 'error' : 'warning';
+            const typeLabel = {
+                creation_chef: 'Création chef', demande_materiaux: 'Demande matériaux',
+                ecriture_journal: 'Écriture compta', creation_chantier: 'Création chantier',
+                devis: 'Devis/Proforma', conge: 'Demande congé',
+                rapport_intervention: 'Rapport intervention', rapport_inspection: 'Rapport inspection'
+            }[v.type] || v.type;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${typeLabel}</td>
+                <td>${v.emetteur_role || '—'}</td>
+                <td>${new Date(v.created_at).toLocaleDateString('fr-FR')}</td>
+                <td><span class="status ${statusClass}">${v.statut}</span></td>
+                <td>
+                    ${v.statut === 'EN_ATTENTE' ? `
+                        <button class="btn-small" style="background:#10b981;color:white" onclick="approuverValidation(${v.id})">✅ Approuver</button>
+                        <button class="btn-small" style="background:#ef4444;color:white" onclick="rejeterValidation(${v.id})">❌ Rejeter</button>
+                    ` : ''}
+                    <button class="btn-small" onclick="voirDetailValidation(${v.id})"><i class="fas fa-eye"></i></button>
+                </td>`;
+            tbody.appendChild(tr);
+        });
+    } catch(e) { notify('Erreur chargement validations: ' + e.message, 'error'); }
+}
+
+async function loadValidationCount() {
+    try {
+        const { count } = await db.from('validations').select('*', { count: 'exact', head: true }).eq('statut', 'EN_ATTENTE');
+        const badge = document.getElementById('validation-badge');
+        if (badge) {
+            badge.textContent = count || 0;
+            badge.style.display = count > 0 ? 'inline' : 'none';
+        }
+    } catch(e) { /* silencieux */ }
+}
+
+async function approuverValidation(id) {
+    const motif = prompt('Commentaire (optionnel) :') || '';
+    try {
+        const { error } = await db.from('validations').update({
+            statut: 'APPROUVE', commentaire: motif,
+            decided_at: new Date().toISOString(), decided_by: 'admin'
+        }).eq('id', id);
+        if (error) throw error;
+        notify('Demande approuvée ✓', 'success');
+        loadValidations('EN_ATTENTE');
+        loadValidationCount();
+    } catch(e) { notify('Erreur: ' + e.message, 'error'); }
+}
+
+async function rejeterValidation(id) {
+    const motif = prompt('Motif de rejet (obligatoire) :');
+    if (!motif) { notify('Le motif de rejet est obligatoire', 'error'); return; }
+    try {
+        const { error } = await db.from('validations').update({
+            statut: 'REJETE', motif_rejet: motif,
+            decided_at: new Date().toISOString(), decided_by: 'admin'
+        }).eq('id', id);
+        if (error) throw error;
+        notify('Demande rejetée', 'info');
+        loadValidations('EN_ATTENTE');
+        loadValidationCount();
+    } catch(e) { notify('Erreur: ' + e.message, 'error'); }
+}
+
+async function voirDetailValidation(id) {
+    const { data } = await db.from('validations').select('*').eq('id', id).single();
+    if (!data) return;
+    document.getElementById('vd-title').textContent = 'Demande #' + data.id + ' — ' + (data.type || '');
+    document.getElementById('vd-body').innerHTML = `
+        <div class="detail-field"><label>Type</label><span>${data.type || '—'}</span></div>
+        <div class="detail-field"><label>Émetteur</label><span>${data.emetteur_role || '—'} (${data.emetteur_id || '—'})</span></div>
+        <div class="detail-field"><label>Date</label><span>${new Date(data.created_at).toLocaleString('fr-FR')}</span></div>
+        <div class="detail-field"><label>Statut</label><span class="status ${data.statut === 'APPROUVE' ? 'success' : data.statut === 'REJETE' ? 'error' : 'warning'}">${data.statut}</span></div>
+        ${data.commentaire ? `<div class="detail-field"><label>Commentaire</label><span>${data.commentaire}</span></div>` : ''}
+        ${data.motif_rejet ? `<div class="detail-field"><label>Motif rejet</label><span style="color:#ef4444">${data.motif_rejet}</span></div>` : ''}
+        ${data.decided_at ? `<div class="detail-field"><label>Décision le</label><span>${new Date(data.decided_at).toLocaleString('fr-FR')} par ${data.decided_by}</span></div>` : ''}
+    `;
+    document.getElementById('vd-footer').innerHTML = `
+        ${data.statut === 'EN_ATTENTE' ? `
+            <button class="btn btn-primary" style="background:#10b981" onclick="approuverValidation(${data.id});closeModal('validation-detail-modal')">✅ Approuver</button>
+            <button class="btn btn-danger" style="background:#ef4444" onclick="rejeterValidation(${data.id});closeModal('validation-detail-modal')">❌ Rejeter</button>
+        ` : ''}
+        <button class="btn btn-secondary" onclick="closeModal('validation-detail-modal')">Fermer</button>
+    `;
+    document.getElementById('validation-detail-modal').style.display = 'block';
+}
+
 // logout() est défini dans supabase.js (centralisé avec db.auth.signOut)
 
 // ── INIT ───────────────────────────────────────────────────────
@@ -1610,6 +1762,7 @@ window.addEventListener('load', async () => {
     if (lastBackup) document.getElementById('last-backup-full').textContent = 'Dernière sauvegarde : ' + lastBackup;
 
     loadUsers();
+    loadValidationCount();
 
     // Charger les sections suivi au premier affichage
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -1618,6 +1771,7 @@ window.addEventListener('load', async () => {
             if (onclick.includes("'rapports'")) loadRapports();
             if (onclick.includes("'controles'")) loadControles();
             if (onclick.includes("'gantt'")) loadGantt();
+            if (onclick.includes("'validations'")) loadValidations('EN_ATTENTE');
         });
     });
 });

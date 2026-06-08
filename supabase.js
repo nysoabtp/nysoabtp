@@ -150,6 +150,20 @@ db.channel('nysoa-realtime')
         () => { if (typeof loadAchatsTable === 'function') loadAchatsTable(); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'pointage' },
         () => { if (typeof loadPointageTable === 'function') loadPointageTable(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pointage_attendance' },
+        () => { if (typeof loadPointageTable === 'function') loadPointageTable(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'personnel' },
+        () => { document.querySelectorAll('[data-reload="personnel"]').forEach(el => {
+            if (typeof el.onclick === 'function') el.onclick();
+        }); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'chantiers' },
+        () => { if (typeof loadChefData === 'function') loadChefData(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'materiels' },
+        () => { if (typeof loadStockTable === 'function') loadStockTable(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'devis' },
+        () => { if (typeof loadDevisTable === 'function') loadDevisTable(); if (typeof loadDevisDAF === 'function') loadDevisDAF(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'validations' },
+        () => { if (typeof loadValidationCount === 'function') loadValidationCount(); })
     .subscribe();
 
 // ══════════════════════════════════════════════════════════════

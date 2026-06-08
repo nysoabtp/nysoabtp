@@ -683,16 +683,20 @@ async function enregistrerPointage() {
     const chantier = document.getElementById('chantier-select')?.value;
     if (!chantier) { showNotification('Sélectionnez un chantier', 'error'); return; }
 
+    const { data: emp } = await db.from('personnel').select('id, salaire_journalier').eq('id', scannedEmployee.id).maybeSingle();
+    const salaire = emp?.salaire_journalier || 0;
+
     const semaine = new Date();
     semaine.setDate(semaine.getDate() - semaine.getDay() + 1); // lundi
 
-    const { error } = await db.from('pointage').insert({
+    const { error } = await db.from('pointage_attendance').insert({
         date:         semaine.toISOString().split('T')[0],
         chantier:           chantier,
         nom_employe:        scannedEmployee.nom,
-        salaire_journalier: scannedEmployee.salaire_journalier || 0,
-        nb_jours:           1,
-        total_avances:      0,
+        employe_id:         emp?.id || null,
+        type_pointage:      'Arrivée',
+        salaire_journalier: salaire,
+        statut:             'present'
     });
     if (error) { showNotification('Erreur enregistrement', 'error'); return; }
 
@@ -713,15 +717,15 @@ async function enregistrerPointageManuel() {
     if (!chantier) { showNotification('Sélectionnez un chantier', 'error'); return; }
     if (!date) { showNotification('Sélectionnez une date', 'error'); return; }
 
-    const { error } = await db.from('pointage').insert({
+    const { data: emp } = await db.from('personnel').select('id, salaire_journalier').eq('nom', nom).maybeSingle();
+    const { error } = await db.from('pointage_attendance').insert({
         date: date,
         chantier: chantier,
         nom_employe: nom,
+        employe_id: emp?.id || null,
         type_pointage: type === 'arrivee' ? 'Arrivée' : 'Départ',
-        nb_jours: 1,
-        salaire_journalier: 0,
-        total_avances: 0,
-        source: 'manuel'
+        salaire_journalier: emp?.salaire_journalier || 0,
+        statut: 'present'
     });
     if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
 
@@ -749,8 +753,7 @@ async function generateAllQRCodes() {
                           <p style="font-size:10px;color:#666">${emp.metier || ''}</p>`;
         container.appendChild(div);
         QRCode.toCanvas(canvas, JSON.stringify({
-            id: emp.id, nom: emp.nom, metier: emp.metier,
-            chantier: emp.chantier, salaire_journalier: emp.salaire_journalier
+            id: emp.id, nom: emp.nom
         }), { width: 120, margin: 2, color: { dark: '#1C2B3A', light: '#ffffff' } });
     });
     showNotification(`${data.length} QR Codes générés ✓`, 'success');
@@ -1430,17 +1433,73 @@ function showPayslipModal(emp) {
 }
 
 function exportPayslipPDF(emp) {
+    const primes = Math.round(emp.total * 0.05);
+    const heuresSup = Math.round(emp.taux * 0.5 * Math.min(emp.jours, 4));
+    const cnaps = Math.round(emp.total * 0.01);
+    const ostie = Math.round(emp.total * 0.005);
+    const retenues = Math.round(emp.total * 0.02);
+    const totalRevenus = emp.total + primes + heuresSup;
+    const deductions = emp.avances + cnaps + ostie + retenues;
+    const netFinal = Math.max(0, totalRevenus - deductions);
+    const dateStr = new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' });
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
+    let y = 20;
+    const left = 20, right = 190;
+    const l = (txt) => { doc.text(txt, left, y); y += 7; };
+    const sep = () => { y += 3; };
+
     doc.setFontSize(16);
-    doc.text('NySoa BTP — Fiche de Paie', 20, 20);
+    doc.text('NySoa BTP — Fiche de Paie', left, y); y += 10;
+    doc.setFontSize(10);
+    doc.text(dateStr + ' · ' + (emp.type || 'JOURNALIER'), left, y); y += 4;
+    doc.setFontSize(8);
+    doc.text('Lot 0708 k Ambohimena Antsirabe · +261 34 99 498 49', left, y); y += 10;
+
+    doc.setDrawColor(28, 43, 58);
+    doc.line(left, y, right, y); y += 3;
     doc.setFontSize(12);
-    doc.text(`Employé: ${emp.nom}`, 20, 35);
-    doc.text(`Jours: ${emp.jours} · Taux: ${formatAriary(emp.taux)}`, 20, 45);
-    doc.text(`Total: ${formatAriary(emp.total)}`, 20, 55);
-    doc.text(`Net à payer: ${formatAriary(emp.net)}`, 20, 65);
-    doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 20, 75);
-    doc.save(`paie_${emp.nom.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`);
+    doc.text(emp.nom, left, y);
+    doc.setFontSize(10);
+    doc.text('Jours: ' + emp.jours + '  Taux: ' + formatAriary(emp.taux), right - 40, y, { align: 'right' });
+    y += 10;
+
+    doc.setFontSize(11); doc.setFont(undefined, 'bold');
+    l('REVENUS');
+    doc.setFont(undefined, 'normal'); doc.setFontSize(10);
+    l('Salaire de base           ' + formatAriary(emp.total));
+    l('Heures supplémentaires    ' + formatAriary(heuresSup));
+    l('Primes (5%)               ' + formatAriary(primes));
+    doc.setFont(undefined, 'bold');
+    l('Total revenus             ' + formatAriary(totalRevenus));
+    doc.setFont(undefined, 'normal');
+    sep();
+
+    doc.setFontSize(11); doc.setFont(undefined, 'bold');
+    l('DEDUCTIONS');
+    doc.setFont(undefined, 'normal'); doc.setFontSize(10);
+    l('Avances                   -' + formatAriary(emp.avances));
+    l('Retenues (2%)              -' + formatAriary(retenues));
+    l('CNaPS (1%)                 -' + formatAriary(cnaps));
+    l('OSTIE (0.5%)               -' + formatAriary(ostie));
+    doc.setFont(undefined, 'bold');
+    l('Total déductions           -' + formatAriary(deductions));
+    doc.setFont(undefined, 'normal');
+    sep();
+
+    doc.setDrawColor(28, 43, 58);
+    doc.line(left, y, right, y); y += 3;
+    doc.setFontSize(14); doc.setFont(undefined, 'bold');
+    l('NET À PAYER               ' + formatAriary(netFinal));
+    doc.setFont(undefined, 'normal');
+    sep();
+
+    doc.setFontSize(8); doc.setTextColor(128);
+    l('Généré le ' + new Date().toLocaleString('fr-FR'));
+    doc.setTextColor(0);
+
+    doc.save('paie_' + emp.nom.replace(/[^a-zA-Z0-9]/g,'_') + '.pdf');
     showNotification('PDF exporté ✓', 'success');
 }
 

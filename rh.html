@@ -488,6 +488,9 @@
             <section id="paie" class="section">
                 <div class="section-header">
                     <h2>Gestion de la Paie</h2>
+                    <button class="btn btn-secondary" onclick="synchroniserPointagesHebdo()">
+                        <i class="fas fa-sync"></i> Synchro hebdo
+                    </button>
                     <button class="btn btn-primary" onclick="genererFichesPaie()">
                         <i class="fas fa-calculator"></i> Générer fiches
                     </button>
@@ -927,6 +930,48 @@
             });
         }
 
+        async function synchroniserPointagesHebdo() {
+            showNotification('Synchronisation hebdomadaire en cours...', 'info');
+            try {
+                const debutSem = new Date(); debutSem.setDate(debutSem.getDate() - debutSem.getDay());
+                debutSem.setHours(0,0,0,0);
+                const finSem = new Date(debutSem); finSem.setDate(finSem.getDate() + 6);
+                finSem.setHours(23,59,59,999);
+
+                const { data: attendances } = await db.from('pointage_attendance')
+                    .select('nom_employe, date, employe_id, salaire_journalier, statut')
+                    .gte('date', debutSem.toISOString().split('T')[0])
+                    .lte('date', finSem.toISOString().split('T')[0]);
+
+                if (!attendances || !attendances.length) {
+                    showNotification('Aucun pointage cette semaine', 'info'); return;
+                }
+
+                const grouped = {};
+                attendances.forEach(a => {
+                    const key = a.nom_employe || a.employe_id;
+                    if (!key) return;
+                    if (!grouped[key]) grouped[key] = { nom_employe: a.nom_employe, employe_id: a.employe_id, salaire_journalier: a.salaire_journalier || 0, jours: new Set(), statut: a.statut };
+                    grouped[key].jours.add(a.date);
+                });
+
+                const semaine = debutSem.toISOString().split('T')[0];
+                let count = 0;
+                for (const key of Object.keys(grouped)) {
+                    const g = grouped[key];
+                    const nbJours = g.jours.size;
+                    const aPayer = nbJours * g.salaire_journalier;
+                    const { error } = await db.from('pointage').upsert({
+                        nom_employe: g.nom_employe, employe_id: g.employe_id,
+                        semaine, nb_jours: nbJours, salaire_journalier: g.salaire_journalier,
+                        a_payer: aPayer, statut: 'calcule'
+                    }, { onConflict: 'nom_employe,semaine', ignoreDuplicates: false });
+                    if (!error) count++;
+                }
+                showNotification(`${count} employés synchronisés ✓`, 'success');
+            } catch(e) { showNotification('Erreur synchro: ' + e.message, 'error'); }
+        }
+
         async function genererFichesPaie() {
             showNotification('Génération des fiches de paie en cours...', 'info');
             try {
@@ -1008,6 +1053,17 @@
                 </form>
             </div>
         </div>
+    </div>
+
+    <!-- Modal Fiche de Paie -->
+    <div class="modal" id="modal-payslip">
+      <div class="modal-content" style="max-width:650px">
+        <div class="modal-header">
+          <h3>Fiche de Paie</h3>
+          <button class="close-modal" onclick="closeModal('modal-payslip')">&times;</button>
+        </div>
+        <div class="modal-body" id="payslip-modal-body"></div>
+      </div>
     </div>
 </body>
 </html>

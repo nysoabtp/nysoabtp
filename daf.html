@@ -33,6 +33,14 @@
                     <i class="fas fa-chart-line"></i>
                     <span>Budget</span>
                 </a>
+                <a href="#" class="nav-item" data-section="budget-felana">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <span>Budget FELANA</span>
+                </a>
+                <a href="#" class="nav-item" data-section="devis">
+                    <i class="fas fa-file-signature"></i>
+                    <span>Devis & Proforma</span>
+                </a>
                 <a href="#" class="nav-item" data-section="factures">
                     <i class="fas fa-file-invoice-dollar"></i>
                     <span>Factures</span>
@@ -154,6 +162,17 @@
                 </div>
 
                 <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Bénéfice Mensuel</h3>
+                            <div class="card-actions">
+                                <button class="btn-small" onclick="exportChart('beneficeChart', 'pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="beneficeChart"></canvas>
+                        </div>
+                    </div>
                     <div class="card">
                         <div class="card-header">
                             <h3>Flux de Trésorerie</h3>
@@ -407,6 +426,47 @@
                 </div>
             </section>
 
+            <!-- Budget Felana Section -->
+            <section id="budget-felana" class="section">
+                <div class="section-header">
+                    <h2>Budget FELANA</h2>
+                    <button class="btn btn-primary" onclick="openModal('modal-budget-felana')">
+                        <i class="fas fa-plus"></i> Nouvelle ligne
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Suivi budgétaire par chantier</h3>
+                        <div class="filters">
+                            <select class="filter-select" id="felana-filter-chantier" onchange="loadBudgetFelana()">
+                                <option value="">Tous les chantiers</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Chantier</th>
+                                    <th>Poste</th>
+                                    <th>Période</th>
+                                    <th>Prévu (Ar)</th>
+                                    <th>Réel (Ar)</th>
+                                    <th>Écart</th>
+                                    <th>Progression</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="felana-table-body">
+                                <tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px">Chargement…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
             <!-- Factures Section -->
             <section id="factures" class="section">
                 <div class="section-header">
@@ -466,6 +526,84 @@
                                         <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
                                     </td>
                                 </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Devis & Proforma Section -->
+            <section id="devis" class="section">
+                <div class="section-header">
+                    <h2>Devis & Proforma</h2>
+                    <button class="btn btn-primary" onclick="ouvrirEditeurDevis()">
+                        <i class="fas fa-plus"></i> Nouveau Devis
+                    </button>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fas fa-file-invoice"></i></div>
+                        <div class="stat-info">
+                            <h3 id="d-stat-total">0</h3>
+                            <p>Total devis</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-info">
+                            <h3 id="d-stat-acceptes">0</h3>
+                            <p>Acceptés</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange"><i class="fas fa-hourglass-half"></i></div>
+                        <div class="stat-info">
+                            <h3 id="d-stat-attente">0</h3>
+                            <p>En attente</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red"><i class="fas fa-times-circle"></i></div>
+                        <div class="stat-info">
+                            <h3 id="d-stat-refuses">0</h3>
+                            <p>Refusés</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Liste des Devis</h3>
+                        <div class="filters">
+                            <select class="filter-select" id="devis-filter-status" onchange="filtrerDevisDAF(this.value)">
+                                <option value="">Tous</option>
+                                <option value="BROUILLON">Brouillon</option>
+                                <option value="SOUMIS">Soumis (validation)</option>
+                                <option value="APPROUVE">Approuvé</option>
+                                <option value="ENVOYE">Envoyé</option>
+                                <option value="ACCEPTE">Accepté</option>
+                                <option value="REFUSE">Refusé</option>
+                            </select>
+                            <button class="btn-small" onclick="exportDevisExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>N°</th>
+                                    <th>Client</th>
+                                    <th>Objet</th>
+                                    <th>Total</th>
+                                    <th>Date</th>
+                                    <th>Validité</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="devis-tbody-daf">
+                                <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px">Chargement…</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -556,8 +694,18 @@
             const user = await checkAuthOrRedirect('daf');
             if (!user) return;
             loadFacturesTable();
+            loadDevisDAF();
+            loadBudgetFelana();
+            populateFelanaChantiers();
             loadDAFData();
             updateDate();
+        });
+
+        document.querySelectorAll('.nav-item[data-section="devis"]').forEach(item => {
+            item.addEventListener('click', () => setTimeout(loadDevisDAF, 200));
+        });
+        document.querySelectorAll('.nav-item[data-section="budget-felana"]').forEach(item => {
+            item.addEventListener('click', () => { setTimeout(loadBudgetFelana, 200); populateFelanaChantiers(); });
         });
 
         async function loadDAFData() {
@@ -584,6 +732,8 @@
             'dashboard': 'Tableau de bord',
             'comptabilite': 'Comptabilité',
             'budget': 'Gestion Budgétaire',
+            'devis': 'Devis & Proforma',
+            'budget-felana': 'Budget FELANA',
             'factures': 'Gestion des Factures',
             'rapports-fin': 'Rapports Financiers'
         });
@@ -601,6 +751,33 @@
                     if (m >= 0) {
                         if (r.categorie === 'RECETTE' || r.montant > 0) encaiss[m] += (r.montant || 0) / 1e6;
                         else decaiss[m] += (r.montant || 0) / 1e6;
+                    }
+                });
+            }
+
+            // Bénéfice mensuel chart
+            const beneficeCtx = document.getElementById('beneficeChart');
+            if (beneficeCtx) {
+                const benefData = months.slice(0, new Date().getMonth() + 1).map((_, i) =>
+                    ((encaiss[i] || 0) - (decaiss[i] || 0)).toFixed(1));
+                new Chart(beneficeCtx, {
+                    type: 'line',
+                    data: {
+                        labels: months.slice(0, new Date().getMonth() + 1),
+                        datasets: [{
+                            label: 'Bénéfice net (MAr)',
+                            data: benefData,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16,185,129,0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: benefData.map(v => v < 0 ? '#ef4444' : '#10b981'),
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: true, position: 'top' } },
+                        scales: { y: { beginAtZero: true } }
                     }
                 });
             }
@@ -652,7 +829,8 @@
             const { error } = await db.from('devis').insert({
                 numero, client: fd.get('client'), projet: fd.get('projet'),
                 date_devis: fd.get('date'), montant_ht: parseFloat(fd.get('montant_ht') || 0),
-                montant_ttc: parseFloat(fd.get('montant_ttc') || 0), statut: 'FACTURE'
+                montant_ttc: parseFloat(fd.get('montant_ttc') || 0), statut: 'FACTURE',
+                reference: 'DEV-' + numero
             });
             if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
             closeModal('modal-facture');
@@ -770,6 +948,98 @@
             });
         }
 
+        // ── BUDGET FELANA ─────────────────────────────────────────
+        async function populateFelanaChantiers() {
+            const sel = document.querySelector('#modal-budget-felana select[name="chantier_id"]');
+            const filter = document.getElementById('felana-filter-chantier');
+            if (!sel && !filter) return;
+            try {
+                const { data } = await db.from('chantiers').select('id, nom').order('nom');
+                const opts = '<option value="">— Général —</option>' + (data||[]).map(c =>
+                    `<option value="${c.id}">${c.nom}</option>`).join('');
+                if (sel) sel.innerHTML = opts;
+                if (filter) filter.innerHTML = '<option value="">Tous les chantiers</option>' + (data||[]).map(c =>
+                    `<option value="${c.id}">${c.nom}</option>`).join('');
+            } catch(e) {}
+        }
+
+        async function loadBudgetFelana() {
+            const tbody = document.getElementById('felana-table-body');
+            if (!tbody) return;
+            try {
+                const { data } = await db.from('budget_felana').select('*, chantiers!inner(nom)').order('annee', { ascending: false }).limit(200);
+                const filterVal = document.getElementById('felana-filter-chantier')?.value || '';
+                const list = (data || []).filter(r => !filterVal || String(r.chantier_id) === filterVal);
+                tbody.innerHTML = '';
+                if (!list.length) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px">Aucune ligne budgétaire</td></tr>';
+                    return;
+                }
+                const posteLabels = { materiaux: 'Matériaux', main_oeuvre: 'Main-d\'œuvre', equipements: 'Équipements', divers: 'Divers' };
+                list.forEach(r => {
+                    const ecart = (r.montant_prevu||0) - (r.montant_reel||0);
+                    const pct = r.montant_prevu > 0 ? Math.min(100, ((r.montant_reel||0) / r.montant_prevu) * 100) : 0;
+                    const color = pct > 90 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981';
+                    const statCls = { BROUILLON:'', SOUMIS:'warning', APPROUVE:'success', ACTIF:'success' }[r.statut] || '';
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${r.chantiers?.nom || '—'}</td>
+                        <td>${posteLabels[r.poste] || r.poste}</td>
+                        <td>${r.mois}/${r.annee}</td>
+                        <td>${(r.montant_prevu||0).toLocaleString()}</td>
+                        <td>${(r.montant_reel||0).toLocaleString()}</td>
+                        <td style="color:${ecart < 0 ? '#ef4444' : '#10b981'};font-weight:600">${ecart.toLocaleString()}</td>
+                        <td><div style="background:#f0f0f0;border-radius:10px;height:8px;width:80px;overflow:hidden;display:inline-block"><div style="width:${pct}%;background:${color};height:100%"></div></div></td>
+                        <td><span class="status ${statCls}">${r.statut||'BROUILLON'}</span></td>
+                        <td><button class="btn-icon" onclick="editerBudgetFelana(${r.id})"><i class="fas fa-edit"></i></button></td>`;
+                    tbody.appendChild(tr);
+                });
+            } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
+        }
+
+        async function editerBudgetFelana(id) {
+            const { data, error } = await db.from('budget_felana').select('*').eq('id', id).single();
+            if (error || !data) { showNotification('Ligne introuvable', 'error'); return; }
+            const form = document.getElementById('felana-form');
+            form.querySelector('[name="id"]').value = data.id || '';
+            form.querySelector('[name="chantier_id"]').value = data.chantier_id || '';
+            form.querySelector('[name="poste"]').value = data.poste || 'materiaux';
+            form.querySelector('[name="annee"]').value = data.annee || new Date().getFullYear();
+            form.querySelector('[name="mois"]').value = data.mois || new Date().getMonth() + 1;
+            form.querySelector('[name="montant_prevu"]').value = data.montant_prevu || 0;
+            form.querySelector('[name="montant_reel"]').value = data.montant_reel || 0;
+            form.querySelector('[name="statut"]').value = data.statut || 'BROUILLON';
+            document.getElementById('felana-modal-title').textContent = 'Modifier ligne FELANA';
+            openModal('modal-budget-felana');
+        }
+
+        async function submitBudgetFelana(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const id = fd.get('id');
+            const payload = {
+                chantier_id: parseInt(fd.get('chantier_id')) || null,
+                poste: fd.get('poste'), annee: parseInt(fd.get('annee')) || new Date().getFullYear(),
+                mois: parseInt(fd.get('mois')) || new Date().getMonth() + 1,
+                montant_prevu: parseFloat(fd.get('montant_prevu')) || 0,
+                montant_reel: parseFloat(fd.get('montant_reel')) || 0,
+                statut: fd.get('statut') || 'BROUILLON',
+            };
+            try {
+                let err;
+                if (id) {
+                    ({ error: err } = await db.from('budget_felana').update(payload).eq('id', id));
+                } else {
+                    ({ error: err } = await db.from('budget_felana').insert(payload));
+                }
+                if (err) throw err;
+                closeModal('modal-budget-felana');
+                e.target.reset();
+                showNotification('Ligne FELANA ' + (id ? 'modifiée' : 'créée') + ' ✓', 'success');
+                loadBudgetFelana();
+            } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
+        }
+
         async function submitBudget(e) {
             e.preventDefault();
             const fd = new FormData(e.target);
@@ -788,6 +1058,124 @@
             loadBudget();
         }
     </script>
+
+    <!-- ═══ ÉDITEUR DE DEVIS — overlay ═══ -->
+    <div id="editeur-devis-overlay" style="display:none;position:fixed;inset:0;z-index:2000;background:#f5f6fa;overflow-y:auto;">
+      <div style="max-width:1050px;margin:0 auto;padding:24px 28px 60px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;background:#f5f6fa;padding:12px 0;border-bottom:1px solid #e9ecef">
+          <button class="btn btn-secondary" onclick="fermerEditeurDevis()"><i class="fas fa-arrow-left"></i> Retour</button>
+          <span style="flex:1;font-size:16px;font-weight:700;color:#1C2B3A">Éditeur de Devis</span>
+          <select id="ed-statut" class="filter-select" style="width:140px">
+            <option value="BROUILLON">Brouillon</option>
+            <option value="SOUMIS">Soumis</option>
+            <option value="APPROUVE">Approuvé</option>
+            <option value="ENVOYE">Envoyé</option>
+            <option value="ACCEPTE">Accepté</option>
+            <option value="REFUSE">Refusé</option>
+          </select>
+          <button class="btn btn-secondary" onclick="if(devisEnCours&&devisEnCours.id)imprimerDevis(devisEnCours.id)"><i class="fas fa-print"></i> Imprimer</button>
+          <button id="btn-save-devis" class="btn btn-primary" onclick="sauvegarderDevis()"><i class="fas fa-save"></i> Sauvegarder</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:24px;margin-bottom:20px">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#1C2B3A;margin-bottom:2px">NySoa BTP</div>
+            <div style="font-size:12px;color:#888">Lot 0708 k Ambohimena Antsirabe · +261 34 99 498 49</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#1C2B3A">DEVIS</div>
+            <div style="font-size:12px;color:#888;margin-top:4px">
+              N° <input id="ed-numero" style="width:130px;font-size:12px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1C2B3A;outline:none;text-align:right">
+            </div>
+            <div style="font-size:12px;color:#888;margin-top:3px">
+              Date : <input type="date" id="ed-date" style="font-size:12px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1C2B3A;outline:none">
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;background:white;border:1px solid #e9ecef;border-radius:10px;padding:14px 18px;margin-bottom:16px">
+          <div><label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Client</label>
+            <input id="ed-client" style="width:100%;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a1a1a;outline:none;padding-bottom:2px"></div>
+          <div><label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Lieu des travaux</label>
+            <input id="ed-lieu" style="width:100%;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a1a1a;outline:none;padding-bottom:2px"></div>
+          <div><label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Contact</label>
+            <input id="ed-contact" style="width:100%;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a1a1a;outline:none;padding-bottom:2px"></div>
+        </div>
+        <div style="background:white;border:1px solid #e9ecef;border-radius:10px;padding:12px 18px;margin-bottom:20px">
+          <label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Objet des travaux</label>
+          <input id="ed-objet" style="width:100%;font-size:13px;border:none;background:transparent;color:#1a1a1a;outline:none">
+        </div>
+        <div id="ed-lots-container"></div>
+        <button class="btn btn-secondary" onclick="edAjouterLot()" style="margin-bottom:24px">
+          <i class="fas fa-plus"></i> Ajouter un lot
+        </button>
+        <div style="display:flex;justify-content:flex-end">
+          <div style="width:340px;border:1px solid #e9ecef;border-radius:10px;overflow:hidden">
+            <div id="ed-sous-totaux"></div>
+            <div style="display:flex;justify-content:space-between;padding:8px 14px;font-size:13px;border-top:1px solid #e9ecef">
+              <span style="color:#888">TVA (%)</span>
+              <input id="ed-tva" type="number" min="0" max="100" step="0.01" value="0"
+                style="width:60px;text-align:right;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;outline:none"
+                onchange="updateTotauxEditeur()">
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:8px 14px;font-size:13px;border-top:1px solid #e9ecef">
+              <span style="color:#888">Total HT</span><span id="ed-total-ht" style="font-weight:600">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;font-size:15px;font-weight:700;background:#1C2B3A;color:white">
+              <span>Total général</span><span id="ed-total-ttc">—</span>
+            </div>
+          </div>
+        </div>
+        <div id="ed-total-lettres" style="margin-top:12px;font-size:12px;font-style:italic;color:#888;text-align:right"></div>
+      </div>
+    </div>
+
+    <!-- Modal Budget FELANA -->
+    <div id="modal-budget-felana" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="felana-modal-title">Nouvelle ligne FELANA</h3><button class="close-modal" onclick="closeModal('modal-budget-felana')">&times;</button></div>
+            <div class="modal-body">
+                <form id="felana-form" onsubmit="submitBudgetFelana(event)">
+                    <input type="hidden" name="id">
+                    <div class="form-group"><label>Chantier</label>
+                        <select name="chantier_id" class="form-input">
+                            <option value="">— Général —</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1"><label>Poste</label>
+                            <select name="poste" class="form-input">
+                                <option value="materiaux">Matériaux</option>
+                                <option value="main_oeuvre">Main-d'œuvre</option>
+                                <option value="equipements">Équipements</option>
+                                <option value="divers">Divers</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:0.5"><label>Mois</label>
+                            <select name="mois" class="form-input">
+                                <option value="1">Jan</option><option value="2">Fév</option><option value="3">Mar</option>
+                                <option value="4">Avr</option><option value="5">Mai</option><option value="6">Juin</option>
+                                <option value="7">Juil</option><option value="8">Aoû</option><option value="9">Sep</option>
+                                <option value="10">Oct</option><option value="11">Nov</option><option value="12">Déc</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:0.5"><label>Année</label><input name="annee" type="number" class="form-input" value="2026"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1"><label>Montant prévu (Ar)</label><input name="montant_prevu" type="number" step="any" class="form-input"></div>
+                        <div class="form-group" style="flex:1"><label>Montant réel (Ar)</label><input name="montant_reel" type="number" step="any" class="form-input"></div>
+                    </div>
+                    <div class="form-group"><label>Statut</label>
+                        <select name="statut" class="form-input">
+                            <option value="BROUILLON">Brouillon</option>
+                            <option value="SOUMIS">Soumis</option>
+                            <option value="APPROUVE">Approuvé</option>
+                            <option value="ACTIF">Actif</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%">Enregistrer</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal Budget -->
     <div id="modal-budget" class="modal">

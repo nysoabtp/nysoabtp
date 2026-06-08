@@ -56,7 +56,7 @@
                 </div>
                 <div class="user-details">
                     <p class="user-name">Chef de chantier</p>
-                    <p class="user-role">Direction Chantier</p>
+                    <p class="user-role">Direction Chantier <span id="chef-chantier-name"></span></p>
                 </div>
             </div>
         </aside>
@@ -505,10 +505,14 @@
     <script src="import-excel.js"></script>
     <script src="modules_new.js"></script>
     <script>
+        let chefChantier = localStorage.getItem('chef_chantier') || '';
+
         async function loadPersonnelTable() {
             const tbody = document.getElementById('personnel-table-body');
             if (!tbody) return;
-            const { data } = await db.from('personnel').select('*').eq('actif', true).order('nom');
+            let q = db.from('personnel').select('*').eq('actif', true);
+            if (chefChantier) q = q.eq('chantier', chefChantier);
+            const { data } = await q.order('nom');
             if (!data) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#888;padding:24px">Aucun employé</td></tr>'; return; }
             tbody.innerHTML = data.map(emp => {
                 const embauche = emp.date_embauche ? new Date(emp.date_embauche).toLocaleDateString('fr-FR') : '—';
@@ -527,21 +531,35 @@
             }).join('');
         }
 
-        // Check authentication
-        window.addEventListener('load', async function() {
+        async function initChefScope() {
             const user = await checkAuthOrRedirect('chef');
             if (!user) return;
+            if (!chefChantier && user.user_metadata?.chantier) {
+                chefChantier = user.user_metadata.chantier;
+                localStorage.setItem('chef_chantier', chefChantier);
+            }
+            if (chefChantier) {
+                document.getElementById('chef-chantier-name').textContent = ' — ' + chefChantier;
+            }
             loadChefData();
             loadPlanningLocales();
             loadDemandesLocales();
             updateDate();
             loadPersonnelTable();
-        });
+        }
+
+        window.addEventListener('load', initChefScope);
 
         async function loadChefData() {
             try {
-                const { data: chantiers } = await db.from('chantiers').select('*').eq('actif', true);
-                const { data: personnel } = await db.from('personnel').select('*').eq('actif', true);
+                let qCh = db.from('chantiers').select('*').eq('actif', true);
+                let qPers = db.from('personnel').select('*').eq('actif', true);
+                if (chefChantier) {
+                    qCh = qCh.eq('nom', chefChantier);
+                    qPers = qPers.eq('chantier', chefChantier);
+                }
+                const { data: chantiers } = await qCh;
+                const { data: personnel } = await qPers;
                 const { data: materiels } = await db.from('materiels').select('*');
                 if (chantiers) {
                     document.getElementById('stat-chantiers').textContent = chantiers.length;

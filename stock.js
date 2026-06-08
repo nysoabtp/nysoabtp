@@ -47,6 +47,44 @@ function stockSave(key, data) {
 function getArticles()    { return stockLoad(STOCK_KEY,     DEFAULT_ARTICLES); }
 function getMouvements()  { return stockLoad(MOUVEMENT_KEY, DEFAULT_MOUVEMENTS); }
 
+// ── Sync localStorage → Supabase (materiels) ──────────
+async function stockSyncToSupabase() {
+    const articles = getArticles();
+    for (const art of articles) {
+        try {
+            await db.from('materiels').upsert({
+                libelle: art.nom,
+                quantite: art.quantite,
+                etat: art.categorie,
+                chantier_actuel: art.emplacement || null,
+                prix_unitaire: art.prix_unitaire || 0,
+                fournisseur: '',
+                seuil_alerte: art.seuil_alerte || 0
+            }, { onConflict: 'id' });
+        } catch(e) { console.warn('[Stock] Sync error:', e); }
+    }
+}
+
+async function stockLoadFromSupabase() {
+    try {
+        const { data } = await db.from('materiels').select('*').limit(500);
+        if (data && data.length) {
+            const mapped = data.map(m => ({
+                ref: 'STK-SB-' + m.id,
+                nom: m.libelle || '',
+                categorie: m.etat || '',
+                emplacement: m.chantier_actuel || '',
+                quantite: m.quantite || 0,
+                unite: 'Unité',
+                prix_unitaire: m.prix_unitaire || 0,
+                seuil_alerte: m.seuil_alerte || 0,
+                notes: ''
+            }));
+            stockSave(STOCK_KEY, mapped);
+        }
+    } catch(e) { console.warn('[Stock] Load from Supabase error:', e); }
+}
+
 // ── Init données ───────────────────────────────────────
 function stockInitData() {
     if (!localStorage.getItem(STOCK_KEY))     stockSave(STOCK_KEY,     DEFAULT_ARTICLES);
@@ -700,8 +738,11 @@ function refreshStock() {
 }
 
 // ── Init au chargement ─────────────────────────────────
-function initStockModule() {
+async function initStockModule() {
     stockInitData();
+    if (typeof db !== 'undefined') {
+        await stockLoadFromSupabase();
+    }
     populateStockSelects();
     loadStockTable();
     loadMouvementsTable();
@@ -717,6 +758,7 @@ function initStockModule() {
         item.addEventListener('click', () => {
             setTimeout(() => {
                 refreshStock();
+                stockSyncToSupabase();
                 renderAffectationsFutures();
             }, 100);
         });

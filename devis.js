@@ -66,7 +66,7 @@ async function loadDevisTable() {
     }
 
     devisListe.forEach(d => {
-        const statutCls = { ACCEPTE: 'success', REFUSE: 'danger', ENVOYE: 'warning', BROUILLON: '' }[d.statut] || '';
+        const statutCls = { ACCEPTE: 'success', REFUSE: 'danger', ENVOYE: 'warning', SOUMIS: 'warning', APPROUVE: 'success', BROUILLON: '' }[d.statut] || '';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${d.numero || '—'}</td>
@@ -309,6 +309,7 @@ async function sauvegarderDevis() {
             numero: d.numero, date: d.date, client: d.client,
             lieu: d.lieu, contact: d.contact, objet: d.objet,
             tva: d.tva, statut: d.statut, total: d.total,
+            reference: d.reference || 'DEV-' + String(d.numero || Date.now()).slice(0,5),
         };
 
         if (devisId) {
@@ -689,6 +690,7 @@ async function seedDevisAmbohimanabe() {
             numero: num, date: donnees.date, client: donnees.client,
             lieu: donnees.lieu, objet: donnees.objet,
             tva: 0, statut: 'ENVOYE', total: total,
+            reference: 'DEV-' + num,
         }).select('id').single();
         if (devisErr) { console.error('[Seed Ambohimanabe]', devisErr); return; }
 
@@ -744,6 +746,128 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// ── WORKFLOW DEVIS (DAF + Admin) ──────────────────────────────
+async function soumettreValidationDevis(id) {
+    if (!confirm('Soumettre ce devis à validation Admin ?')) return;
+    try {
+        const { data: dv, error: devErr } = await db.from('devis').select('*').eq('id', id).single();
+        if (devErr || !dv) throw devErr || new Error('Devis introuvable');
+        const { error: updErr } = await db.from('devis').update({ statut: 'SOUMIS' }).eq('id', id);
+        if (updErr) throw updErr;
+        const { error: valErr } = await db.from('validations').insert({
+            type: 'devis', statut: 'EN_ATTENTE',
+            emetteur_role: 'daf', emetteur_id: id,
+            commentaire: 'Devis #' + dv.numero + ' — ' + dv.client,
+        });
+        if (valErr) throw valErr;
+        showNotification('Devis soumis pour validation ✓', 'success');
+        if (typeof loadDevisDAF === 'function') loadDevisDAF();
+        if (typeof loadDevisTable === 'function') loadDevisTable();
+    } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
+}
+
+async function envoyerDevis(id) {
+    if (!confirm('Marquer ce devis comme ENVOYÉ au client ?')) return;
+    try {
+        const { error } = await db.from('devis').update({ statut: 'ENVOYE' }).eq('id', id);
+        if (error) throw error;
+        showNotification('Devis marqué Envoyé ✓', 'success');
+        if (typeof loadDevisDAF === 'function') loadDevisDAF();
+        if (typeof loadDevisTable === 'function') loadDevisTable();
+    } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
+}
+
+async function convertirDevisEnChantier(id) {
+    if (!confirm('Créer un chantier à partir de ce devis accepté ?\nLa création devra être validée par Admin.')) return;
+    try {
+        const { data: dv } = await db.from('devis').select('*').eq('id', id).single();
+        if (!dv) { showNotification('Devis introuvable', 'error'); return; }
+        const nom = 'CHANTIER - ' + dv.client + ' - ' + (dv.objet||'').substring(0,30);
+        const { data: ch, error: chErr } = await db.from('chantiers').insert({
+            nom, client: dv.client, localisation: dv.lieu||'',
+            type_travaux: dv.objet||'', budget: dv.total||0, actif: false,
+        }).select('id').single();
+        if (chErr) throw chErr;
+        const { error: valErr } = await db.from('validations').insert({
+            type: 'creation_chantier', statut: 'EN_ATTENTE',
+            emetteur_role: 'daf', emetteur_id: ch.id,
+            commentaire: 'Création chantier depuis devis #' + dv.numero + ' — ' + dv.client,
+        });
+        if (valErr) throw valErr;
+        showNotification('Chantier créé en attente de validation Admin ✓', 'success');
+        if (typeof loadDevisDAF === 'function') loadDevisDAF();
+        if (typeof loadDevisTable === 'function') loadDevisTable();
+    } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
+}
+
+async function loadDevisDAF() {
+    const tbody = document.getElementById('devis-tbody-daf');
+    if (!tbody) return;
+    try {
+        const { data } = await db.from('devis').select('*')
+            .not('statut', 'eq', 'FACTURE')
+            .order('created_at', { ascending: false }).limit(200);
+        const list = data || [];
+        const elTotal = document.getElementById('d-stat-total');
+        const elAcceptes = document.getElementById('d-stat-acceptes');
+        const elAttente = document.getElementById('d-stat-attente');
+        const elRefuses = document.getElementById('d-stat-refuses');
+        if (elTotal) elTotal.textContent = list.length;
+        if (elAcceptes) elAcceptes.textContent = list.filter(d => d.statut === 'ACCEPTE').length;
+        if (elAttente) elAttente.textContent = list.filter(d => d.statut === 'SOUMIS' || d.statut === 'ENVOYE').length;
+        if (elRefuses) elRefuses.textContent = list.filter(d => d.statut === 'REFUSE').length;
+
+        tbody.innerHTML = '';
+        if (!list.length) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px">Aucun devis</td></tr>';
+            return;
+        }
+        list.forEach(d => {
+            const cls = { ACCEPTE:'success', REFUSE:'danger', BROUILLON:'', SOUMIS:'warning', APPROUVE:'success', ENVOYE:'warning' }[d.statut] || '';
+            const a = [];
+            a.push(`<button class="btn-icon" title="Éditer" onclick="ouvrirEditeurDevis(${d.id})"><i class="fas fa-edit"></i></button>`);
+            if (d.statut === 'BROUILLON')
+                a.push(`<button class="btn-icon" title="Soumettre" onclick="soumettreValidationDevis(${d.id})" style="color:#f59e0b"><i class="fas fa-paper-plane"></i></button>`);
+            if (d.statut === 'APPROUVE')
+                a.push(`<button class="btn-icon" title="Envoyer" onclick="envoyerDevis(${d.id})" style="color:#10b981"><i class="fas fa-share"></i></button>`);
+            if (d.statut === 'ACCEPTE')
+                a.push(`<button class="btn-icon" title="Créer chantier" onclick="convertirDevisEnChantier(${d.id})" style="color:#0066cc"><i class="fas fa-hard-hat"></i></button>`);
+            a.push(`<button class="btn-icon" title="Imprimer" onclick="imprimerDevis(${d.id})"><i class="fas fa-print"></i></button>`);
+            a.push(`<button class="btn-icon" title="Dupliquer" onclick="dupliquerDevis(${d.id})"><i class="fas fa-copy"></i></button>`);
+            a.push(`<button class="btn-icon" title="Supprimer" onclick="supprimerDevis(${d.id})" style="color:var(--red)"><i class="fas fa-trash"></i></button>`);
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${d.numero||'—'}</td>
+                <td>${d.client||'—'}</td>
+                <td>${(d.objet||'').substring(0,35)}${(d.objet||'').length>35?'…':''}</td>
+                <td style="font-weight:600">${fmtAr(d.total)}</td>
+                <td>${d.date?new Date(d.date).toLocaleDateString('fr-FR'):'—'}</td>
+                <td>30 jours</td>
+                <td><span class="status ${cls}">${d.statut||'BROUILLON'}</span></td>
+                <td>${a.join(' ')}</td>`;
+            tbody.appendChild(tr);
+        });
+    } catch(e) { showNotification('Erreur devis: ' + e.message, 'error'); }
+}
+
+function filtrerDevisDAF(statut) {
+    document.querySelectorAll('#devis-tbody-daf tr').forEach(row => {
+        if (!statut) { row.style.display = ''; return; }
+        const el = row.querySelector('.status');
+        row.style.display = (el && el.textContent.trim() === statut) ? '' : 'none';
+    });
+}
+
+function exportDevisExcel() {
+    const tbody = document.getElementById('devis-tbody-daf') || document.getElementById('devis-tbody');
+    if (!tbody || !tbody.rows.length) { showNotification('Aucune donnée à exporter', 'error'); return; }
+    const ws = XLSX.utils.table_to_sheet(tbody.parentElement);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Devis');
+    XLSX.writeFile(wb, 'devis_nysoa_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
 
 console.log('[NYSOA BTP] devis.js chargé ✓');
 
