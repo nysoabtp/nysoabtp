@@ -1243,7 +1243,7 @@ async function loadRapports() {
             </thead>
             <tbody>
                 ${rows.map(r => {
-                    const taches = r.taches || [];
+                    const raw = r.taches; const taches = Array.isArray(raw) ? raw : typeof raw === 'string' ? (JSON.parse(raw)||[]) : [];
                     const avgAv = taches.length ? Math.round(taches.reduce((s,t)=>s+(t.avancement||0),0)/taches.length) : null;
                     const meteoIcon = {soleil:'☀️',nuageux:'⛅',pluie:'🌧️',orage:'⛈️'}[r.meteo] || '—';
                     const hasProb = r.problemes && r.problemes.trim();
@@ -1266,9 +1266,9 @@ async function loadRapports() {
 
 function showRapportDetail(jsonStr) {
     const r = JSON.parse(jsonStr);
-    const taches = r.taches || [];
-    const mvts = r.mouvements || [];
-    const photos = r.photos || [];
+    const rawT = r.taches; const taches = Array.isArray(rawT) ? rawT : typeof rawT === 'string' ? (JSON.parse(rawT)||[]) : [];
+    const mvts = Array.isArray(r.mouvements) ? r.mouvements : typeof r.mouvements === 'string' ? (JSON.parse(r.mouvements)||[]) : [];
+    const photos = Array.isArray(r.photos) ? r.photos : typeof r.photos === 'string' ? (JSON.parse(r.photos)||[]) : [];
     const meteoLabels = {soleil:'☀️ Soleil',nuageux:'⛅ Nuageux',pluie:'🌧️ Pluie',orage:'⛈️ Orage'};
     document.getElementById('rp-modal-content').innerHTML = `
         <h2 style="font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px">Rapport du ${r.date}</h2>
