@@ -643,7 +643,7 @@
                 <button class="close-modal" onclick="closeModal('modal-employe')">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="form-employe">
+                <form id="form-employe" onsubmit="submitEmploye(event)">
                     <div class="form-row">
                         <div class="form-group">
                             <label>Nom</label>
@@ -860,6 +860,25 @@
             e.target.reset();
             showNotification('Offre publiée ✓', 'success');
             loadOffresLocales();
+        }
+
+        async function submitEmploye(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const { error } = await db.from('personnel').insert({
+                nom: (fd.get('prenom') || '') + ' ' + (fd.get('nom') || ''),
+                chantier: fd.get('departement'),
+                metier: fd.get('poste'),
+                date_embauche: fd.get('date_embauche'),
+                salaire_journalier: parseFloat(fd.get('salaire')) || 0,
+                actif: true
+            });
+            if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+            closeModal('modal-employe');
+            e.target.reset();
+            showNotification('Employé ajouté ✓', 'success');
+            loadRHData();
+            if (typeof loadPersonnelTable === 'function') loadPersonnelTable();
         }
 
         async function submitConge(e) {
