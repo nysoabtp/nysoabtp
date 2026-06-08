@@ -69,7 +69,7 @@ async function checkAuthOrRedirect(expectedRole = null) {
         // Rediriger si le rôle ne correspond pas à la page
         if (expectedRole && role !== expectedRole) {
             const roleMap = {
-                admin: 'index',
+                admin: 'admin',
                 daf: 'daf',
                 chef: 'chef-chantier',
                 rh: 'rh',
