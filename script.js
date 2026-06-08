@@ -299,7 +299,7 @@ async function loadJournalTable() {
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px">Chargement...</td></tr>';
 
-    const { data, error } = await db.from('journal').select('*').order('date', { ascending: false }).limit(200);
+    const { data, error } = await db.from('journal').select('*').order('date', { ascending: false, nullsFirst: false }).limit(200);
     if (error) { console.error(error); tbody.innerHTML = ''; return; }
 
     tbody.innerHTML = '';
