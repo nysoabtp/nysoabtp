@@ -362,14 +362,25 @@ async function loadPersonnelTable() {
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px">Chargement...</td></tr>';
 
-    const { data, error } = await db.from('personnel').select('*').eq('actif', true).order('nom');
+    const { data, error } = await db.from('personnel').select('*').order('nom');
     if (error) { console.error(error); tbody.innerHTML = ''; return; }
+
+    // Populate chantier filter
+    const chantiers = [...new Set(data.map(e => e.chantier).filter(Boolean))];
+    const sel = document.getElementById('personnel-filter-chantier');
+    if (sel && !sel.dataset.loaded) {
+        sel.innerHTML = '<option value="">Tous chantiers</option>' + chantiers.map(c => `<option value="${c}">${c}</option>`).join('');
+        sel.dataset.loaded = '1';
+    }
 
     tbody.innerHTML = '';
     data.forEach((emp, i) => {
         const row = document.createElement('tr');
         row.setAttribute('data-id', emp.id);
         const anciennete = calculerAnciennete(emp.date_embauche);
+        const typeSalaire = emp.type_salaire || 'JOURNALIER';
+        const statut = emp.actif ? 'Actif' : 'Inactif';
+        const statutClass = emp.actif ? 'success' : 'error';
         row.innerHTML = `
             <td>EMP-${String(i+1).padStart(3,'0')}</td>
             <td>${emp.nom}</td>
@@ -377,16 +388,15 @@ async function loadPersonnelTable() {
             <td>${emp.chantier || '—'}</td>
             <td>${formatDate(emp.date_embauche)}</td>
             <td>${anciennete}</td>
-            <td>${emp.type_salaire === 'MENSUEL' ? formatAriary(emp.salaire_journalier)+'/mois' : formatAriary(emp.salaire_journalier)+'/jour'}</td>
-            <td><span class="status success">Actif</span></td>
+            <td>${typeSalaire === 'MENSUEL' ? formatAriary(emp.salaire_journalier)+'/mois' : formatAriary(emp.salaire_journalier)+'/jour'}</td>
+            <td><span class="status ${statutClass}">${statut}</span></td>
             <td>
-                <button class="btn-icon" title="Voir"      onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
+                <button class="btn-icon" title="Voir" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
                 <button class="btn-icon" title="Fin de contrat" onclick="finContrat('${emp.id}','${emp.nom.replace(/'/g,"\\'")}')"><i class="fas fa-times-circle"></i></button>
             </td>`;
         tbody.appendChild(row);
     });
 
-    // Ré-appliquer le filtre chantier actif s'il y en a un
     if (typeof reApplyChantierFilter === 'function') reApplyChantierFilter();
 }
 function finContrat(id, nom) {
