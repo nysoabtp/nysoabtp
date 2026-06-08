@@ -958,10 +958,8 @@ function closeModal(modalId) {
     document.body.style.overflow = 'auto';
 }
 
-document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', e => {
-        if (e.target === modal) { modal.classList.remove('active'); document.body.style.overflow = 'auto'; }
-    });
+document.addEventListener('click', e => {
+    if (e.target.classList.contains('modal')) { e.target.classList.remove('active'); document.body.style.overflow = 'auto'; }
 });
 
 // Fermer avec Escape
