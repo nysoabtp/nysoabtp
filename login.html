@@ -135,30 +135,16 @@
 
     <div class="comptes">
         <h4>Comptes de démonstration — cliquer pour remplir</h4>
-        <div class="compte-item" onclick="document.getElementById('email').value='admin@nysoa.mg';document.getElementById('password').focus()">
-            <span class="role">Administrateur</span>
-            <span class="cred">admin@nysoa.mg</span>
+        <div class="compte-item" onclick="fillLogin('admin@nysoa.mg')"><span class="role">Administrateur</span><span class="cred">admin@nysoa.mg</span></div>
+        <div class="compte-item" onclick="fillLogin('daf@nysoa.mg')"><span class="role">DAF</span><span class="cred">daf@nysoa.mg</span></div>
+        <div class="compte-item" onclick="fillLogin('rh@nysoa.mg')"><span class="role">RH</span><span class="cred">rh@nysoa.mg</span></div>
+        <div class="compte-item" onclick="fillLogin('controleur@nysoa.mg')"><span class="role">Contrôleur</span><span class="cred">controleur@nysoa.mg</span></div>
+        <div class="compte-item" onclick="fillLogin('technicien@nysoa.mg')"><span class="role">Technicien</span><span class="cred">technicien@nysoa.mg</span></div>
+        <div class="compte-item chef-toggle" onclick="toggleChefList()" style="cursor:pointer;background:var(--orange);color:white">
+            <span class="role">Chef chantier ▼</span>
+            <span class="cred">24 chantiers</span>
         </div>
-        <div class="compte-item" onclick="document.getElementById('email').value='daf@nysoa.mg';document.getElementById('password').focus()">
-            <span class="role">DAF</span>
-            <span class="cred">daf@nysoa.mg</span>
-        </div>
-        <div class="compte-item" onclick="document.getElementById('email').value='chef@nysoa.mg';document.getElementById('password').focus()">
-            <span class="role">Chef chantier</span>
-            <span class="cred">chef@nysoa.mg</span>
-        </div>
-        <div class="compte-item" onclick="document.getElementById('email').value='rh@nysoa.mg';document.getElementById('password').focus()">
-            <span class="role">RH</span>
-            <span class="cred">rh@nysoa.mg</span>
-        </div>
-        <div class="compte-item" onclick="document.getElementById('email').value='controleur@nysoa.mg';document.getElementById('password').focus()">
-            <span class="role">Contrôleur</span>
-            <span class="cred">controleur@nysoa.mg</span>
-        </div>
-        <div class="compte-item" onclick="document.getElementById('email').value='technicien@nysoa.mg';document.getElementById('password').focus()">
-            <span class="role">Technicien</span>
-            <span class="cred">technicien@nysoa.mg</span>
-        </div>
+        <div id="chef-list" style="display:none"></div>
     </div>
 </div>
 
@@ -235,6 +221,29 @@ function fallbackLogin(email, password) {
         { email:'admin@nysoa.mg',       hash:'YWRtaW4xMjM=',       role:'admin',       user_metadata:{} },
         { email:'daf@nysoa.mg',         hash:'ZGFmMTIz',           role:'daf',         user_metadata:{} },
         { email:'chef@nysoa.mg',        hash:'Y2hlZjEyMw==',       role:'chef',        user_metadata:{chantier:'TRANO CHEF AMBATOMAINTY'} },
+        { email:'chef.trano-chef@nysoa.mg',        hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'TRANO CHEF'} },
+        { email:'chef.ambatomainty@nysoa.mg',       hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'AMBATOMAINTY'} },
+        { email:'chef.aina-et-domoina@nysoa.mg',    hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'AINA & DOMOINA'} },
+        { email:'chef.vahatra@nysoa.mg',            hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'VAHATRA'} },
+        { email:'chef.gastro-ambohimena@nysoa.mg',  hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'GASTRO AMBOHIMENA'} },
+        { email:'chef.bricotech-magasin@nysoa.mg',  hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'BRICOTECH MAGASIN'} },
+        { email:'chef.depot@nysoa.mg',              hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'DEPOT'} },
+        { email:'chef.residence-les-palmiers@nysoa.mg', hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'Residence Les Palmiers'} },
+        { email:'chef.centre-commercial@nysoa.mg',  hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'Centre Commercial'} },
+        { email:'chef.bureau-ecobank@nysoa.mg',     hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'Bureau Ecobank'} },
+        { email:'chef.nysoa@nysoa.mg',              hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'NYSOA'} },
+        { email:'chef.mandaniresaka@nysoa.mg',      hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'MANDANIRESAKA'} },
+        { email:'chef.autres@nysoa.mg',             hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'AUTRES'} },
+        { email:'chef.ampefy@nysoa.mg',             hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'AMPEFY'} },
+        { email:'chef.visy-gasy@nysoa.mg',          hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'VISY GASY'} },
+        { email:'chef.ambohimanabe@nysoa.mg',       hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'AMBOHIMANABE'} },
+        { email:'chef.homeopharma@nysoa.mg',        hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'HOMEOPHARMA'} },
+        { email:'chef.autoblocants@nysoa.mg',       hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'AUTOBLOCANTS'} },
+        { email:'chef.volavita@nysoa.mg',           hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'VOLAVITA'} },
+        { email:'chef.gastro-tulear@nysoa.mg',      hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'GASTRO TULEAR'} },
+        { email:'chef.fianara@nysoa.mg',            hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'FIANARA'} },
+        { email:'chef.mahazoarivo@nysoa.mg',        hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'MAHAZOARIVO'} },
+        { email:'chef.tombontsoa@nysoa.mg',         hash:'Y2hlZjEyMw==', role:'chef', user_metadata:{chantier:'TOMBONTSOA'} },
         { email:'rh@nysoa.mg',          hash:'cmgxMjM=',           role:'rh',          user_metadata:{} },
         { email:'controleur@nysoa.mg',  hash:'Y29udHJvbGV1cjEyMw==',role:'controleur', user_metadata:{} },
         { email:'technicien@nysoa.mg',  hash:'dGVjaDEyMw==',       role:'technicien',  user_metadata:{} },
@@ -271,6 +280,23 @@ window.addEventListener('load', async () => {
         console.warn('[Login] getSession error:', e);
     }
 });
+
+// Helpers pour liste chefs
+function fillLogin(email) {
+    document.getElementById('email').value = email;
+    document.getElementById('password').focus();
+}
+
+function toggleChefList() {
+    const list = document.getElementById('chef-list');
+    if (list.style.display !== 'none') { list.style.display = 'none'; return; }
+    const chefs = users.filter(u => u.role === 'chef').sort((a,b) => (a.user_metadata?.chantier||'').localeCompare(b.user_metadata?.chantier||''));
+    list.innerHTML = chefs.map(u => `<div class="compte-item" onclick="fillLogin('${u.email}')" style="padding-left:28px;font-size:0.8rem">
+        <span class="role">${u.user_metadata?.chantier||'?'}</span>
+        <span class="cred">${u.email}</span>
+    </div>`).join('');
+    list.style.display = 'block';
+}
 </script>
 </body>
 </html>
