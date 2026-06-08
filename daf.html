@@ -430,7 +430,7 @@
             <section id="budget-felana" class="section">
                 <div class="section-header">
                     <h2>Budget FELANA</h2>
-                    <button class="btn btn-primary" onclick="openModal('modal-budget-felana')">
+                    <button class="btn btn-primary" onclick="nouvelleLigneFelana()">
                         <i class="fas fa-plus"></i> Nouvelle ligne
                     </button>
                 </div>
@@ -967,7 +967,7 @@
             const tbody = document.getElementById('felana-table-body');
             if (!tbody) return;
             try {
-                const { data } = await db.from('budget_felana').select('*, chantiers!inner(nom)').order('annee', { ascending: false }).limit(200);
+                const { data } = await db.from('budget_felana').select('*, chantiers(nom)').order('annee', { ascending: false }).limit(200);
                 const filterVal = document.getElementById('felana-filter-chantier')?.value || '';
                 const list = (data || []).filter(r => !filterVal || String(r.chantier_id) === filterVal);
                 tbody.innerHTML = '';
@@ -995,6 +995,18 @@
                     tbody.appendChild(tr);
                 });
             } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
+        }
+
+        function nouvelleLigneFelana() {
+            const form = document.getElementById('felana-form');
+            form.reset();
+            form.querySelector('[name="id"]').value = '';
+            form.querySelector('[name="annee"]').value = new Date().getFullYear();
+            form.querySelector('[name="mois"]').value = new Date().getMonth() + 1;
+            form.querySelector('[name="statut"]').value = 'BROUILLON';
+            document.getElementById('felana-modal-title').textContent = 'Nouvelle ligne FELANA';
+            populateFelanaChantiers();
+            openModal('modal-budget-felana');
         }
 
         async function editerBudgetFelana(id) {
