@@ -381,7 +381,7 @@ async function loadPersonnelTable() {
             <td><span class="status success">Actif</span></td>
             <td>
                 <button class="btn-icon" title="Voir"      onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                <button class="btn-icon" title="Supprimer" onclick="deletePersonnelRow('${emp.id}',this)"><i class="fas fa-trash"></i></button>
+                <button class="btn-icon" title="Fin de contrat" onclick="finContrat('${emp.id}','${emp.nom.replace(/'/g,"\\'")}')"><i class="fas fa-times-circle"></i></button>
             </td>`;
         tbody.appendChild(row);
     });
@@ -389,12 +389,25 @@ async function loadPersonnelTable() {
     // Ré-appliquer le filtre chantier actif s'il y en a un
     if (typeof reApplyChantierFilter === 'function') reApplyChantierFilter();
 }
-async function deletePersonnelRow(id, btn) {
-    if (!confirm('Désactiver cet employé ?')) return;
-    const { error } = await db.from('personnel').update({ actif: false }).eq('id', id);
-    if (error) { showNotification('Erreur', 'error'); return; }
-    btn.closest('tr').remove();
-    showNotification('Employé désactivé', 'success');
+function finContrat(id, nom) {
+    document.getElementById('fc-employe-id').value = id;
+    document.getElementById('fc-employe-nom').textContent = nom;
+    document.getElementById('fc-date-fin').value = new Date().toISOString().split('T')[0];
+    document.getElementById('fc-motif').value = '';
+    openModal('modal-fin-contrat');
+}
+
+async function submitFinContrat(e) {
+    e.preventDefault();
+    const id = document.getElementById('fc-employe-id').value;
+    const dateFin = document.getElementById('fc-date-fin').value;
+    const motif = document.getElementById('fc-motif').value;
+    if (!id || !motif) { showNotification('Veuillez sélectionner un motif', 'error'); return; }
+    const { error } = await db.from('personnel').update({ actif: false, date_fin: dateFin, motif_fin: motif }).eq('id', id);
+    if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+    closeModal('modal-fin-contrat');
+    showNotification('Contrat terminé ✓', 'success');
+    if (typeof loadPersonnelTable === 'function') loadPersonnelTable();
 }
 
 function filtrerPersonnelRecherche(val) {
