@@ -549,16 +549,26 @@
                 localStorage.setItem('chef_chantier', chefChantier);
             }
             if (!chefChantier) {
-                const { data: chs } = await db.from('chantiers').select('nom').eq('actif', true).limit(1).maybeSingle();
-                if (chs) {
-                    chefChantier = chs.nom;
+                try {
+                    const { data: chs } = await db.from('chantiers').select('nom').eq('actif', true).limit(1).maybeSingle();
+                    if (chs) {
+                        chefChantier = chs.nom;
+                        localStorage.setItem('chef_chantier', chefChantier);
+                    }
+                } catch (e) {
+                    console.warn('Failed to load chantiers, using fallback:', e.message);
+                    chefChantier = 'AMBATOMAINTY'; // fallback
                     localStorage.setItem('chef_chantier', chefChantier);
                 }
             }
             if (chefChantier) {
                 document.getElementById('chef-chantier-name').textContent = ' — ' + chefChantier;
-                const { data: ch } = await db.from('chantiers').select('id').eq('nom', chefChantier).limit(1).maybeSingle();
-                if (ch) chefChantierId = ch.id;
+                try {
+                    const { data: ch } = await db.from('chantiers').select('id').eq('nom', chefChantier).limit(1).maybeSingle();
+                    if (ch) chefChantierId = ch.id;
+                } catch (e) {
+                    console.warn('Failed to load chantier ID:', e.message);
+                }
             }
             loadAll();
             updateDate();
@@ -655,21 +665,28 @@
         async function loadPersonnelTable() {
             const tbody = document.getElementById('personnel-table-body');
             if (!tbody) return;
-            let q = db.from('personnel').select('*').eq('actif', true);
-            if (chefChantier) q = q.eq('chantier', chefChantier);
-            const { data } = await q.order('nom');
-            if (!data) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#888;padding:24px">Aucun employé</td></tr>'; return; }
-            tbody.innerHTML = data.map(emp => {
-                const embauche = emp.date_embauche ? new Date(emp.date_embauche).toLocaleDateString('fr-FR') : '—';
-                const anciennete = emp.date_embauche ? Math.floor((Date.now() - new Date(emp.date_embauche)) / (864e5 * 30)) + ' mois' : '—';
-                return `<tr>
-                    <td>${emp.matricule || '—'}</td><td>${emp.nom}</td><td>${emp.metier || '—'}</td>
-                    <td>${emp.chantier || '—'}</td><td>${embauche}</td><td>${anciennete}</td>
-                    <td>${emp.salaire_journalier ? emp.salaire_journalier.toLocaleString() + ' Ar/j' : '—'}</td>
-                    <td><span class="status success">Actif</span></td>
-                    <td><button class="btn-small" onclick="viewEmployee(${emp.id})">Voir</button></td>
-                </tr>`;
-            }).join('');
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#888;padding:24px">Chargement...</td></tr>';
+            try {
+                let q = db.from('personnel').select('*').eq('actif', true);
+                if (chefChantier) q = q.eq('chantier', chefChantier);
+                const { data, error } = await q.order('nom');
+                if (error) throw error;
+                if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#888;padding:24px">Aucun employé</td></tr>'; return; }
+                tbody.innerHTML = data.map(emp => {
+                    const embauche = emp.date_embauche ? new Date(emp.date_embauche).toLocaleDateString('fr-FR') : '—';
+                    const anciennete = emp.date_embauche ? Math.floor((Date.now() - new Date(emp.date_embauche)) / (864e5 * 30)) + ' mois' : '—';
+                    return `<tr>
+                        <td>${emp.matricule || '—'}</td><td>${emp.nom}</td><td>${emp.metier || '—'}</td>
+                        <td>${emp.chantier || '—'}</td><td>${embauche}</td><td>${anciennete}</td>
+                        <td>${emp.salaire_journalier ? emp.salaire_journalier.toLocaleString() + ' Ar/j' : '—'}</td>
+                        <td><span class="status success">Actif</span></td>
+                        <td><button class="btn-small" onclick="viewEmployee(${emp.id})">Voir</button></td>
+                    </tr>`;
+                }).join('');
+            } catch (e) {
+                console.error('loadPersonnelTable error:', e);
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--red);padding:24px">Erreur de chargement (RLS?). Vérifiez les policies Supabase.</td></tr>';
+            }
         }
 
         async function submitAjouterOuvrier(e) {
@@ -705,28 +722,41 @@
         async function loadPtgSelect() {
             const sel = document.getElementById('ptg-employe-select');
             if (!sel) return;
-            let q = db.from('personnel').select('id,nom').eq('actif', true);
-            if (chefChantier) q = q.eq('chantier', chefChantier);
-            const { data } = await q.order('nom');
-            sel.innerHTML = '<option value="">Sélectionner...</option>'+(data||[]).map(e=>`<option value="${e.id}">${e.nom}</option>`).join('');
+            try {
+                let q = db.from('personnel').select('id,nom').eq('actif', true);
+                if (chefChantier) q = q.eq('chantier', chefChantier);
+                const { data, error } = await q.order('nom');
+                if (error) throw error;
+                sel.innerHTML = '<option value="">Sélectionner...</option>'+(data||[]).map(e=>`<option value="${e.id}">${e.nom}</option>`).join('');
+            } catch (e) {
+                console.error('loadPtgSelect error:', e);
+                sel.innerHTML = '<option value="">Erreur de chargement (RLS?)</option>';
+            }
         }
 
         async function loadPointageToday() {
             const today = new Date().toISOString().split('T')[0];
-            let q = db.from('pointage_attendance').select('*').eq('date', today);
-            if (chefChantier) q = q.eq('chantier', chefChantier);
-            const { data } = await q.order('heure', { ascending: true });
-            document.getElementById('ptg-total').textContent = (data||[]).length;
-            document.getElementById('ptg-present').textContent = (data||[]).filter(p => p.type_pointage === 'Arrivée').length;
             const tbody = document.getElementById('ptg-today-body');
             if (!tbody) return;
-            if (!data||!data.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:20px">Aucun pointage aujourd\'hui</td></tr>'; return; }
-            tbody.innerHTML = data.map(p => `<tr>
-                <td>${p.heure ? p.heure.slice(0,5) : '—'}</td>
-                <td>${p.nom_employe||'—'}</td>
-                <td><span class="status ${p.type_pointage==='Arrivée'?'success':'warning'}">${p.type_pointage||'—'}</span></td>
-                <td><span class="status info">Présent</span></td>
-            </tr>`).join('');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:20px">Chargement...</td></tr>';
+            try {
+                let q = db.from('pointage_attendance').select('*').eq('date', today);
+                if (chefChantier) q = q.eq('chantier', chefChantier);
+                const { data, error } = await q.order('heure', { ascending: true });
+                if (error) throw error;
+                document.getElementById('ptg-total').textContent = (data||[]).length;
+                document.getElementById('ptg-present').textContent = (data||[]).filter(p => p.type_pointage === 'Arrivée').length;
+                if (!data||!data.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:20px">Aucun pointage aujourd\'hui</td></tr>'; return; }
+                tbody.innerHTML = data.map(p => `<tr>
+                    <td>${p.heure ? p.heure.slice(0,5) : '—'}</td>
+                    <td>${p.nom_employe||'—'}</td>
+                    <td><span class="status ${p.type_pointage==='Arrivée'?'success':'warning'}">${p.type_pointage||'—'}</span></td>
+                    <td><span class="status info">Présent</span></td>
+                </tr>`).join('');
+            } catch (e) {
+                console.error('loadPointageToday error:', e);
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--red);padding:20px">Erreur de chargement (RLS?)</td></tr>';
+            }
         }
 
         async function enregistrerPointageManuel(e) {
