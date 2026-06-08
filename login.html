@@ -221,11 +221,7 @@ document.getElementById('form-login').addEventListener('submit', async function(
         console.error(err);
 
         // Fallback localStorage si Supabase pas encore configuré
-        if (err.message?.includes('fetch') || SUPABASE_URL.includes('VOTRE')) {
-            fallbackLogin(email, password);
-        } else {
-            showError('Email ou mot de passe incorrect');
-        }
+        fallbackLogin(email, password);
     } finally {
         btn.disabled = false;
         loading.style.display = 'none';
