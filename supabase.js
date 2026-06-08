@@ -42,10 +42,10 @@ function handleError(err, context) {
  * @returns {object|null}  user { email, role } ou null (+ redirection déjà lancée)
  */
 async function checkAuthOrRedirect(expectedRole = null) {
+    let user = null;
+
     try {
         const { data: { session: sbSession }, error } = await db.auth.getSession();
-        let user = null;
-
         if (sbSession && !error) {
             const expiresAt = (sbSession.expires_at || 0) * 1000;
             if (Date.now() <= expiresAt) {
@@ -56,42 +56,39 @@ async function checkAuthOrRedirect(expectedRole = null) {
                 await db.auth.signOut();
             }
         }
-
-        // Fallback localStorage si Supabase non configuré
-        if (!user) {
-            const stored = localStorage.getItem('nysoa_current_user');
-            if (stored) {
-                try { user = JSON.parse(stored); } catch (_) { user = null; }
-            }
-        }
-
-        if (!user) {
-            localStorage.removeItem('nysoa_current_user');
-            window.location.href = 'login.html';
-            return null;
-        }
-
-        // Rediriger si le rôle ne correspond pas à la page
-        if (expectedRole && user.role !== expectedRole) {
-            const roleMap = {
-                admin: 'admin',
-                daf: 'daf',
-                chef: 'chef-chantier',
-                rh: 'rh',
-                controleur: 'controleur',
-                technicien: 'technicien'
-            };
-            window.location.href = (roleMap[user.role] || 'index') + '.html';
-            return null;
-        }
-
-        return user;
     } catch (e) {
-        console.error('[Auth] checkAuthOrRedirect:', e);
+        console.warn('[Auth] getSession failed, fallback localStorage:', e.message);
+    }
+
+    // Fallback localStorage si Supabase non configuré
+    if (!user) {
+        const stored = localStorage.getItem('nysoa_current_user');
+        if (stored) {
+            try { user = JSON.parse(stored); } catch (_) { user = null; }
+        }
+    }
+
+    if (!user) {
         localStorage.removeItem('nysoa_current_user');
         window.location.href = 'login.html';
         return null;
     }
+
+    // Rediriger si le rôle ne correspond pas à la page
+    if (expectedRole && user.role !== expectedRole) {
+        const roleMap = {
+            admin: 'admin',
+            daf: 'daf',
+            chef: 'chef-chantier',
+            rh: 'rh',
+            controleur: 'controleur',
+            technicien: 'technicien'
+        };
+        window.location.href = (roleMap[user.role] || 'index') + '.html';
+        return null;
+    }
+
+    return user;
 }
 
 /**

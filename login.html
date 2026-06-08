@@ -198,7 +198,7 @@ document.getElementById('form-login').addEventListener('submit', async function(
         const destination = DASHBOARDS[role] || 'index.html';
 
         // Sauvegarder dans localStorage pour que admin.html puisse vérifier
-        localStorage.setItem('nysoa_current_user', JSON.stringify({ email: data.user.email, role }));
+        localStorage.setItem('nysoa_current_user', JSON.stringify({ email: data.user.email, role, user_metadata: data.user.user_metadata }));
 
         showSuccess('Connexion réussie ! Redirection...');
         setTimeout(() => { window.location.href = destination; }, 800);
