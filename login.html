@@ -232,12 +232,12 @@ document.getElementById('form-login').addEventListener('submit', async function(
 function fallbackLogin(email, password) {
     const hash = (s) => btoa(s);
     const users = [
-        { email:'admin@nysoa.mg',       hash:'YWRtaW4xMjM=',       role:'admin' },
-        { email:'daf@nysoa.mg',         hash:'ZGFmMTIz',           role:'daf' },
-        { email:'chef@nysoa.mg',        hash:'Y2hlZjEyMw==',       role:'chef' },
-        { email:'rh@nysoa.mg',          hash:'cmgxMjM=',           role:'rh' },
-        { email:'controleur@nysoa.mg',  hash:'Y29udHJvbGV1cjEyMw==',role:'controleur' },
-        { email:'technicien@nysoa.mg',  hash:'dGVjaDEyMw==',       role:'technicien' },
+        { email:'admin@nysoa.mg',       hash:'YWRtaW4xMjM=',       role:'admin',       user_metadata:{} },
+        { email:'daf@nysoa.mg',         hash:'ZGFmMTIz',           role:'daf',         user_metadata:{} },
+        { email:'chef@nysoa.mg',        hash:'Y2hlZjEyMw==',       role:'chef',        user_metadata:{chantier:'TRANO CHEF AMBATOMAINTY'} },
+        { email:'rh@nysoa.mg',          hash:'cmgxMjM=',           role:'rh',          user_metadata:{} },
+        { email:'controleur@nysoa.mg',  hash:'Y29udHJvbGV1cjEyMw==',role:'controleur', user_metadata:{} },
+        { email:'technicien@nysoa.mg',  hash:'dGVjaDEyMw==',       role:'technicien',  user_metadata:{} },
     ];
     const user = users.find(u => u.email === email && u.hash === hash(password));
     if (user) {
@@ -265,7 +265,7 @@ window.addEventListener('load', async () => {
         }
 
         const role = data.session.user?.user_metadata?.role || 'admin';
-        localStorage.setItem('nysoa_current_user', JSON.stringify({ email: data.session.user.email, role }));
+        localStorage.setItem('nysoa_current_user', JSON.stringify({ email: data.session.user.email, role, user_metadata: data.session.user.user_metadata }));
         window.location.href = DASHBOARDS[role] || 'index.html';
     } catch(e) {
         console.warn('[Login] getSession error:', e);

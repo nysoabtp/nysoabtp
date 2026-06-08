@@ -50,7 +50,7 @@ async function checkAuthOrRedirect(expectedRole = null) {
             const expiresAt = (sbSession.expires_at || 0) * 1000;
             if (Date.now() <= expiresAt) {
                 const role = sbSession.user?.user_metadata?.role || 'admin';
-                user = { email: sbSession.user.email, role };
+                user = { email: sbSession.user.email, role, user_metadata: sbSession.user.user_metadata };
                 localStorage.setItem('nysoa_current_user', JSON.stringify(user));
             } else {
                 await db.auth.signOut();

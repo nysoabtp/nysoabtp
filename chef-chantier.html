@@ -33,6 +33,10 @@
                     <i class="fas fa-users"></i>
                     <span>Mon Équipe</span>
                 </a>
+                <a href="#" class="nav-item" data-section="pointage">
+                    <i class="fas fa-fingerprint"></i>
+                    <span>Pointage</span>
+                </a>
                 <a href="#" class="nav-item" data-section="planning">
                     <i class="fas fa-calendar-alt"></i>
                     <span>Planning</span>
@@ -40,6 +44,10 @@
                 <a href="#" class="nav-item" data-section="materiaux">
                     <i class="fas fa-boxes"></i>
                     <span>Matériaux</span>
+                </a>
+                <a href="#" class="nav-item" data-section="recrutement">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Recrutement</span>
                 </a>
                 <a href="#" class="nav-item" data-section="rapports">
                     <i class="fas fa-file-alt"></i>
@@ -350,6 +358,100 @@
                 </div>
             </section>
 
+            <!-- Pointage Section -->
+            <section id="pointage" class="section">
+                <div class="section-header">
+                    <h2>Pointage</h2>
+                </div>
+                <div class="stats-grid" style="margin-bottom:20px">
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fas fa-user-check"></i></div>
+                        <div class="stat-info"><h3 id="ptg-present">0</h3><p>Présents aujourd'hui</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fas fa-clock"></i></div>
+                        <div class="stat-info"><h3 id="ptg-retard">0</h3><p>Retards</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange"><i class="fas fa-users"></i></div>
+                        <div class="stat-info"><h3 id="ptg-total">0</h3><p>Total ouvriers</p></div>
+                    </div>
+                </div>
+                <div class="dashboard-grid" style="margin-bottom:20px">
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fas fa-qrcode"></i> Scan QR Code</h3></div>
+                        <div class="card-body" style="text-align:center">
+                            <video id="qr-scanner" style="width:100%;max-width:360px;border-radius:12px;background:#000;margin:0 auto 12px;display:none"></video>
+                            <div id="qr-result" style="font-size:14px;margin-bottom:12px;min-height:24px"></div>
+                            <button class="btn btn-primary" onclick="toggleScanner()"><i class="fas fa-camera"></i> Démarrer scan</button>
+                            <button class="btn btn-secondary" onclick="stopScanner()" style="display:none" id="btn-stop-scan"><i class="fas fa-stop"></i> Arrêter</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fas fa-pen"></i> Saisie manuelle</h3></div>
+                        <div class="card-body">
+                            <form onsubmit="enregistrerPointageManuel(event)">
+                                <div class="form-group">
+                                    <label>Employé</label>
+                                    <select id="ptg-employe-select" class="form-input" required></select>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group" style="flex:1">
+                                        <label>Type</label>
+                                        <select id="ptg-type" class="form-input"><option value="Arrivée">Arrivée</option><option value="Départ">Départ</option></select>
+                                    </div>
+                                    <div class="form-group" style="flex:1">
+                                        <label>Date</label>
+                                        <input type="date" id="ptg-date" class="form-input" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="width:100%"><i class="fas fa-save"></i> Enregistrer pointage</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Pointages du jour</h3></div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead><tr><th>Heure</th><th>Employé</th><th>Type</th><th>Statut</th></tr></thead>
+                            <tbody id="ptg-today-body"><tr><td colspan="4" style="text-align:center;color:#888;padding:20px">Aucun pointage aujourd'hui</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recrutement Section -->
+            <section id="recrutement" class="section">
+                <div class="section-header">
+                    <h2>Recrutement</h2>
+                    <button class="btn btn-primary" onclick="openModal('modal-recrutement')"><i class="fas fa-plus"></i> Nouvelle demande</button>
+                </div>
+                <div class="stats-grid" style="margin-bottom:20px">
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fas fa-hourglass-half"></i></div>
+                        <div class="stat-info"><h3 id="recrut-attente">0</h3><p>En attente</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-info"><h3 id="recrut-approuve">0</h3><p>Approuvées</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red"><i class="fas fa-times-circle"></i></div>
+                        <div class="stat-info"><h3 id="recrut-rejete">0</h3><p>Rejetées</p></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Demandes de recrutement</h3></div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead><tr><th>Poste</th><th>Nombre</th><th>Date</th><th>Statut</th></tr></thead>
+                            <tbody id="recrut-body"><tr><td colspan="4" style="text-align:center;color:#888;padding:20px">Aucune demande</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
             <!-- Matériaux Section -->
             <section id="materiaux" class="section">
                 <div class="section-header">
@@ -360,73 +462,27 @@
                 </div>
 
                 <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon blue">
-                            <i class="fas fa-boxes"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3>450</h3>
-                            <p>Sacs ciment</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon green">
-                            <i class="fas fa-cubes"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3>25</h3>
-                            <p>m³ sable</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange">
-                            <i class="fas fa-bolt"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3>2 500</h3>
-                            <p>m acier</p>
-                        </div>
+                    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-boxes"></i></div><div class="stat-info"><h3>0</h3><p>Unités en stock</p></div></div>
+                    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-cubes"></i></div><div class="stat-info"><h3>0</h3><p>Types de matériaux</p></div></div>
+                    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h3 id="stat-alertes">0</h3><p>Alertes stock</p></div></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>Stock disponible — <span id="stock-chantier-name"></span></h3></div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead><tr><th>Matériau</th><th>Quantité</th><th>Unité</th><th>Seuil</th><th>Statut</th></tr></thead>
+                            <tbody><tr><td colspan="5" style="text-align:center;padding:20px;color:#888">Chargement...</td></tr></tbody>
+                        </table>
                     </div>
                 </div>
 
                 <div class="card">
-                    <div class="card-header">
-                        <h3>Stock disponible</h3>
-                    </div>
+                    <div class="card-header"><h3>Historique des demandes</h3></div>
                     <div class="card-body">
                         <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Matériau</th>
-                                    <th>Quantité</th>
-                                    <th>Unité</th>
-                                    <th>Seuil minimum</th>
-                                    <th>Statut</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Ciment Portland</td>
-                                    <td>450</td>
-                                    <td>Sac</td>
-                                    <td>100</td>
-                                    <td><span class="status success">OK</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Sable de rivière</td>
-                                    <td>25</td>
-                                    <td>m³</td>
-                                    <td>30</td>
-                                    <td><span class="status warning">Bas</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Acier HA 12mm</td>
-                                    <td>2 500</td>
-                                    <td>m</td>
-                                    <td>500</td>
-                                    <td><span class="status success">OK</span></td>
-                                </tr>
-                            </tbody>
+                            <thead><tr><th>Matériau</th><th>Qté</th><th>Date</th><th>Statut</th><th>Motif</th></tr></thead>
+                            <tbody><tr><td colspan="5" style="text-align:center;padding:20px;color:#888">Chargement...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -436,61 +492,35 @@
             <section id="rapports" class="section">
                 <div class="section-header">
                     <h2>Rapports Chantier</h2>
+                    <button class="btn btn-primary" onclick="ouvrirNouveauRapport()"><i class="fas fa-plus"></i> Nouveau rapport</button>
                 </div>
 
                 <div class="dashboard-grid">
-                    <div class="card">
+                    <div class="card" style="grid-column:1 / -1">
                         <div class="card-header">
-                            <h3>Rapports journaliers</h3>
+                            <h3><i class="fas fa-file-alt"></i> Rapports journaliers — <span id="rp-chantier-name"></span></h3>
                         </div>
                         <div class="card-body">
-                            <ul class="report-list">
-                                <li>
-                                    <i class="fas fa-file-pdf"></i>
-                                    <span>Rapport journalier - 13/05/2026</span>
-                                    <button class="btn-small" onclick="downloadReport(this)">Télécharger</button>
-                                </li>
-                                <li>
-                                    <i class="fas fa-file-pdf"></i>
-                                    <span>Rapport journalier - 12/05/2026</span>
-                                    <button class="btn-small" onclick="downloadReport(this)">Télécharger</button>
-                                </li>
+                            <ul class="report-list" id="rapport-list">
+                                <li style="padding:12px;color:#888;list-style:none">Chargement...</li>
                             </ul>
                         </div>
                     </div>
 
                     <div class="card">
-                        <div class="card-header">
-                            <h3>Photos chantier</h3>
-                        </div>
-                        <div class="card-body">
-                            <ul class="report-list">
-                                <li>
-                                    <i class="fas fa-camera"></i>
-                                    <span>Galerie - Résidence Palmiers</span>
-                                    <button class="btn-small" onclick="viewGallery('Résidence Palmiers')">Voir</button>
-                                </li>
-                                <li>
-                                    <i class="fas fa-camera"></i>
-                                    <span>Galerie - Centre Commercial</span>
-                                    <button class="btn-small" onclick="viewGallery('Centre Commercial')">Voir</button>
-                                </li>
-                            </ul>
+                        <div class="card-header"><h3><i class="fas fa-camera"></i> Photos chantier</h3></div>
+                        <div class="card-body" style="text-align:center">
+                            <p style="margin-bottom:12px;color:#888">Photos d'avancement du chantier</p>
+                            <button class="btn btn-primary" onclick="viewGallery()"><i class="fas fa-images"></i> Voir la galerie</button>
                         </div>
                     </div>
 
                     <div class="card">
-                        <div class="card-header">
-                            <h3>Incidents</h3>
-                        </div>
-                        <div class="card-body">
-                            <ul class="report-list">
-                                <li>
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    <span>Incident - Mai 2026</span>
-                                    <button class="btn-small" onclick="viewIncident()">Voir</button>
-                                </li>
-                            </ul>
+                        <div class="card-header"><h3><i class="fas fa-download"></i> Export</h3></div>
+                        <div class="card-body" style="text-align:center">
+                            <p style="margin-bottom:12px;color:#888">Télécharger les rapports du chantier</p>
+                            <button class="btn btn-secondary" onclick="downloadReport(this)"><i class="fas fa-file-pdf"></i> PDF</button>
+                            <button class="btn btn-secondary" onclick="downloadReport(this)"><i class="fas fa-file-excel"></i> Excel</button>
                         </div>
                     </div>
                 </div>
@@ -506,7 +536,122 @@
     <script src="modules_new.js"></script>
     <script>
         let chefChantier = localStorage.getItem('chef_chantier') || '';
+        let chefChantierId = null;
+        let qrScanner = null;
 
+        // ═══ SCOPING ═══
+        async function initChefScope() {
+            const user = await checkAuthOrRedirect('chef');
+            if (!user) return;
+            // Try stored, then user_metadata, then first chantier from DB
+            if (!chefChantier && user.user_metadata?.chantier) {
+                chefChantier = user.user_metadata.chantier;
+                localStorage.setItem('chef_chantier', chefChantier);
+            }
+            if (!chefChantier) {
+                const { data: chs } = await db.from('chantiers').select('nom').eq('actif', true).limit(1).maybeSingle();
+                if (chs) {
+                    chefChantier = chs.nom;
+                    localStorage.setItem('chef_chantier', chefChantier);
+                }
+            }
+            if (chefChantier) {
+                document.getElementById('chef-chantier-name').textContent = ' — ' + chefChantier;
+                const { data: ch } = await db.from('chantiers').select('id').eq('nom', chefChantier).limit(1).maybeSingle();
+                if (ch) chefChantierId = ch.id;
+            }
+            loadAll();
+            updateDate();
+        }
+
+        window.addEventListener('load', initChefScope);
+
+        async function loadAll() {
+            await loadChefData();
+            await loadChantierDetail();
+            await loadPersonnelTable();
+            await loadPointageToday();
+            await loadPtgSelect();
+            loadPlanningLocales();
+            await loadStockReel();
+            await loadDemandesValides();
+            await loadRecrutements();
+            await loadRapports();
+        }
+
+        // ═══ SECTION TITLES ═══
+        Object.assign(sectionTitles, {
+            'dashboard': 'Tableau de bord', 'chantiers': 'Mes Chantiers', 'equipe': 'Mon Équipe',
+            'pointage': 'Pointage', 'planning': 'Planning', 'materiaux': 'Matériaux',
+            'recrutement': 'Recrutement', 'rapports': 'Rapports Chantier'
+        });
+
+        // ═══ DASHBOARD ═══
+        async function loadChefData() {
+            try {
+                let qCh = db.from('chantiers').select('*').eq('actif', true);
+                let qPers = db.from('personnel').select('*').eq('actif', true);
+                if (chefChantier) {
+                    qCh = qCh.eq('nom', chefChantier);
+                    qPers = qPers.eq('chantier', chefChantier);
+                }
+                const [chantiers, personnel, { data: materiels }] = await Promise.all([qCh, qPers, db.from('materiels').select('*')]);
+                const ch = chantiers?.[0];
+                if (ch) {
+                    document.getElementById('stat-chantiers').textContent = ch.progression || 0;
+                    document.getElementById('stat-progression').textContent = (ch.progression||0) + '%';
+                    document.querySelector('#dashboard .stat-card:first-child .stat-info p').textContent = ch.statut || 'EN COURS';
+                }
+                if (personnel) document.getElementById('stat-ouvriers').textContent = personnel.length;
+
+                // Alertes stock
+                const alertes = (materiels||[]).filter(m => m.chantier_actuel === chefChantier && m.quantite <= m.seuil_alerte);
+                document.getElementById('stat-problemes').textContent = alertes.length;
+
+                initChefCharts(chantiers, personnel, materiels);
+            } catch(_) { initChefCharts(); }
+        }
+
+        // ═══ MES CHANTIERS ═══
+        async function loadChantierDetail() {
+            const tbody = document.querySelector('#projets-table tbody');
+            if (!tbody) return;
+            if (!chefChantier) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#888">Aucun chantier assigné</td></tr>'; return; }
+            const { data } = await db.from('chantiers').select('*').eq('nom', chefChantier).eq('actif', true).limit(1).maybeSingle();
+            if (!data) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#888">Chantier introuvable</td></tr>'; return; }
+            const statCls = { 'EN COURS':'success', 'EN PAUSE':'warning', 'TERMINÉ':'info' };
+            tbody.innerHTML = `<tr>
+                <td>${data.code||'—'}</td><td>${data.nom}</td><td>${data.client||'—'}</td>
+                <td>${data.budget ? data.budget.toLocaleString()+' Ar' : '—'}</td>
+                <td>${data.debut||'—'}</td><td>${data.fin||'—'}</td>
+                <td><div class="progress-bar" style="width:80px;display:inline-block;vertical-align:middle"><div class="progress" style="width:${data.progression||0}%"></div></div> ${data.progression||0}%</td>
+                <td><span class="status ${statCls[data.statut]||''}">${data.statut||'EN COURS'}</span></td>
+                <td><button class="btn-small" onclick="editChantier(${data.id},'${data.statut||'EN COURS'}',${data.progression||0})"><i class="fas fa-edit"></i></button></td>
+            </tr>`;
+        }
+
+        function editChantier(id, statut, progression) {
+            document.getElementById('edit-chantier-id').value = id;
+            document.getElementById('edit-chantier-statut').value = statut;
+            document.getElementById('edit-chantier-progression').value = progression;
+            document.getElementById('edit-prog-label').textContent = progression + '%';
+            openModal('modal-edit-chantier');
+        }
+
+        async function submitEditChantier(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-chantier-id').value;
+            const statut = document.getElementById('edit-chantier-statut').value;
+            const progression = parseInt(document.getElementById('edit-chantier-progression').value) || 0;
+            const { error } = await db.from('chantiers').update({ statut, progression }).eq('id', id);
+            if (error) { showNotification('Erreur: '+error.message, 'error'); return; }
+            closeModal('modal-edit-chantier');
+            showNotification('Chantier mis à jour ✓', 'success');
+            loadChantierDetail();
+            loadChefData();
+        }
+
+        // ═══ PERSONNEL ═══
         async function loadPersonnelTable() {
             const tbody = document.getElementById('personnel-table-body');
             if (!tbody) return;
@@ -518,12 +663,8 @@
                 const embauche = emp.date_embauche ? new Date(emp.date_embauche).toLocaleDateString('fr-FR') : '—';
                 const anciennete = emp.date_embauche ? Math.floor((Date.now() - new Date(emp.date_embauche)) / (864e5 * 30)) + ' mois' : '—';
                 return `<tr>
-                    <td>${emp.matricule || '—'}</td>
-                    <td>${emp.nom}</td>
-                    <td>${emp.metier || '—'}</td>
-                    <td>${emp.chantier || '—'}</td>
-                    <td>${embauche}</td>
-                    <td>${anciennete}</td>
+                    <td>${emp.matricule || '—'}</td><td>${emp.nom}</td><td>${emp.metier || '—'}</td>
+                    <td>${emp.chantier || '—'}</td><td>${embauche}</td><td>${anciennete}</td>
                     <td>${emp.salaire_journalier ? emp.salaire_journalier.toLocaleString() + ' Ar/j' : '—'}</td>
                     <td><span class="status success">Actif</span></td>
                     <td><button class="btn-small" onclick="viewEmployee(${emp.id})">Voir</button></td>
@@ -531,62 +672,12 @@
             }).join('');
         }
 
-        async function initChefScope() {
-            const user = await checkAuthOrRedirect('chef');
-            if (!user) return;
-            if (!chefChantier && user.user_metadata?.chantier) {
-                chefChantier = user.user_metadata.chantier;
-                localStorage.setItem('chef_chantier', chefChantier);
-            }
-            if (chefChantier) {
-                document.getElementById('chef-chantier-name').textContent = ' — ' + chefChantier;
-            }
-            loadChefData();
-            loadPlanningLocales();
-            loadDemandesLocales();
-            updateDate();
-            loadPersonnelTable();
-        }
-
-        window.addEventListener('load', initChefScope);
-
-        async function loadChefData() {
-            try {
-                let qCh = db.from('chantiers').select('*').eq('actif', true);
-                let qPers = db.from('personnel').select('*').eq('actif', true);
-                if (chefChantier) {
-                    qCh = qCh.eq('nom', chefChantier);
-                    qPers = qPers.eq('chantier', chefChantier);
-                }
-                const { data: chantiers } = await qCh;
-                const { data: personnel } = await qPers;
-                const { data: materiels } = await db.from('materiels').select('*');
-                if (chantiers) {
-                    document.getElementById('stat-chantiers').textContent = chantiers.length;
-                    const avgProgress = chantiers.reduce((s,c) => s + (c.progression || 0), 0) / (chantiers.length || 1);
-                    document.getElementById('stat-progression').textContent = Math.round(avgProgress) + '%';
-                }
-                if (personnel) document.getElementById('stat-ouvriers').textContent = personnel.length;
-                initializeChefCharts(chantiers, personnel, materiels);
-            } catch(_) { initializeChefCharts(); }
-        }
-
-        // Update section titles
-        Object.assign(sectionTitles, {
-            'dashboard': 'Tableau de bord',
-            'chantiers': 'Mes Chantiers',
-            'equipe': 'Mon Équipe',
-            'planning': 'Planning',
-            'materiaux': 'Matériaux',
-            'rapports': 'Rapports Chantier'
-        });
-
         async function submitAjouterOuvrier(e) {
             e.preventDefault();
             const fd = new FormData(e.target);
             const { error } = await db.from('personnel').insert({
                 matricule: fd.get('matricule'), nom: fd.get('nom'), metier: fd.get('metier'),
-                chantier: fd.get('chantier'), date_embauche: fd.get('date_embauche'),
+                chantier: chefChantier, date_embauche: fd.get('date_embauche'),
                 salaire_journalier: parseFloat(fd.get('salaire') || 0), actif: true
             });
             if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
@@ -594,57 +685,7 @@
             e.target.reset();
             showNotification('Ouvrier ajouté ✓', 'success');
             loadPersonnelTable();
-        }
-
-        async function submitPlanning(e) {
-            e.preventDefault();
-            const fd = new FormData(e.target);
-            const tasks = JSON.parse(localStorage.getItem('nysoa_planning_tasks') || '[]');
-            tasks.unshift({ tache: fd.get('tache'), chantier: fd.get('chantier'), date: fd.get('date'), equipe: fd.get('equipe'), priorite: fd.get('priorite'), statut: 'Planifié' });
-            localStorage.setItem('nysoa_planning_tasks', JSON.stringify(tasks));
-            closeModal('modal-planning');
-            e.target.reset();
-            showNotification('Tâche planifiée ✓', 'success');
-            loadPlanningLocales();
-        }
-
-        async function submitDemandeMateriaux(e) {
-            e.preventDefault();
-            const fd = new FormData(e.target);
-            const demands = JSON.parse(localStorage.getItem('nysoa_demandes_materiaux') || '[]');
-            demands.unshift({ materiau: fd.get('materiau'), quantite: fd.get('quantite'), unite: fd.get('unite'), chantier: fd.get('chantier'), urgence: fd.get('urgence'), statut: 'En attente', date: new Date().toISOString().split('T')[0] });
-            localStorage.setItem('nysoa_demandes_materiaux', JSON.stringify(demands));
-            closeModal('modal-demande-materiaux');
-            e.target.reset();
-            showNotification('Demande envoyée ✓', 'success');
-            loadDemandesLocales();
-        }
-
-        function loadPlanningLocales() {
-            const tasks = JSON.parse(localStorage.getItem('nysoa_planning_tasks') || '[]');
-            const tbody = document.querySelector('#planning .table tbody, #planning table tbody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            if (!tasks.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#adb5bd">Aucune tâche planifiée</td></tr>'; return; }
-            tasks.forEach(t => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${t.tache||'—'}</td><td>${t.chantier||'—'}</td><td>${t.date||'—'}</td><td>${t.equipe||'—'}</td><td><span class="status warning">${t.priorite||'—'}</span></td><td><span class="status info">${t.statut||'Planifié'}</span></td>`;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function loadDemandesLocales() {
-            const demands = JSON.parse(localStorage.getItem('nysoa_demandes_materiaux') || '[]');
-            const tbody = document.querySelector('#materiaux .table tbody, #stock .table tbody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            if (!demands.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#adb5bd">Aucune demande</td></tr>'; return; }
-            demands.forEach(d => {
-                const urgColor = d.urgence === 'Haute' ? 'error' : d.urgence === 'Moyenne' ? 'warning' : 'info';
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${d.materiau||'—'}</td><td>${d.quantite||'—'} ${d.unite||''}</td><td>${d.chantier||'—'}</td><td><span class="status ${urgColor}">${d.urgence||'—'}</span></td><td><span class="status warning">${d.statut||'En attente'}</span></td><td>${d.date||'—'}</td>`;
-                tbody.appendChild(tr);
-            });
+            loadPtgSelect();
         }
 
         async function viewEmployee(id) {
@@ -652,128 +693,478 @@
             if (!data) { showNotification('Employé introuvable', 'error'); return; }
             const h = document.getElementById('employee-details');
             if (!h) return;
-            h.innerHTML = `
-                <table style="width:100%;border-collapse:collapse">
-                    <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">Matricule</td><td style="padding:8px;border-bottom:1px solid #ddd">${data.matricule || '—'}</td></tr>
-                    <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">Nom</td><td style="padding:8px;border-bottom:1px solid #ddd">${data.nom}</td></tr>
-                    <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">Métier</td><td style="padding:8px;border-bottom:1px solid #ddd">${data.metier || '—'}</td></tr>
-                    <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">Chantier</td><td style="padding:8px;border-bottom:1px solid #ddd">${data.chantier || '—'}</td></tr>
-                    <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">Date embauche</td><td style="padding:8px;border-bottom:1px solid #ddd">${data.date_embauche ? new Date(data.date_embauche).toLocaleDateString('fr-FR') : '—'}</td></tr>
-                    <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">Salaire</td><td style="padding:8px;border-bottom:1px solid #ddd">${data.salaire_journalier ? data.salaire_journalier.toLocaleString() + ' Ar/j' : '—'}</td></tr>
-                </table>`;
+            h.innerHTML = `<table style="width:100%;border-collapse:collapse">
+                ${['Matricule',data.matricule||'—','Nom',data.nom,'Métier',data.metier||'—','Chantier',data.chantier||'—',
+                  'Date embauche',data.date_embauche?new Date(data.date_embauche).toLocaleDateString('fr-FR'):'—',
+                  'Salaire',data.salaire_journalier?data.salaire_journalier.toLocaleString()+' Ar/j':'—'
+                ].map((v,i)=>i%2===0?`<tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">${v}</td>`:`<td style="padding:8px;border-bottom:1px solid #ddd">${v}</td></tr>`).join('')}</table>`;
             openModal('modal-view-employee');
         }
 
-        function viewGallery(chantier) {
+        // ═══ POINTAGE ═══
+        async function loadPtgSelect() {
+            const sel = document.getElementById('ptg-employe-select');
+            if (!sel) return;
+            let q = db.from('personnel').select('id,nom').eq('actif', true);
+            if (chefChantier) q = q.eq('chantier', chefChantier);
+            const { data } = await q.order('nom');
+            sel.innerHTML = '<option value="">Sélectionner...</option>'+(data||[]).map(e=>`<option value="${e.id}">${e.nom}</option>`).join('');
+        }
+
+        async function loadPointageToday() {
+            const today = new Date().toISOString().split('T')[0];
+            let q = db.from('pointage_attendance').select('*').eq('date', today);
+            if (chefChantier) q = q.eq('chantier', chefChantier);
+            const { data } = await q.order('heure', { ascending: true });
+            document.getElementById('ptg-total').textContent = (data||[]).length;
+            document.getElementById('ptg-present').textContent = (data||[]).filter(p => p.type_pointage === 'Arrivée').length;
+            const tbody = document.getElementById('ptg-today-body');
+            if (!tbody) return;
+            if (!data||!data.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:20px">Aucun pointage aujourd\'hui</td></tr>'; return; }
+            tbody.innerHTML = data.map(p => `<tr>
+                <td>${p.heure ? p.heure.slice(0,5) : '—'}</td>
+                <td>${p.nom_employe||'—'}</td>
+                <td><span class="status ${p.type_pointage==='Arrivée'?'success':'warning'}">${p.type_pointage||'—'}</span></td>
+                <td><span class="status info">Présent</span></td>
+            </tr>`).join('');
+        }
+
+        async function enregistrerPointageManuel(e) {
+            e.preventDefault();
+            const employeId = document.getElementById('ptg-employe-select').value;
+            if (!employeId) { showNotification('Sélectionnez un employé', 'warning'); return; }
+            const { data: emp } = await db.from('personnel').select('nom,chantier,salaire_journalier').eq('id', employeId).single();
+            if (!emp) { showNotification('Employé introuvable', 'error'); return; }
+            const now = new Date();
+            const { error } = await db.from('pointage_attendance').insert({
+                date: document.getElementById('ptg-date').value || now.toISOString().split('T')[0],
+                heure: now.toTimeString().split(' ')[0],
+                chantier: emp.chantier || chefChantier,
+                nom_employe: emp.nom,
+                type_pointage: document.getElementById('ptg-type').value,
+                statut: 'present',
+                employe_id: parseInt(employeId),
+                salaire_journalier: emp.salaire_journalier
+            });
+            if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+            showNotification('Pointage enregistré ✓', 'success');
+            loadPointageToday();
+        }
+
+        // QR Scanner
+        async function toggleScanner() {
+            const video = document.getElementById('qr-scanner');
+            const btn = document.querySelector('[onclick="toggleScanner()"]');
+            const btnStop = document.getElementById('btn-stop-scan');
+            const result = document.getElementById('qr-result');
+            if (qrScanner) { stopScanner(); return; }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = stream; video.style.display = 'block'; await video.play();
+                btn.style.display = 'none'; btnStop.style.display = 'inline-block';
+                result.innerHTML = '<span style="color:#888">Scannez le QR code de l\'employé...</span>';
+                qrScanner = setInterval(async () => {
+                    try {
+                        if (typeof QrScanner !== 'undefined') {
+                            if (!qrScannerInstance) {
+                                const QrScannerLib = QrScanner;
+                                qrScannerInstance = new QrScannerLib(video, r => handleQRResult(r), { returnDuplicate: false });
+                                qrScannerInstance.start();
+                            }
+                        } else {
+                            // Fallback: simple canvas scan every 2s
+                            if (scannerTries > 10) { stopScanner(); result.innerHTML = '<span style="color:var(--red)">Scanner non disponible. Utilisez la saisie manuelle.</span>'; return; }
+                            scannerTries++;
+                        }
+                    } catch(e) { scannerTries++; }
+                }, 2000);
+            } catch(e) {
+                result.innerHTML = '<span style="color:var(--red)">Caméra non accessible. Utilisez la saisie manuelle.</span>';
+            }
+        }
+        let scannerTries = 0;
+        let qrScannerInstance = null;
+
+        function stopScanner() {
+            const video = document.getElementById('qr-scanner');
+            const btn = document.querySelector('[onclick="toggleScanner()"]');
+            const btnStop = document.getElementById('btn-stop-scan');
+            if (qrScanner) { clearInterval(qrScanner); qrScanner = null; }
+            if (qrScannerInstance) { try { qrScannerInstance.destroy(); } catch(_) {} qrScannerInstance = null; }
+            if (video && video.srcObject) { video.srcObject.getTracks().forEach(t=>t.stop()); video.srcObject = null; video.style.display = 'none'; }
+            btn.style.display = 'inline-block'; btnStop.style.display = 'none';
+        }
+
+        async function handleQRResult(data) {
+            stopScanner();
+            const result = document.getElementById('qr-result');
+            let employeId = null;
+            try { const parsed = JSON.parse(data); employeId = parsed.id || parsed.employe_id; } catch(_) { employeId = parseInt(data); }
+            if (!employeId || isNaN(employeId)) { result.innerHTML = '<span style="color:var(--red)">QR code invalide</span>'; return; }
+            const { data: emp } = await db.from('personnel').select('id,nom,chantier,salaire_journalier').eq('id', employeId).single();
+            if (!emp) { result.innerHTML = '<span style="color:var(--red)">Employé introuvable</span>'; return; }
+            if (chefChantier && emp.chantier !== chefChantier) { result.innerHTML = '<span style="color:var(--red)">Cet employé n\'est pas sur votre chantier</span>'; return; }
+            const now = new Date();
+            const { error } = await db.from('pointage_attendance').insert({
+                date: now.toISOString().split('T')[0], heure: now.toTimeString().split(' ')[0],
+                chantier: emp.chantier, nom_employe: emp.nom,
+                type_pointage: 'Arrivée', statut: 'present',
+                employe_id: emp.id, salaire_journalier: emp.salaire_journalier
+            });
+            if (error) { result.innerHTML = '<span style="color:var(--red)">Erreur: '+error.message+'</span>'; return; }
+            result.innerHTML = `<span style="color:var(--green);font-weight:700"><i class="fas fa-check-circle"></i> ${emp.nom} pointé ✓</span>`;
+            loadPointageToday();
+            setTimeout(() => { result.innerHTML = ''; }, 3000);
+        }
+
+        // ═══ PLANNING ═══
+        async function submitPlanning(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const tasks = JSON.parse(localStorage.getItem('nysoa_planning_tasks') || '[]');
+            tasks.unshift({ tache: fd.get('tache'), chantier: chefChantier, date: fd.get('date'), equipe: fd.get('equipe'), priorite: fd.get('priorite'), statut: 'Planifié' });
+            localStorage.setItem('nysoa_planning_tasks', JSON.stringify(tasks));
+            closeModal('modal-planning');
+            e.target.reset();
+            showNotification('Tâche planifiée ✓', 'success');
+            loadPlanningLocales();
+        }
+
+        function loadPlanningLocales() {
+            const tasks = JSON.parse(localStorage.getItem('nysoa_planning_tasks') || '[]').filter(t => !chefChantier || t.chantier === chefChantier);
+            const tbody = document.querySelector('#planning table tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!tasks.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888">Aucune tâche planifiée</td></tr>'; return; }
+            tasks.forEach(t => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${t.tache||'—'}</td><td>${t.chantier||'—'}</td><td>${t.date||'—'}</td><td>${t.equipe||'—'}</td><td><span class="status warning">${t.priorite||'—'}</span></td><td><span class="status info">${t.statut||'Planifié'}</span></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ═══ MATÉRIAUX ═══
+        async function loadStockReel() {
+            const cards = document.querySelectorAll('#materiaux .card');
+            const tbody = cards[0]?.querySelector('table tbody');
+            if (!tbody) return;
+            let stock = [];
+            let { data } = await db.from('stocks_chantier').select('*').eq('chantier', chefChantier);
+            stock = data || [];
+            if (!stock.length) {
+                const { data: d2 } = await db.from('materiels').select('*');
+                stock = (d2||[]).filter(m => m.chantier_actuel === chefChantier);
+            }
+            if (!stock.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#888">Aucun matériau pour ce chantier</td></tr>'; return; }
+            const total = stock.reduce((s,m)=>s+(m.quantite||0),0);
+            const alerteCount = stock.filter(m => (m.quantite||0) <= (m.seuil_alerte||0)).length;
+            document.querySelector('#materiaux .stats-grid .stat-card:nth-child(1) h3').textContent = total;
+            document.querySelector('#materiaux .stats-grid .stat-card:nth-child(2) h3').textContent = stock.length;
+            document.querySelector('#materiaux .stats-grid .stat-card:nth-child(3) h3').textContent = alerteCount;
+            tbody.innerHTML = stock.map(m => {
+                const ok = (m.quantite||0) > (m.seuil_alerte||0);
+                return `<tr><td>${m.nom||m.materiau||'—'}</td><td>${m.quantite||0}</td><td>${m.unite||''}</td><td>${m.seuil_alerte||0}</td><td><span class="status ${ok?'success':'error'}">${ok?'OK':'Alerte'}</span></td></tr>`;
+            }).join('');
+        }
+
+        async function loadDemandesValides() {
+            const cards = document.querySelectorAll('#materiaux .card');
+            const tbody = cards[1]?.querySelector('table tbody');
+            if (!tbody) return;
+            const { data } = await db.from('validations').select('*').eq('type', 'materiaux').order('created_at', { ascending: false });
+            const mesDemandes = (data||[]).filter(v => v.emetteur_id === chefChantier);
+            if (!mesDemandes.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#888">Aucune demande</td></tr>'; return; }
+            const stCls = { 'EN_ATTENTE':'warning', 'APPROUVE':'success', 'REJETE':'error' };
+            tbody.innerHTML = mesDemandes.map(d => `<tr>
+                <td>${d.commentaire?.split('|')[0]||'—'}</td>
+                <td>${d.commentaire?.split('|')[1]||''}</td>
+                <td>${d.created_at ? new Date(d.created_at).toLocaleDateString('fr-FR') : '—'}</td>
+                <td><span class="status ${stCls[d.statut]||''}">${d.statut||'EN_ATTENTE'}</span></td>
+                <td>${d.motif_rejet||'—'}</td>
+            </tr>`).join('');
+        }
+
+        async function submitDemandeMateriaux(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const { error } = await db.from('validations').insert({
+                type: 'materiaux', statut: 'EN_ATTENTE',
+                emetteur_role: 'chef', emetteur_id: chefChantier || 'inconnu',
+                commentaire: (fd.get('materiau')+'|'+fd.get('quantite')+' '+fd.get('unite')+'|Urgence: '+fd.get('urgence'))
+            });
+            if (error) { showNotification('Erreur: '+error.message, 'error'); return; }
+            closeModal('modal-demande-materiaux');
+            e.target.reset();
+            showNotification('Demande envoyée pour validation ✓', 'success');
+            loadDemandesValides();
+        }
+
+        // ═══ RECRUTEMENT ═══
+        async function loadRecrutements() {
+            const tbody = document.getElementById('recrut-body');
+            if (!tbody) return;
+            const { data } = await db.from('validations').select('*').eq('type', 'recrutement').order('created_at', { ascending: false });
+            const mesDemandes = (data||[]).filter(v => v.emetteur_id === chefChantier);
+            document.getElementById('recrut-attente').textContent = mesDemandes.filter(d=>d.statut==='EN_ATTENTE').length;
+            document.getElementById('recrut-approuve').textContent = mesDemandes.filter(d=>d.statut==='APPROUVE').length;
+            document.getElementById('recrut-rejete').textContent = mesDemandes.filter(d=>d.statut==='REJETE').length;
+            if (!mesDemandes.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#888">Aucune demande</td></tr>'; return; }
+            const stCls = { 'EN_ATTENTE':'warning', 'APPROUVE':'success', 'REJETE':'error' };
+            tbody.innerHTML = mesDemandes.map(d => `<tr>
+                <td>${d.commentaire?.split('|')[0]||'—'}</td>
+                <td>${d.commentaire?.split('|')[1]||''}</td>
+                <td>${d.created_at ? new Date(d.created_at).toLocaleDateString('fr-FR') : '—'}</td>
+                <td><span class="status ${stCls[d.statut]||''}">${d.statut||'EN_ATTENTE'}</span></td>
+            </tr>`).join('');
+        }
+
+        async function submitRecrutement(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const { error } = await db.from('validations').insert({
+                type: 'recrutement', statut: 'EN_ATTENTE',
+                emetteur_role: 'chef', emetteur_id: chefChantier || 'inconnu',
+                commentaire: (fd.get('poste')+'|'+fd.get('nombre')+' pers., '+fd.get('duree')+' mois|'+fd.get('justification'))
+            });
+            if (error) { showNotification('Erreur: '+error.message, 'error'); return; }
+            closeModal('modal-recrutement');
+            e.target.reset();
+            showNotification('Demande de recrutement envoyée ✓', 'success');
+            loadRecrutements();
+        }
+
+        // ═══ RAPPORTS ═══
+        async function loadRapports() {
+            const container = document.querySelector('#rapports .dashboard-grid');
+            if (!container) return;
+            const { data } = await db.from('rapports_chantier').select('*').eq('chantier', chefChantier).order('date', { ascending: false }).limit(20);
+            const list = document.getElementById('rapport-list');
+            if (list) {
+                if (!data||!data.length) { list.innerHTML = '<li style="padding:12px;color:#888;list-style:none">Aucun rapport pour ce chantier</li>'; return; }
+                list.innerHTML = data.map((r,i) => `<li style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0">
+                    <i class="fas fa-file-alt" style="color:var(--orange)"></i>
+                    <span style="flex:1"><strong>${r.date}</strong> — ${r.travaux?.slice(0,50)||'—'} ${r.meteo?'('+r.meteo+')':''}</span>
+                    <button class="btn-small" data-idx="${i}" onclick="viewRapportByIndex(${i})"><i class="fas fa-eye"></i></button>
+                </li>`).join('');
+            window.__rapportsCache = data;
+            }
+        }
+
+        function viewRapportByIndex(idx) {
+            const cache = window.__rapportsCache;
+            if (cache && cache[idx]) viewRapport(cache[idx]);
+        }
+
+        function viewRapport(r) {
+            const h = document.getElementById('rapport-detail-content');
+            if (!h) return;
+            const notesMatch = r.travaux?.match(/\n\n\[Notes\] (.*)/s);
+            const matosMatch = r.travaux?.match(/\n\n\[Matériaux\] (.*?)(?:\n\n\[Notes\]|$)/s);
+            const travauxClean = r.travaux?.replace(/\n\n\[(Matériaux|Notes)\].*/s, '').trim()||r.travaux||'—';
+            h.innerHTML = `<div style="padding:4px">
+                <p><strong>Date :</strong> ${r.date}</p>
+                <p><strong>Météo :</strong> ${r.meteo||'—'}</p>
+                <p><strong>Effectif :</strong> ${r.ouvriers||'?'} ouvriers</p>
+                <p><strong>Travaux :</strong> ${travauxClean}</p>
+                ${matosMatch ? `<p><strong>Matériaux :</strong> ${matosMatch[1]}</p>` : ''}
+                ${notesMatch ? `<p><strong>Notes :</strong> ${notesMatch[1]}</p>` : ''}
+                <p><strong>Incidents :</strong> ${r.problemes||'Aucun'}</p>
+            </div>`;
+            openModal('modal-rapport-detail');
+        }
+
+        function ouvrirNouveauRapport() {
+            document.getElementById('rp-date').value = new Date().toISOString().split('T')[0];
+            openModal('modal-nouveau-rapport');
+        }
+
+        async function submitRapport(e) {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const materiaux = fd.get('materiaux') || '';
+            const observations = fd.get('observations') || '';
+            const travaux = (fd.get('travaux')||'') + (materiaux ? `\n\n[Matériaux] ${materiaux}` : '') + (observations ? `\n\n[Notes] ${observations}` : '');
+            const { error } = await db.from('rapports_chantier').insert({
+                date: fd.get('date'), chantier: chefChantier,
+                meteo: fd.get('meteo'), ouvriers: parseInt(fd.get('ouvriers')||0),
+                travaux: travaux.slice(0, 500), problemes: fd.get('problemes')||''
+            });
+            if (error) { showNotification('Erreur: '+error.message, 'error'); return; }
+            closeModal('modal-nouveau-rapport');
+            e.target.reset();
+            showNotification('Rapport enregistré ✓', 'success');
+            loadRapports();
+        }
+
+        function downloadReport(btn) {
+            const text = btn.textContent.trim();
+            if (text.includes('PDF')) {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.setFontSize(16).text('NYSOA BTP - Rapport chantier', 20, 30);
+                doc.setFontSize(12).text('Chantier: '+chefChantier, 20, 50);
+                doc.setFontSize(10).text('Généré le: '+new Date().toLocaleDateString('fr-FR'), 20, 60);
+                doc.save('rapport_'+chefChantier+'.pdf');
+            } else if (text.includes('Excel')) {
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet([['NYSOA BTP - Rapport chantier']]);
+                XLSX.utils.book_append_sheet(wb, ws, 'Rapport');
+                XLSX.writeFile(wb, 'rapport_'+chefChantier+'.xlsx');
+            }
+            showNotification('Téléchargement démarré ✓', 'success');
+        }
+
+        // ═══ GALERIE PHOTOS ═══
+        function viewGallery() {
             const h = document.getElementById('gallery-content');
             if (!h) return;
             h.innerHTML = `<div style="text-align:center;padding:20px">
                 <i class="fas fa-image" style="font-size:64px;color:var(--border);margin-bottom:16px;display:block"></i>
-                <p style="color:var(--text-secondary);margin-bottom:8px"><strong>Galerie — ${chantier}</strong></p>
+                <p style="color:var(--text-secondary);margin-bottom:8px"><strong>Galerie — ${chefChantier}</strong></p>
                 <div id="gallery-photos" style="display:flex;flex-wrap:wrap;gap:12px;margin:16px 0;justify-content:center"></div>
                 <div style="margin-top:12px">
-                    <input type="file" id="gallery-file-input" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="uploadGalleryPhoto('${chantier}', this)">
+                    <input type="file" id="gallery-file-input" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="uploadGalleryPhoto(this)">
                     <button class="btn btn-primary" onclick="document.getElementById('gallery-file-input').click()"><i class="fas fa-upload"></i> Ajouter une photo</button>
                 </div>
             </div>`;
             openModal('modal-gallery');
-            loadGalleryPhotos(chantier);
+            loadGalleryPhotos();
         }
 
-        async function loadGalleryPhotos(chantier) {
+        async function loadGalleryPhotos() {
             const container = document.getElementById('gallery-photos');
-            if (!container) return;
+            if (!container || !chefChantier) return;
             try {
-                const { data: files, error } = await db.storage.from('photos').list(chantier, { sortBy: { column: 'created_at', order: 'desc' } });
-                if (error || !files || !files.length) {
-                    container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Aucune photo pour ce chantier</p>';
-                    return;
-                }
+                const { data: files, error } = await db.storage.from('photos').list(chefChantier, { sortBy: { column: 'created_at', order: 'desc' } });
+                if (error || !files || !files.length) { container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Aucune photo</p>'; return; }
                 const { data: { publicUrl } } = db.storage.from('photos').getPublicUrl('');
                 const baseUrl = publicUrl.replace(/\/$/, '');
-                container.innerHTML = files.map(f => `<img src="${baseUrl}/${encodeURIComponent(chantier)}/${encodeURIComponent(f.name)}" style="width:160px;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" onclick="window.open(this.src)" title="${f.name}">`).join('');
-            } catch(e) {
-                container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Aucune photo pour ce chantier</p>';
-            }
+                container.innerHTML = files.map(f => `<img src="${baseUrl}/${encodeURIComponent(chefChantier)}/${encodeURIComponent(f.name)}" style="width:160px;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" onclick="window.open(this.src)" title="${f.name}">`).join('');
+            } catch(e) { container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Aucune photo</p>'; }
         }
 
-        async function uploadGalleryPhoto(chantier, input) {
+        async function uploadGalleryPhoto(input) {
             const file = input.files && input.files[0];
-            if (!file) return;
-            if (file.size > 5 * 1024 * 1024) { showNotification('Fichier trop volumineux (max 5 Mo)', 'error'); return; }
+            if (!file || !chefChantier) return;
+            if (file.size > 5*1024*1024) { showNotification('Fichier trop volumineux (max 5 Mo)', 'error'); return; }
             const ext = file.name.split('.').pop();
-            const path = `${chantier}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+            const path = `${chefChantier}/${Date.now()}_${Math.random().toString(36).substring(2,8)}.${ext}`;
             const { error } = await db.storage.from('photos').upload(path, file, { contentType: file.type, upsert: false });
-            if (error) { showNotification('Erreur upload: ' + error.message, 'error'); return; }
+            if (error) { showNotification('Erreur upload: '+error.message, 'error'); return; }
             showNotification('Photo ajoutée ✓', 'success');
             input.value = '';
-            loadGalleryPhotos(chantier);
+            loadGalleryPhotos();
         }
 
-        function viewIncident() {
-            const h = document.getElementById('gallery-content');
-            if (!h) return;
-            h.innerHTML = `<div style="padding:10px">
-                <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:12px">
-                    <strong style="color:#dc2626">Incident signalé — Mai 2026</strong>
-                    <p style="color:var(--text-secondary);margin-top:8px">Chantier: Résidence Les Palmiers<br>Date: 12/05/2026<br>Description: Chute de matériel depuis échafaudage — aucun blessé<br>Action: Sécurisation de la zone, rappel des consignes de sécurité</p>
-                </div>
-            </div>`;
-            openModal('modal-gallery');
-        }
-
-        // Initialize Chef Charts
-        function initializeChefCharts(chantiers, personnel) {
-            const projLabels = chantiers ? chantiers.map(c => c.nom || c.code) : ['Résidence Palmiers', 'Centre Commercial', 'Bureau Ecobank'];
-            const projData   = chantiers ? chantiers.map(c => c.progression || 0) : [75, 45, 90];
+        // ═══ CHARTS ═══
+        function initChefCharts(chantiers, personnel) {
+            const projLabels = chantiers ? chantiers.map(c => c.nom || c.code) : [chefChantier||'Chantier'];
+            const projData   = chantiers ? chantiers.map(c => c.progression || 0) : [0];
             const colors     = ['#0066cc', '#ff6b35', '#10b981', '#636e72', '#e84393', '#00b894'];
-
-            // Project Progress Chart
-            const projectProgressCtx = document.getElementById('projectProgressChart');
-            if (projectProgressCtx) {
-                new Chart(projectProgressCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: projLabels,
-                        datasets: [{
-                            label: 'Progression (%)',
-                            data: projData,
-                            backgroundColor: projLabels.map((_, i) => colors[i % colors.length])
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true, max: 100 } }
-                    }
-                });
+            const ctx1 = document.getElementById('projectProgressChart');
+            if (ctx1) {
+                new Chart(ctx1, { type: 'bar', data: { labels: projLabels, datasets: [{ label: 'Progression (%)', data: projData, backgroundColor: projLabels.map((_,i) => colors[i%colors.length]) }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } } });
             }
-
-            // Team Chart
             const metiers = {};
             if (personnel) personnel.forEach(p => { const m = p.metier || 'Autres'; metiers[m] = (metiers[m] || 0) + 1; });
-            const teamLabels = personnel ? Object.keys(metiers) : ['Maçons', 'Électriciens', 'Plombiers', 'Autres'];
-            const teamData   = personnel ? Object.values(metiers) : [12, 8, 5, 3];
-
-            const teamCtx = document.getElementById('teamChart');
-            if (teamCtx) {
-                new Chart(teamCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: teamLabels,
-                        datasets: [{
-                            data: teamData,
-                            backgroundColor: colors.slice(0, teamLabels.length)
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { display: true, position: 'right' } }
-                    }
-                });
+            const ctx2 = document.getElementById('teamChart');
+            if (ctx2) {
+                new Chart(ctx2, { type: 'doughnut', data: { labels: Object.keys(metiers), datasets: [{ data: Object.values(metiers), backgroundColor: colors.slice(0, Object.keys(metiers).length) }] }, options: { responsive: true, plugins: { legend: { display: true, position: 'right' } } } });
             }
         }
+
+        // ═══ MODAL CHANTIER SELECT ═══
+        // Override openModal from script.js to inject chefChantier in chantier selects
+        const origOpenModal = openModal;
+        openModal = function(id) {
+            if (typeof origOpenModal === 'function') origOpenModal(id);
+            const chantierSelects = document.querySelectorAll(`#${id} select[name="chantier"]`);
+            chantierSelects.forEach(sel => {
+                sel.innerHTML = chefChantier ? `<option value="${chefChantier}" selected>${chefChantier}</option>` : '<option value="">Aucun chantier</option>';
+                sel.disabled = !!chefChantier;
+            });
+        };
     </script>
+
+    <!-- Modal Nouveau Rapport -->
+    <div id="modal-nouveau-rapport" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Nouveau rapport journalier</h3><button class="close-modal" onclick="closeModal('modal-nouveau-rapport')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitRapport(event)">
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1"><label>Date</label><input type="date" id="rp-date" name="date" class="form-input" required></div>
+                        <div class="form-group" style="flex:1"><label>Météo</label>
+                            <select name="meteo" class="form-input"><option value="">—</option><option value="soleil">☀️ Soleil</option><option value="nuageux">⛅ Nuageux</option><option value="pluie">🌧️ Pluie</option><option value="orage">⛈️ Orage</option></select>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>Ouvriers présents</label><input type="number" name="ouvriers" class="form-input" min="0" value="0"></div>
+                    <div class="form-group"><label>Travaux réalisés *</label><textarea name="travaux" rows="3" class="form-input" required placeholder="Décrivez les travaux du jour..."></textarea></div>
+                    <div class="form-group"><label>Incidents / Problèmes</label><textarea name="problemes" rows="2" class="form-input" placeholder="Incidents, retards, pannes..."></textarea></div>
+                    <div class="form-group"><label>Matériaux consommés</label><textarea name="materiaux" rows="2" class="form-input" placeholder="Ciment: 50 sacs, Acier: 200m..."></textarea></div>
+                    <div class="form-group"><label>Observations</label><textarea name="observations" rows="2" class="form-input" placeholder="Notes diverses..."></textarea></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%"><i class="fas fa-save"></i> Enregistrer le rapport</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Détail Rapport -->
+    <div id="modal-rapport-detail" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Détail du rapport</h3><button class="close-modal" onclick="closeModal('modal-rapport-detail')">&times;</button></div>
+            <div class="modal-body" id="rapport-detail-content"></div>
+        </div>
+    </div>
+
+    <!-- Modal Modifier Chantier -->
+    <div id="modal-edit-chantier" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Modifier le chantier</h3><button class="close-modal" onclick="closeModal('modal-edit-chantier')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitEditChantier(event)">
+                    <input type="hidden" id="edit-chantier-id">
+                    <div class="form-group"><label>Statut</label>
+                        <select id="edit-chantier-statut" class="form-input">
+                            <option value="EN COURS">EN COURS</option>
+                            <option value="EN PAUSE">EN PAUSE</option>
+                            <option value="TERMINÉ">TERMINÉ</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Progression (%)</label>
+                        <input type="range" id="edit-chantier-progression" min="0" max="100" value="0" class="form-input" oninput="document.getElementById('edit-prog-label').textContent=this.value+'%'">
+                        <div style="text-align:center;font-size:1.2rem;font-weight:700;color:var(--orange);margin-top:4px" id="edit-prog-label">0%</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%"><i class="fas fa-save"></i> Enregistrer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Recrutement -->
+    <div id="modal-recrutement" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Demande de recrutement</h3><button class="close-modal" onclick="closeModal('modal-recrutement')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="submitRecrutement(event)">
+                    <div class="form-group"><label>Poste recherché *</label>
+                        <select name="poste" class="form-input" required>
+                            <option>Maçon</option><option>Coffreur</option><option>Ferronnier</option>
+                            <option>Électricien</option><option>Plombier</option><option>Peintre</option>
+                            <option>Menuisier</option><option>Carreleur</option><option>Manœuvre</option>
+                            <option>Conducteur d'engins</option><option>Chef d'équipe</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1"><label>Nombre *</label><input name="nombre" type="number" min="1" value="1" class="form-input" required></div>
+                        <div class="form-group" style="flex:1"><label>Durée (mois)</label><input name="duree" type="number" min="1" value="3" class="form-input"></div>
+                    </div>
+                    <div class="form-group"><label>Justification</label><textarea name="justification" rows="3" class="form-input" placeholder="Pourquoi ce recrutement est nécessaire ?"></textarea></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%"><i class="fas fa-paper-plane"></i> Envoyer pour validation</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal Ajouter ouvrier -->
     <div id="modal-ajouter-ouvrier" class="modal">
