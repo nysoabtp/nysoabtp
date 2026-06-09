@@ -53,6 +53,10 @@
                     <i class="fas fa-file-alt"></i>
                     <span>Rapports</span>
                 </a>
+                <a href="#" class="nav-item" onclick="openModal('modal-changement-mdp')">
+                    <i class="fas fa-key"></i>
+                    <span>Changer mot de passe</span>
+                </a>
                 <a href="#" class="nav-item" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Déconnexion</span>
@@ -1086,6 +1090,37 @@
             loadGalleryPhotos();
         }
 
+        // ═══ CHANGER MOT DE PASSE ═══
+        async function changePassword(e) {
+            e.preventDefault();
+            const oldPwd = document.getElementById('mdp-actuel').value;
+            const newPwd = document.getElementById('mdp-nouveau').value;
+            const confirm = document.getElementById('mdp-confirm').value;
+            const result = document.getElementById('mdp-result');
+
+            if (newPwd !== confirm) { result.innerHTML = '<span style="color:var(--red)">✗ Les mots de passe ne correspondent pas</span>'; return false; }
+            if (newPwd.length < 6) { result.innerHTML = '<span style="color:var(--red)">✗ Minimum 6 caractères</span>'; return false; }
+
+            result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Vérification...';
+
+            // 1. Vérifier l'ancien mot de passe en se reconnectant
+            const user = JSON.parse(localStorage.getItem('nysoa_current_user') || '{}');
+            const { error: reAuthError } = await db.auth.signInWithPassword({ email: user.email, password: oldPwd });
+            if (reAuthError) { result.innerHTML = '<span style="color:var(--red)">✗ Mot de passe actuel incorrect</span>'; return false; }
+
+            // 2. Mettre à jour
+            result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mise à jour...';
+            const { error: updateError } = await db.auth.updateUser({ password: newPwd });
+            if (updateError) { result.innerHTML = `<span style="color:var(--red)">✗ ${updateError.message}</span>`; return false; }
+
+            result.innerHTML = '<span style="color:var(--green)">✓ Mot de passe changé avec succès !</span>';
+            document.getElementById('mdp-actuel').value = '';
+            document.getElementById('mdp-nouveau').value = '';
+            document.getElementById('mdp-confirm').value = '';
+            setTimeout(() => closeModal('modal-changement-mdp'), 2000);
+            return false;
+        }
+
         // ═══ CHARTS ═══
         function initChefCharts(chantiers, personnel) {
             const projLabels = chantiers ? chantiers.map(c => c.nom || c.code) : [chefChantier||'Chantier'];
@@ -1263,6 +1298,31 @@
         <div class="modal-content">
             <div class="modal-header"><h3>Galerie</h3><button class="close-modal" onclick="closeModal('modal-gallery')">&times;</button></div>
             <div class="modal-body" id="gallery-content"></div>
+        </div>
+    </div>
+
+    <!-- Modal Changer mot de passe -->
+    <div id="modal-changement-mdp" class="modal">
+        <div class="modal-content" style="max-width:420px">
+            <div class="modal-header"><h3><i class="fas fa-key" style="color:var(--orange)"></i> Changer mon mot de passe</h3><button class="close-modal" onclick="closeModal('modal-changement-mdp')">&times;</button></div>
+            <div class="modal-body">
+                <form onsubmit="return changePassword(event)" style="display:flex;flex-direction:column;gap:14px">
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Mot de passe actuel</label>
+                        <input type="password" id="mdp-actuel" required style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px">
+                    </div>
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Nouveau mot de passe</label>
+                        <input type="password" id="mdp-nouveau" required minlength="6" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px">
+                    </div>
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Confirmer le nouveau mot de passe</label>
+                        <input type="password" id="mdp-confirm" required minlength="6" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="margin-top:4px"><i class="fas fa-save"></i> Changer le mot de passe</button>
+                    <div id="mdp-result" style="font-size:13px"></div>
+                </form>
+            </div>
         </div>
     </div>
 </body>
