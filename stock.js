@@ -44,8 +44,8 @@ function stockLoad(key, defaultVal) {
 function stockSave(key, data) {
     localStorage.setItem(key, JSON.stringify(data));
 }
-function getArticles()    { return stockLoad(STOCK_KEY,     DEFAULT_ARTICLES); }
-function getMouvements()  { return stockLoad(MOUVEMENT_KEY, DEFAULT_MOUVEMENTS); }
+function getArticles()    { return stockLoad(STOCK_KEY,     []); }
+function getMouvements()  { return stockLoad(MOUVEMENT_KEY, []); }
 
 // ── Sync localStorage → Supabase (materiels) ──────────
 async function stockSyncToSupabase() {
@@ -87,8 +87,9 @@ async function stockLoadFromSupabase() {
 
 // ── Init données ───────────────────────────────────────
 function stockInitData() {
-    if (!localStorage.getItem(STOCK_KEY))     stockSave(STOCK_KEY,     DEFAULT_ARTICLES);
-    if (!localStorage.getItem(MOUVEMENT_KEY)) stockSave(MOUVEMENT_KEY, DEFAULT_MOUVEMENTS);
+    // Ne jamais injecter les données par défaut — partir vide, charger depuis Supabase
+    if (!localStorage.getItem(STOCK_KEY))     stockSave(STOCK_KEY,     []);
+    if (!localStorage.getItem(MOUVEMENT_KEY)) stockSave(MOUVEMENT_KEY, []);
 }
 
 // ── Statut selon quantité vs seuil ─────────────────────
