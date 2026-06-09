@@ -1,0 +1,182 @@
+{
+  "LOG-1: Page de connexion": {
+    "status": "pass",
+    "description": "LOG-1: Page de connexion",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "LOG-1b: Champ mot de passe": {
+    "status": "pass",
+    "description": "LOG-1b: Champ mot de passe",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "LOG-1c: Bouton Se connecter": {
+    "status": "pass",
+    "description": "LOG-1c: Bouton Se connecter",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "LOG-2: Comptes démo": {
+    "status": "pass",
+    "description": "LOG-2: Comptes démo",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "LOG-ADMIN: Redirection admin": {
+    "status": "pass",
+    "description": "LOG-ADMIN: Redirection admin",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "LOG-DAF: Redirection DAF": {
+    "status": "pass",
+    "description": "LOG-DAF: Redirection DAF",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "LOG-RH: Redirection RH": {
+    "status": "pass",
+    "description": "LOG-RH: Redirection RH",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "LOG-CHEF: Redirection Chef": {
+    "status": "pass",
+    "description": "LOG-CHEF: Redirection Chef",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "LOG-CTR: Redirection Contrôleur": {
+    "status": "pass",
+    "description": "LOG-CTR: Redirection Contrôleur",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "ADM-1: Sidebar admin": {
+    "status": "pass",
+    "description": "ADM-1: Sidebar admin",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "ADM-1b: Bouton Import": {
+    "status": "pass",
+    "description": "ADM-1b: Bouton Import",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "ADM-1c: Bouton Utilisateurs": {
+    "status": "pass",
+    "description": "ADM-1c: Bouton Utilisateurs",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "DAF-1: Dashboard DAF": {
+    "status": "pass",
+    "description": "DAF-1: Dashboard DAF",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "DAF-1b: Sidebar DAF": {
+    "status": "pass",
+    "description": "DAF-1b: Sidebar DAF",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "RH-1: Dashboard RH": {
+    "status": "pass",
+    "description": "RH-1: Dashboard RH",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "RH-1b: Section Employés": {
+    "status": "pass",
+    "description": "RH-1b: Section Employés",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "RH-1c: Section Paie": {
+    "status": "pass",
+    "description": "RH-1c: Section Paie",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "CHF-1: Dashboard chef": {
+    "status": "pass",
+    "description": "CHF-1: Dashboard chef",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "CHF-1b: Section Équipe": {
+    "status": "pass",
+    "description": "CHF-1b: Section Équipe",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "CHF-1c: Section Pointage": {
+    "status": "pass",
+    "description": "CHF-1c: Section Pointage",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "CHF-1d: Section Matériaux/Stock": {
+    "status": "pass",
+    "description": "CHF-1d: Section Matériaux/Stock",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "CTR-1: Dashboard contrôleur": {
+    "status": "pass",
+    "description": "CTR-1: Dashboard contrôleur",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "CTR-1b: Section Inspections": {
+    "status": "pass",
+    "description": "CTR-1b: Section Inspections",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "CTR-1c: Section Qualité/Sécurité": {
+    "status": "pass",
+    "description": "CTR-1c: Section Qualité/Sécurité",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "TEC-1: Dashboard technicien": {
+    "status": "pass",
+    "description": "TEC-1: Dashboard technicien",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "TEC-1b: Section Projets": {
+    "status": "pass",
+    "description": "TEC-1b: Section Projets",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "TEC-1c: Section Tâches/Interventions": {
+    "status": "pass",
+    "description": "TEC-1c: Section Tâches/Interventions",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "GEN-1: Changer mot de passe": {
+    "status": "pass",
+    "description": "GEN-1: Changer mot de passe",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "GEN-2: Bouton déconnexion": {
+    "status": "pass",
+    "description": "GEN-2: Bouton déconnexion",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  },
+  "GEN-3: Responsive 375px": {
+    "status": "pass",
+    "description": "GEN-3: Responsive 375px",
+    "timestamp": "2026-06-09T07:46:56.450Z",
+    "note": ""
+  }
+}

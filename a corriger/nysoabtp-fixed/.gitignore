@@ -1,0 +1,10 @@
+﻿node_modules/
+package-lock.json
+package.json
+*.log
+.env
+.DS_Store
+Thumbs.db
+
+# Clés Supabase — ne jamais commiter
+config.js
