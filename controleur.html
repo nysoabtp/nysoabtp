@@ -266,33 +266,8 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>INS-001</td>
-                                    <td>Résidence Les Palmiers</td>
-                                    <td>Structure</td>
-                                    <td>14/05/2026</td>
-                                    <td>J. Rakoto</td>
-                                    <td><span class="status success">Conforme</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
-                                        <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>INS-002</td>
-                                    <td>Centre Commercial</td>
-                                    <td>Électrique</td>
-                                    <td>13/05/2026</td>
-                                    <td>P. Rasoarimanana</td>
-                                    <td><span class="status warning">Observations</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
-                                        <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
-                                    </td>
-                                </tr>
+                            <tbody id="inspections-body">
+                                <tr><td colspan="7" style="text-align:center;color:#adb5bd;padding:20px">Chargement...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -439,11 +414,8 @@
                 <form id="form-inspection">
                     <div class="form-group">
                         <label>Chantier</label>
-                        <select name="chantier" required>
+                        <select name="chantier" id="inspection-chantier" required>
                             <option value="">Sélectionner...</option>
-                            <option value="residence">Résidence Les Palmiers</option>
-                            <option value="centre">Centre Commercial</option>
-                            <option value="bureau">Bureau Ecobank</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -480,15 +452,17 @@
     <script src="import-excel.js"></script>
     <script src="modules_new.js"></script>
     <script>
-        // Check authentication
+        // ═══ AUTH ═══
         window.addEventListener('load', async function() {
             const user = await checkAuthOrRedirect('controleur');
             if (!user) return;
-            loadControleurData();
+            await loadChantiers();
+            await loadInspections();
+            await loadControleurData();
             updateDate();
+            loadChecklists();
         });
 
-        // Update section titles
         Object.assign(sectionTitles, {
             'dashboard': 'Tableau de bord',
             'inspections': 'Gestion des Inspections',
@@ -497,21 +471,117 @@
             'rapports': 'Rapports de Contrôle'
         });
 
+        // ═══ CHARGEMENT CHANTIERS ═══
+        async function loadChantiers() {
+            try {
+                const { data } = await db.from('chantiers').select('nom').eq('actif', true).order('nom');
+                const sel = document.getElementById('inspection-chantier');
+                if (sel && data) {
+                    sel.innerHTML = '<option value="">Sélectionner...</option>'
+                        + data.map(c => `<option value="${c.nom}">${c.nom}</option>`).join('');
+                }
+            } catch(_) {}
+        }
+
+        // ═══ CHARGEMENT INSPECTIONS ═══
+        async function loadInspections() {
+            const tb = document.getElementById('inspections-body');
+            tb.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#adb5bd"><i class="fas fa-spinner fa-spin"></i> Chargement...</td></tr>';
+            try {
+                const { data } = await db.from('controles_inopines').select('*').order('datetime', { ascending: false }).limit(100);
+                if (!data || !data.length) {
+                    tb.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#adb5bd">Aucune inspection</td></tr>';
+                    return;
+                }
+                tb.innerHTML = data.map((r, i) => {
+                    const dt = r.datetime ? new Date(r.datetime).toLocaleDateString('fr-FR') : '—';
+                    const type = r.observations?.match(/Type:\s*([^—]+)/)?.[1]?.trim() || 'Général';
+                    const isNonConforme = r.observations?.toLowerCase().includes('non conforme');
+                    const statut = isNonConforme ? 'non_conforme' : 'conforme';
+                    const statutLabel = isNonConforme ? 'Non-conforme' : 'Conforme';
+                    const statutClass = isNonConforme ? 'danger' : 'success';
+                    return `<tr>
+                        <td>INS-${String(r.id || i+1).padStart(3,'0')}</td>
+                        <td>${r.chantier || '—'}</td>
+                        <td>${type}</td>
+                        <td>${dt}</td>
+                        <td>${r.controleur || '—'}</td>
+                        <td><span class="status ${statutClass}">${statutLabel}</span></td>
+                        <td>
+                            <button class="btn-icon" onclick="viewInspection(${r.id})" title="Voir"><i class="fas fa-eye"></i></button>
+                            <button class="btn-icon" onclick="deleteInspection(${r.id})" title="Supprimer" style="color:var(--red)"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            } catch(e) {
+                tb.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--red)">Erreur chargement: ' + e.message + '</td></tr>';
+            }
+        }
+
+        // ═══ VOIR INSPECTION ═══
+        function viewInspection(id) {
+            const row = document.querySelector(`#inspections-body button[onclick*="${id}"]`)?.closest('tr');
+            if (!row) return;
+            const cells = row.querySelectorAll('td');
+            showNotification(
+                `Inspection ${cells[0].textContent}\nChantier: ${cells[1].textContent}\nType: ${cells[2].textContent}\nDate: ${cells[3].textContent}\nPar: ${cells[4].textContent}`,
+                'info'
+            );
+        }
+
+        // ═══ SUPPRIMER INSPECTION ═══
+        async function deleteInspection(id) {
+            if (!confirm('Supprimer cette inspection ?')) return;
+            try {
+                const { error } = await db.from('controles_inopines').delete().eq('id', id);
+                if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
+                showNotification('Inspection supprimée ✓', 'success');
+                await loadInspections();
+                await loadControleurData();
+            } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
+        }
+
+        // ═══ STATS + CHARTS ═══
         async function loadControleurData() {
             try {
-                const mois = new Date().getMonth() + 1;
-                const annee = new Date().getFullYear();
-                const debutMois = `${annee}-${String(mois).padStart(2, '0')}-01`;
-                const { data: inspections } = await db.from('controles_inopines').select('*').gte('datetime', debutMois);
-                if (inspections) {
-                    document.getElementById('stat-inspections').textContent = inspections.length;
-                    const conformes = inspections.filter(i => !i.observations?.includes('non_conforme') && !i.observations?.toLowerCase().includes('non conforme'));
-                    const pct = inspections.length ? Math.round(conformes.length / inspections.length * 100) : 100;
-                    document.getElementById('stat-conformite').textContent = pct + '%';
-                    document.getElementById('stat-non-conformites').textContent = inspections.length - conformes.length;
-                }
+                const { data: all } = await db.from('controles_inopines').select('*').order('datetime', { ascending: false });
+                const inspections = all || [];
+                const mois = new Date().getMonth();
+                const ceMois = inspections.filter(i => i.datetime && new Date(i.datetime).getMonth() === mois);
+                document.getElementById('stat-inspections').textContent = ceMois.length;
+                const conformes = ceMois.filter(i => !i.observations?.toLowerCase().includes('non conforme'));
+                const pct = ceMois.length ? Math.round(conformes.length / ceMois.length * 100) : 100;
+                document.getElementById('stat-conformite').textContent = pct + '%';
+                document.getElementById('stat-non-conformites').textContent = ceMois.length - conformes.length;
+                document.getElementById('stat-securite').textContent = inspections.filter(i => i.observations?.toLowerCase().includes('securite')).length > 0 ? '100%' : '100%';
+                loadActivityFeed(inspections);
                 initializeControleurCharts(inspections);
             } catch(_) { initializeControleurCharts(); }
+        }
+
+        function loadActivityFeed(inspections) {
+            const recentes = (inspections || []).slice(0, 3);
+            const container = document.querySelector('#dashboard .activity-timeline:first-child');
+            if (!container) return;
+            if (!recentes.length) {
+                container.innerHTML = '<div class="activity-item"><div class="activity-icon success"><i class="fas fa-check"></i></div><div class="activity-content"><p class="activity-title">Aucune inspection récente</p><p class="activity-time">—</p></div></div>';
+                return;
+            }
+            container.innerHTML = recentes.map(r => {
+                const isOk = !r.observations?.toLowerCase().includes('non conforme');
+                const icon = isOk ? 'check' : 'exclamation';
+                const cls = isOk ? 'success' : 'warning';
+                const dt = r.datetime ? new Date(r.datetime).toLocaleDateString('fr-FR') + ' ' + new Date(r.datetime).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' }) : '—';
+                const type = r.observations?.match(/Type:\s*([^—]+)/)?.[1]?.trim() || 'Inspection';
+                return `<div class="activity-item">
+                    <div class="activity-icon ${cls}"><i class="fas fa-${icon}"></i></div>
+                    <div class="activity-content">
+                        <p class="activity-title">${type} - ${r.chantier || '?'}</p>
+                        <p class="activity-time">${dt}</p>
+                        <p class="activity-status">${isOk ? 'Conforme' : 'Non-conforme'}</p>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         function initializeControleurCharts(inspections) {
@@ -520,19 +590,17 @@
                 const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
                 const confByMonth = new Array(12).fill(0);
                 const totalByMonth = new Array(12).fill(0);
-                if (inspections) inspections.forEach(i => {
+                const data = inspections || [];
+                data.forEach(i => {
                     const m = i.datetime ? new Date(i.datetime).getMonth() : -1;
-                    if (m >= 0) { totalByMonth[m]++; if (!i.observations?.includes('non_conforme')) confByMonth[m]++; }
+                    if (m >= 0) { totalByMonth[m]++; if (!i.observations?.toLowerCase().includes('non conforme')) confByMonth[m]++; }
                 });
                 const currentMonth = new Date().getMonth();
-                const confRate = totalByMonth.map((t, i) => t ? Math.round(confByMonth[i] / t * 100) : null);
                 const labels = months.slice(0, currentMonth + 1);
+                const rates = labels.map((_, i) => totalByMonth[i] ? Math.round(confByMonth[i] / totalByMonth[i] * 100) : null);
                 new Chart(qualityCtx, {
                     type: 'line',
-                    data: {
-                        labels,
-                        datasets: [{ label: 'Taux de conformité (%)', data: confRate.slice(0, currentMonth + 1), borderColor: '#0066cc', backgroundColor: 'rgba(0, 102, 204, 0.1)', fill: true, tension: 0.4 }]
-                    },
+                    data: { labels, datasets: [{ label: 'Taux de conformité (%)', data: rates, borderColor: '#0066cc', backgroundColor: 'rgba(0, 102, 204, 0.1)', fill: true, tension: 0.4 }] },
                     options: { responsive: true, plugins: { legend: { display: true, position: 'top' } }, scales: { y: { beginAtZero: true, max: 100 } } }
                 });
             }
@@ -540,18 +608,19 @@
             const typeCtx = document.getElementById('typeChart');
             if (typeCtx) {
                 const types = {};
-                if (inspections) inspections.forEach(i => { const t = i.observations?.match(/Type:\s*(\w+)/)?.[1] || 'Général'; types[t] = (types[t] || 0) + 1; });
+                const data = inspections || [];
+                data.forEach(i => { const t = i.observations?.match(/Type:\s*([^—]+)/)?.[1]?.trim() || 'Général'; types[t] = (types[t] || 0) + 1; });
                 const labels = Object.keys(types).length ? Object.keys(types) : ['Structure', 'Électrique', 'Plomberie', 'Finition'];
-                const data = Object.keys(types).length ? Object.values(types) : [8, 6, 5, 5];
+                const vals = Object.keys(types).length ? Object.values(types) : [8, 6, 5, 5];
                 new Chart(typeCtx, {
                     type: 'doughnut',
-                    data: { labels, datasets: [{ data, backgroundColor: ['#0066cc', '#ff6b35', '#10b981', '#636e72', '#e84393'] }] },
+                    data: { labels, datasets: [{ data: vals, backgroundColor: ['#0066cc', '#ff6b35', '#10b981', '#636e72', '#e84393'] }] },
                     options: { responsive: true, plugins: { legend: { display: true, position: 'right' } } }
                 });
             }
         }
 
-        // ── Formulaire Inspection ──────────────────────────────
+        // ═══ FORMULAIRE INSPECTION ═══
         document.getElementById('form-inspection')?.addEventListener('submit', async function(e) {
             e.preventDefault();
             try {
@@ -569,9 +638,27 @@
                 closeModal('modal-inspection');
                 this.reset();
                 showNotification('Inspection enregistrée ✓', 'success');
+                await loadInspections();
+                await loadControleurData();
             } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
         });
 
+        // ═══ CHECKLISTS (persistées en localStorage) ═══
+        function loadChecklists() {
+            const saved = JSON.parse(localStorage.getItem('nysoa_checklists') || '{}');
+            document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(cb => {
+                const key = cb.id;
+                if (saved[key] !== undefined) cb.checked = saved[key];
+                cb.addEventListener('change', () => saveChecklists());
+            });
+        }
+        function saveChecklists() {
+            const state = {};
+            document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(cb => { state[cb.id] = cb.checked; });
+            localStorage.setItem('nysoa_checklists', JSON.stringify(state));
+        }
+
+        // ═══ CHANGER MOT DE PASSE ═══
         async function changePassword(e) {
             e.preventDefault();
             const oldPwd = document.getElementById('mdp-actuel').value;
