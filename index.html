@@ -307,37 +307,8 @@
                             <h3>Projets récents</h3>
                         </div>
                         <div class="card-body">
-                            <div class="activity-timeline">
-                                <div class="activity-item">
-                                    <div class="activity-icon success">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="activity-title">Résidence Les Palmiers</p>
-                                        <p class="activity-time">Aujourd'hui, 10:30</p>
-                                        <p class="activity-status">En cours</p>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon warning">
-                                        <i class="fas fa-clock"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="activity-title">Centre Commercial</p>
-                                        <p class="activity-time">Hier, 14:00</p>
-                                        <p class="activity-status">En attente</p>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon error">
-                                        <i class="fas fa-exclamation"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="activity-title">Bureau Ecobank</p>
-                                        <p class="activity-time">12/05/2026</p>
-                                        <p class="activity-status">Urgent</p>
-                                    </div>
-                                </div>
+                            <div class="activity-timeline" id="projets-recents-list">
+                                <p style="color:#888;text-align:center;padding:20px">Aucun projet récent</p>
                             </div>
                         </div>
                     </div>
@@ -347,50 +318,8 @@
                             <h3>Activités récentes</h3>
                         </div>
                         <div class="card-body">
-                            <div class="activity-timeline">
-                                <div class="activity-item">
-                                    <div class="activity-icon success">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="activity-title">Nouveau projet créé</p>
-                                        <p class="activity-time">Aujourd'hui, 09:00</p>
-                                        <p class="activity-status">Résidence Les Palmiers</p>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon warning">
-                                        <i class="fas fa-clock"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="activity-title">Achat validé</p>
-                                        <p class="activity-time">Hier, 16:30</p>
-                                        <p class="activity-status">Ciment Bati - 77 500 Ar</p>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon error">
-                                        <i class="fas fa-exclamation"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="activity-title">Alerte stock</p>
-                                        <p class="activity-time">12/05/2026</p>
-                                        <p class="activity-status">Sable bas</p>
-                                    </div>
-                                </div>
-                                <div class="activity-content">
-                                    <p>Commande #567 validée - Matériaux</p>
-                                    <span class="activity-time">Il y a 1h</span>
-                                </div>
-                            </div>
-                            <div class="activity-item">
-                                <div class="activity-icon">
-                                    <i class="fas fa-user-plus"></i>
-                                </div>
-                                <div class="activity-content">
-                                    <p>Nouvel employé: Jean Razafy</p>
-                                    <span class="activity-time">Il y a 3h</span>
-                                </div>
+                            <div class="activity-timeline" id="activites-recentes-list">
+                                <p style="color:#888;text-align:center;padding:20px">Aucune activité récente</p>
                             </div>
                         </div>
                     </div>
@@ -437,50 +366,8 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>PRJ-001</td>
-                                    <td>Résidence Les Palmiers</td>
-                                    <td>SCI Immobilier</td>
-                                    <td>850 000 Ar</td>
-                                    <td>15/01/2026</td>
-                                    <td>30/06/2026</td>
-                                    <td><div class="progress-bar"><div class="progress" style="width: 75%"></div></div></td>
-                                    <td><span class="status active">En cours</span></td>
-                                    <td>
-                                        <button class="btn-icon" title="Voir" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" title="Modifier" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
-                                        <button class="btn-icon" title="Supprimer" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
-                                    </td>
-                                </tr>
                                 <tr>
-                                    <td>PRJ-002</td>
-                                    <td>Centre Commercial</td>
-                                    <td>Groupe Alpha</td>
-                                    <td>1 200 000 Ar</td>
-                                    <td>01/02/2026</td>
-                                    <td>31/12/2026</td>
-                                    <td><div class="progress-bar"><div class="progress" style="width: 45%"></div></div></td>
-                                    <td><span class="status active">En cours</span></td>
-                                    <td>
-                                        <button class="btn-icon" title="Voir" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" title="Modifier" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
-                                        <button class="btn-icon" title="Supprimer" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
-                                    </td>
-                                </tr>
                                 <tr>
-                                    <td>PRJ-003</td>
-                                    <td>Bureau Ecobank</td>
-                                    <td>Ecobank</td>
-                                    <td>450 000 Ar</td>
-                                    <td>10/10/2025</td>
-                                    <td>15/05/2026</td>
-                                    <td><div class="progress-bar"><div class="progress" style="width: 90%"></div></div></td>
-                                    <td><span class="status warning">Bientôt terminé</span></td>
-                                    <td>
-                                        <button class="btn-icon" title="Voir" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" title="Modifier" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
-                                        <button class="btn-icon" title="Supprimer" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
-                                    </td>
-                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -1031,31 +918,7 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>PRO-001</td>
-                                    <td>SCI Immobilier</td>
-                                    <td>Résidence Les Palmiers</td>
-                                    <td>850 000 Ar</td>
-                                    <td>15/05/2026</td>
-                                    <td><span class="status success">Envoyé</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
-                                        <button class="btn-icon" onclick="convertToFacture(this)"><i class="fas fa-file-invoice-dollar"></i></button>
-                                    </td>
-                                </tr>
                                 <tr>
-                                    <td>PRO-002</td>
-                                    <td>Ecobank</td>
-                                    <td>Bureau Ecobank</td>
-                                    <td>450 000 Ar</td>
-                                    <td>13/05/2026</td>
-                                    <td><span class="status warning">En attente</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
-                                        <button class="btn-icon" onclick="convertToFacture(this)"><i class="fas fa-file-invoice-dollar"></i></button>
-                                    </td>
-                                </tr>
                             </tbody>
                         </table>
                     </div>
