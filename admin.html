@@ -463,22 +463,74 @@
         <div id="section-users" style="display:none">
             <div class="page-header">
                 <h1><i class="fas fa-users-cog" style="color:var(--orange);margin-right:10px"></i>Gestion des utilisateurs</h1>
-                <p>Comptes d'accès à l'application</p>
+                <p>Création et gestion des comptes d'accès</p>
             </div>
-            <div class="card">
-                <table style="width:100%;border-collapse:collapse;font-size:13px">
-                    <thead>
-                        <tr style="border-bottom:2px solid #f0f0f0">
-                            <th style="padding:10px;text-align:left;color:#636e72">Nom</th>
-                            <th style="padding:10px;text-align:left;color:#636e72">Email</th>
-                            <th style="padding:10px;text-align:left;color:#636e72">Rôle</th>
-                            <th style="padding:10px;text-align:left;color:#636e72">Statut</th>
-                        </tr>
-                    </thead>
-                    <tbody id="users-table">
-                        <tr><td colspan="4" style="padding:20px;text-align:center;color:#adb5bd">Chargement...</td></tr>
-                    </tbody>
-                </table>
+
+            <!-- Clé service_role (session uniquement) -->
+            <div class="card" style="margin-bottom:16px;padding:14px 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+                <label style="font-weight:600;color:#636e72;font-size:13px;white-space:nowrap"><i class="fas fa-key"></i> Clé service_role</label>
+                <input type="password" id="svc-key-input" placeholder="Pastez votre service_role key ici" style="flex:1;min-width:220px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:monospace">
+                <button class="btn btn-secondary" onclick="saveSvcKey()" style="font-size:12px;padding:8px 14px">Enregistrer</button>
+                <span id="svc-key-status" style="font-size:12px;color:#636e72"></span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <!-- Tableau utilisateurs -->
+                <div class="card">
+                    <h3 style="margin-bottom:12px;font-size:15px">Comptes existants</h3>
+                    <table style="width:100%;border-collapse:collapse;font-size:13px">
+                        <thead>
+                            <tr style="border-bottom:2px solid #f0f0f0">
+                                <th style="padding:8px;text-align:left;color:#636e72">Nom</th>
+                                <th style="padding:8px;text-align:left;color:#636e72">Email</th>
+                                <th style="padding:8px;text-align:left;color:#636e72">Rôle</th>
+                                <th style="padding:8px;text-align:left;color:#636e72">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table">
+                            <tr><td colspan="4" style="padding:20px;text-align:center;color:#adb5bd">Chargement...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Formulaire création -->
+                <div class="card">
+                    <h3 style="margin-bottom:12px;font-size:15px"><i class="fas fa-user-plus" style="color:var(--green)"></i> Créer un compte</h3>
+                    <form id="form-create-user" onsubmit="return createUser(event)" style="display:flex;flex-direction:column;gap:12px">
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Email</label>
+                            <input type="email" id="cu-email" placeholder="chef.chantier@nysoa.mg" required style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Mot de passe</label>
+                            <div style="display:flex;gap:6px">
+                                <input type="text" id="cu-password" placeholder="Généré automatiquement" style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:monospace">
+                                <button type="button" onclick="genPassword()" class="btn btn-secondary" style="font-size:12px;padding:8px 12px;white-space:nowrap">Générer</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Rôle</label>
+                            <select id="cu-role" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+                                <option value="chef">Chef de chantier</option>
+                                <option value="rh">RH</option>
+                                <option value="controleur">Contrôleur</option>
+                                <option value="technicien">Technicien</option>
+                            </select>
+                        </div>
+                        <div id="cu-chantier-group">
+                            <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Chantier</label>
+                            <select id="cu-chantier" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+                                <option value="">-- Choisir --</option>
+                            </select>
+                            <div style="margin-top:6px">
+                                <label style="font-size:11px;color:#636e72"><input type="checkbox" id="cu-new-chantier" onchange="toggleNewChantier()"> Nouveau chantier</label>
+                            </div>
+                            <input type="text" id="cu-new-chantier-name" placeholder="Nom du nouveau chantier" style="display:none;width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-top:6px">
+                        </div>
+                        <button type="submit" class="btn" style="margin-top:6px"><i class="fas fa-user-plus"></i> Créer le compte</button>
+                        <div id="cu-result" style="font-size:13px"></div>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -784,6 +836,7 @@ function showSection(name) {
     document.getElementById('section-' + name).style.display = 'block';
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     event?.currentTarget?.classList.add('active');
+    if (name === 'users') loadChantierSelect();
 }
 
 // ── NOTIFICATION ───────────────────────────────────────────────
@@ -1172,6 +1225,110 @@ async function testSupabaseConnection() {
         el.textContent = '✗ Erreur : ' + e.message;
         notify('Connexion échouée', 'error');
     }
+}
+
+// ── USER CREATION ──────────────────────────────────────────────
+function saveSvcKey() {
+    const key = document.getElementById('svc-key-input').value.trim();
+    if (!key) { sessionStorage.removeItem('nysoa_service_role'); document.getElementById('svc-key-status').textContent = '✗ Effacé'; return; }
+    sessionStorage.setItem('nysoa_service_role', key);
+    document.getElementById('svc-key-status').textContent = '✓ Clé enregistrée (session)';
+    document.getElementById('svc-key-input').value = '';
+}
+
+function genPassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let pwd = '';
+    for (let i = 0; i < 12; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+    document.getElementById('cu-password').value = pwd;
+}
+
+function toggleNewChantier() {
+    const checked = document.getElementById('cu-new-chantier').checked;
+    document.getElementById('cu-new-chantier-name').style.display = checked ? 'block' : 'none';
+    document.getElementById('cu-chantier').style.display = checked ? 'none' : 'block';
+}
+
+async function loadChantierSelect() {
+    try {
+        const { data } = await db.from('chantiers').select('nom').eq('actif', true).order('nom');
+        const sel = document.getElementById('cu-chantier');
+        sel.innerHTML = '<option value="">-- Choisir --</option>' + (data||[]).map(c => `<option value="${c.nom}">${c.nom}</option>`).join('');
+    } catch(e) { console.warn('loadChantierSelect:', e); }
+}
+
+async function createUser(e) {
+    e.preventDefault();
+    const email = document.getElementById('cu-email').value.trim();
+    const password = document.getElementById('cu-password').value.trim() || genPassword();
+    const role = document.getElementById('cu-role').value;
+    const isNewChantier = document.getElementById('cu-new-chantier').checked;
+    const chantier = isNewChantier
+        ? document.getElementById('cu-new-chantier-name').value.trim()
+        : document.getElementById('cu-chantier').value;
+    const result = document.getElementById('cu-result');
+
+    if (!email) { result.innerHTML = '<span style="color:var(--red)">Email requis</span>'; return false; }
+    if (!password || password.length < 6) { result.innerHTML = '<span style="color:var(--red)">Mot de passe (min 6 car.)</span>'; return false; }
+    if (!chantier) { result.innerHTML = '<span style="color:var(--red)">Chantier requis</span>'; return false; }
+
+    result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création en cours...';
+
+    // 1. Créer le chantier si nouveau
+    if (isNewChantier) {
+        const { error: errC } = await db.from('chantiers').insert({ nom: chantier, code: 'CH-'+Date.now().toString(36).toUpperCase().slice(0,6), statut: 'EN COURS', actif: true });
+        if (errC) { result.innerHTML = `<span style="color:var(--red)">✗ Erreur chantier: ${errC.message}</span>`; return false; }
+    }
+
+    // 2. Créer le user via service_role API (ou fallback signUp)
+    let ok = false;
+    const svcKey = sessionStorage.getItem('nysoa_service_role');
+
+    if (svcKey) {
+        // Via service_role → Admin API REST
+        try {
+            const res = await fetch(SUPABASE_URL + '/auth/v1/admin/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': 'Bearer ' + svcKey
+                },
+                body: JSON.stringify({
+                    email,
+                    password,
+                    email_confirm: true,
+                    user_metadata: { role, chantier }
+                })
+            });
+            if (!res.ok) throw new Error((await res.json()).msg || 'HTTP ' + res.status);
+            ok = true;
+            result.innerHTML = `<span style="color:var(--green)">✓ Compte créé : ${email} (${role}, ${chantier})<br>Mot de passe : <strong>${password}</strong></span>`;
+        } catch(e) {
+            result.innerHTML = `<span style="color:var(--red)">✗ ${e.message}</span>`;
+            return false;
+        }
+    } else {
+        // Fallback : signUp (nécessite auto-confirm email dans Supabase)
+        try {
+            const { error } = await db.auth.signUp({
+                email,
+                password,
+                options: { data: { role, chantier } }
+            });
+            if (error) throw error;
+            ok = true;
+            result.innerHTML = `<span style="color:var(--green)">✓ Compte créé (signUp) : ${email}<br>Mot de passe : <strong>${password}</strong></span>`;
+        } catch(e) {
+            result.innerHTML = `<span style="color:var(--red)">✗ ${e.message}. Configurez la clé service_role ci-dessus.</span>`;
+            return false;
+        }
+    }
+
+    // 3. Rafraîchir la liste
+    document.getElementById('cu-email').value = '';
+    await loadChantierSelect();
+    return false;
 }
 
 // ── USERS TABLE ────────────────────────────────────────────────
