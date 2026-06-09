@@ -205,10 +205,10 @@ INSERT INTO chantiers (code, nom, statut) VALUES
 ON CONFLICT DO NOTHING;
 
 -- ============================================================
--- POLITIQUES RLS (sécurité par table)
--- Lecture et écriture autorisées pour la clé anon
--- (authentification gérée côté app via localStorage)
+-- POLITIQUES RLS (sécurité par rôle et scope chantier)
+-- Chaque politique restreint l'accès selon auth.user_metadata.role
 -- ============================================================
+-- Activer RLS sur toutes les tables
 ALTER TABLE chantiers             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE journal               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE commandes             ENABLE ROW LEVEL SECURITY;
@@ -224,26 +224,105 @@ ALTER TABLE devis                 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE devis_lots            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE devis_lignes          ENABLE ROW LEVEL SECURITY;
 
-DO $$
-DECLARE
-    tbl TEXT;
-BEGIN
-    FOR tbl IN
-        SELECT unnest(ARRAY[
-            'chantiers','journal','commandes','personnel','pointage',
-            'materiels','caisse','antoka','credits_fournisseurs',
-            'catalogue_prix','contrats','devis','devis_lots','devis_lignes'
-        ])
-    LOOP
-        EXECUTE format('
-            DROP POLICY IF EXISTS %I ON %I;
-            CREATE POLICY %I ON %I
-                FOR ALL USING (true) WITH CHECK (true);',
-            'allow_all_' || tbl, tbl,
-            'allow_all_' || tbl, tbl
-        );
-    END LOOP;
-END $$;
+-- ── CHANTIERS ──
+DROP POLICY IF EXISTS "Chef read own chantier" ON chantiers;
+CREATE POLICY "Chef read own chantier" ON chantiers
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' = 'chef' AND nom = auth.jwt()->'user_metadata'->>'chantier');
+DROP POLICY IF EXISTS "Admin DAF RH read all chantiers" ON chantiers;
+CREATE POLICY "Admin DAF RH read all chantiers" ON chantiers
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' IN ('admin','daf','rh'));
+DROP POLICY IF EXISTS "Admin manage chantiers" ON chantiers;
+CREATE POLICY "Admin manage chantiers" ON chantiers
+    FOR ALL USING (auth.jwt()->'user_metadata'->>'role' = 'admin');
+
+-- ── PERSONNEL ──
+DROP POLICY IF EXISTS "Chef read own chantier personnel" ON personnel;
+CREATE POLICY "Chef read own chantier personnel" ON personnel
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' = 'chef' AND chantier = auth.jwt()->'user_metadata'->>'chantier');
+DROP POLICY IF EXISTS "RH Admin DAF read all personnel" ON personnel;
+CREATE POLICY "RH Admin DAF read all personnel" ON personnel
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' IN ('rh','admin','daf'));
+DROP POLICY IF EXISTS "Chef insert own chantier personnel" ON personnel;
+CREATE POLICY "Chef insert own chantier personnel" ON personnel
+    FOR INSERT WITH CHECK (auth.jwt()->'user_metadata'->>'role' = 'chef' AND chantier = auth.jwt()->'user_metadata'->>'chantier');
+DROP POLICY IF EXISTS "RH Admin manage personnel" ON personnel;
+CREATE POLICY "RH Admin manage personnel" ON personnel
+    FOR ALL USING (auth.jwt()->'user_metadata'->>'role' IN ('rh','admin'));
+
+-- ── POINTAGE ──
+DROP POLICY IF EXISTS "Chef insert pointage own chantier" ON pointage;
+CREATE POLICY "Chef insert pointage own chantier" ON pointage
+    FOR INSERT WITH CHECK (auth.jwt()->'user_metadata'->>'role' = 'chef' AND chantier = auth.jwt()->'user_metadata'->>'chantier');
+DROP POLICY IF EXISTS "Chef read pointage own chantier" ON pointage;
+CREATE POLICY "Chef read pointage own chantier" ON pointage
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' = 'chef' AND chantier = auth.jwt()->'user_metadata'->>'chantier');
+DROP POLICY IF EXISTS "RH Admin DAF read all pointage" ON pointage;
+CREATE POLICY "RH Admin DAF read all pointage" ON pointage
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' IN ('rh','admin','daf'));
+DROP POLICY IF EXISTS "RH insert pointage" ON pointage;
+CREATE POLICY "RH insert pointage" ON pointage
+    FOR INSERT WITH CHECK (auth.jwt()->'user_metadata'->>'role' = 'rh');
+
+-- ── JOURNAL ──
+DROP POLICY IF EXISTS "Chef read own journal" ON journal;
+CREATE POLICY "Chef read own journal" ON journal
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' = 'chef' AND chantier = auth.jwt()->'user_metadata'->>'chantier');
+DROP POLICY IF EXISTS "DAF Admin manage journal" ON journal;
+CREATE POLICY "DAF Admin manage journal" ON journal
+    FOR ALL USING (auth.jwt()->'user_metadata'->>'role' IN ('daf','admin'));
+DROP POLICY IF EXISTS "RH read journal" ON journal;
+CREATE POLICY "RH read journal" ON journal
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' = 'rh');
+
+-- ── COMMANDES ──
+DROP POLICY IF EXISTS "Chef read own commandes" ON commandes;
+CREATE POLICY "Chef read own commandes" ON commandes
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' = 'chef' AND chantier = auth.jwt()->'user_metadata'->>'chantier');
+DROP POLICY IF EXISTS "DAF manage commandes" ON commandes;
+CREATE POLICY "DAF manage commandes" ON commandes
+    FOR ALL USING (auth.jwt()->'user_metadata'->>'role' = 'daf');
+
+-- ── MATERIELS ──
+DROP POLICY IF EXISTS "Chef read own materiels" ON materiels;
+CREATE POLICY "Chef read own materiels" ON materiels
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' = 'chef' AND chantier_actuel = auth.jwt()->'user_metadata'->>'chantier');
+DROP POLICY IF EXISTS "Admin manage materiels" ON materiels;
+CREATE POLICY "Admin manage materiels" ON materiels
+    FOR ALL USING (auth.jwt()->'user_metadata'->>'role' IN ('admin','daf'));
+
+-- ── DEVIS ──
+DROP POLICY IF EXISTS "Chef read own devis" ON devis;
+CREATE POLICY "Chef read own devis" ON devis
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' = 'chef' AND chantier = auth.jwt()->'user_metadata'->>'chantier');
+DROP POLICY IF EXISTS "DAF manage devis" ON devis;
+CREATE POLICY "DAF manage devis" ON devis
+    FOR ALL USING (auth.jwt()->'user_metadata'->>'role' = 'daf');
+DROP POLICY IF EXISTS "Admin read devis" ON devis;
+CREATE POLICY "Admin read devis" ON devis
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' = 'admin');
+
+-- ── CAISSE ──
+DROP POLICY IF EXISTS "DAF manage caisse" ON caisse;
+CREATE POLICY "DAF manage caisse" ON caisse
+    FOR ALL USING (auth.jwt()->'user_metadata'->>'role' = 'daf');
+DROP POLICY IF EXISTS "Admin read caisse" ON caisse;
+CREATE POLICY "Admin read caisse" ON caisse
+    FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' = 'admin');
+
+-- ── ANTOKA, CREDITS, CATALOGUE, CONTRATS, DEVIS_LOTS/LIGNES ──
+-- Admin/DAF accès complet, autres rôles lecture seule
+DROP POLICY IF EXISTS "DAF Admin manage antoka" ON antoka;
+CREATE POLICY "DAF Admin manage antoka" ON antoka FOR ALL USING (auth.jwt()->'user_metadata'->>'role' IN ('daf','admin'));
+DROP POLICY IF EXISTS "DAF Admin manage credits" ON credits_fournisseurs;
+CREATE POLICY "DAF Admin manage credits" ON credits_fournisseurs FOR ALL USING (auth.jwt()->'user_metadata'->>'role' IN ('daf','admin'));
+DROP POLICY IF EXISTS "DAF Admin manage catalogue" ON catalogue_prix;
+CREATE POLICY "DAF Admin manage catalogue" ON catalogue_prix FOR ALL USING (auth.jwt()->'user_metadata'->>'role' IN ('daf','admin'));
+DROP POLICY IF EXISTS "DAF Admin manage contrats" ON contrats;
+CREATE POLICY "DAF Admin manage contrats" ON contrats FOR ALL USING (auth.jwt()->'user_metadata'->>'role' IN ('daf','admin'));
+DROP POLICY IF EXISTS "DAF manage devis_lots" ON devis_lots;
+CREATE POLICY "DAF manage devis_lots" ON devis_lots FOR ALL USING (auth.jwt()->'user_metadata'->>'role' = 'daf');
+DROP POLICY IF EXISTS "DAF manage devis_lignes" ON devis_lignes;
+CREATE POLICY "DAF manage devis_lignes" ON devis_lignes FOR ALL USING (auth.jwt()->'user_metadata'->>'role' = 'daf');
 
 -- ============================================================
 -- 15. TABLE RAPPORTS CHANTIER
@@ -326,4 +405,7 @@ CREATE TABLE IF NOT EXISTS salaires (
 );
 
 ALTER TABLE salaires ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS anon_all_salaires ON salaires USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "RH manage salaires" ON salaires;
+CREATE POLICY "RH manage salaires" ON salaires FOR ALL USING (auth.jwt()->'user_metadata'->>'role' = 'rh');
+DROP POLICY IF EXISTS "DAF Admin read salaires" ON salaires;
+CREATE POLICY "DAF Admin read salaires" ON salaires FOR SELECT USING (auth.jwt()->'user_metadata'->>'role' IN ('daf','admin'));

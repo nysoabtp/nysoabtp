@@ -299,7 +299,38 @@ Sur mobile : le navigateur propose "Installer l'application" (icône dans la bar
 
 ---
 
-## 10. Dépannage
+## 10. Données de test
+
+Des données de test sont disponibles dans `SEED_DATA.sql` à exécuter dans Supabase SQL Editor.
+
+### Par rôle
+
+| Rôle | Données visibles | Scénario |
+|------|-----------------|----------|
+| **Admin** | Tout | Gérer utilisateurs, valider demandes, consulter Gantt global |
+| **DAF** | Journal (200+ lignes), Budget FELANA, Devis, Factures | Voir écritures comptables, gérer trésorerie |
+| **RH** | Employés (10+), salaires, congés | Gérer paie, exporter fiches, réajuster salaires |
+| **Chef chantier** | Scope AMBATOMAINTY uniquement | Voir équipe (9 ouvriers), pointage (30j), stock, planning, rapports |
+| **Contrôleur** | Inspections (5), checklists qualité/sécurité | Créer inspection, voir activité récente |
+| **Technicien** | Projets, tâches, interventions | Gérer interventions techniques |
+
+### Comptes de connexion (données de test)
+
+Les comptes Supabase Auth doivent être créés via Admin > Utilisateurs avant utilisation.
+
+### Réinitialiser les données
+
+```sql
+-- Pour repartir à zéro (attention: supprime tout)
+TRUNCATE personnel, pointage, journal, salaires, rapports_chantier,
+         controles_inopines, gantt_taches, stocks_chantier, commandes,
+         validations, caisse RESTART IDENTITY CASCADE;
+-- Puis re-exécuter SEED_DATA.sql
+```
+
+---
+
+## 11. Dépannage
 
 ### Problèmes courants
 
