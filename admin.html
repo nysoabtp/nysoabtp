@@ -519,13 +519,13 @@
                         </div>
                         <div id="cu-chantier-group">
                             <label style="font-size:12px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Chantier</label>
-                            <select id="cu-chantier" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+                            <select id="cu-chantier" onchange="autoGenerateEmail()" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px">
                                 <option value="">-- Choisir --</option>
                             </select>
                             <div style="margin-top:6px">
                                 <label style="font-size:11px;color:#636e72"><input type="checkbox" id="cu-new-chantier" onchange="toggleNewChantier()"> Nouveau chantier</label>
                             </div>
-                            <input type="text" id="cu-new-chantier-name" placeholder="Nom du nouveau chantier" style="display:none;width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-top:6px">
+                            <input type="text" id="cu-new-chantier-name" placeholder="Nom du nouveau chantier" oninput="autoGenerateEmail()" style="display:none;width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-top:6px">
                         </div>
                         <button type="submit" class="btn" style="margin-top:6px"><i class="fas fa-user-plus"></i> Créer le compte</button>
                         <div id="cu-result" style="font-size:13px"></div>
@@ -1247,6 +1247,7 @@ function toggleNewChantier() {
     const checked = document.getElementById('cu-new-chantier').checked;
     document.getElementById('cu-new-chantier-name').style.display = checked ? 'block' : 'none';
     document.getElementById('cu-chantier').style.display = checked ? 'none' : 'block';
+    autoGenerateEmail();
 }
 
 async function loadChantierSelect() {
@@ -1255,6 +1256,20 @@ async function loadChantierSelect() {
         const sel = document.getElementById('cu-chantier');
         sel.innerHTML = '<option value="">-- Choisir --</option>' + (data||[]).map(c => `<option value="${c.nom}">${c.nom}</option>`).join('');
     } catch(e) { console.warn('loadChantierSelect:', e); }
+}
+
+function autoGenerateEmail() {
+    const isNew = document.getElementById('cu-new-chantier').checked;
+    const chantier = isNew
+        ? document.getElementById('cu-new-chantier-name').value.trim()
+        : document.getElementById('cu-chantier').value;
+    if (!chantier) return;
+    const email = 'chef.' + chantier
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        + '@nysoa.mg';
+    document.getElementById('cu-email').value = email;
 }
 
 async function createUser(e) {
