@@ -742,14 +742,14 @@
                         if (document.getElementById('paie-stat-fiches')) document.getElementById('paie-stat-fiches').textContent = moisCourant.length;
                         if (document.getElementById('paie-mois-label')) document.getElementById('paie-mois-label').textContent = new Date().toLocaleString('fr-FR',{month:'long',year:'numeric'});
                     }
-                } catch(_) {}
+                } catch(_) { console.warn('RH: updatePaieStats error'); }
 
                 initializeRHCharts(personnel);
                 if (typeof loadPersonnelTable === 'function') loadPersonnelTable();
                 verifierPointagesNonSync();
                 raffraichirTablePaie();
                 loadPaieChantierFilter();
-            } catch(_) { initializeRHCharts(); }
+            } catch(e) { console.warn('RH: loadRHData error:', e); initializeRHCharts(); }
         }
 
         function showPayslipModal(p) {
@@ -792,7 +792,7 @@
                 if (employesAvecPointage.size > 0) {
                     showNotification(`${employesAvecPointage.size} employé(s) avec pointages — cliquez sur "Générer" dans Paie`, 'info');
                 }
-            } catch(_) {}
+            } catch(_) { console.warn('RH: verifierPointagesNonSync error'); }
         }
 
         // Initialize RH Charts — live data

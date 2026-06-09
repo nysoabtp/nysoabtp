@@ -964,7 +964,7 @@
                 if (sel) sel.innerHTML = opts;
                 if (filter) filter.innerHTML = '<option value="">Tous les chantiers</option>' + (data||[]).map(c =>
                     `<option value="${c.id}">${c.nom}</option>`).join('');
-            } catch(e) {}
+            } catch(e) { console.warn('DAF: loadChantierSelect error:', e); }
         }
 
         async function loadBudgetFelana() {

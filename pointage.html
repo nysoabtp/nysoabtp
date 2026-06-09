@@ -618,11 +618,10 @@
     </div>
 
     <script>
-        // Vérification authentification
+        // Vérification authentification (Supabase + fallback localStorage)
+        checkAuthOrRedirect();
         const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
-        if (!currentUser) {
-            window.location.href = 'login.html';
-        }
+        if (!currentUser) { window.location.href = 'login.html'; }
 
         // Storage keys
         const STORAGE_KEYS = {

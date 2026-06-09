@@ -135,11 +135,11 @@
 
     <div class="comptes">
         <h4>Comptes de démonstration — cliquer pour remplir</h4>
-        <div class="compte-item" onclick="fillLogin('admin@nysoa.mg', 'admin123')"><span class="role">Administrateur</span><span class="cred">admin@nysoa.mg</span></div>
-        <div class="compte-item" onclick="fillLogin('daf@nysoa.mg', 'daf123')"><span class="role">DAF</span><span class="cred">daf@nysoa.mg</span></div>
-        <div class="compte-item" onclick="fillLogin('rh@nysoa.mg', 'rh123')"><span class="role">RH</span><span class="cred">rh@nysoa.mg</span></div>
-        <div class="compte-item" onclick="fillLogin('controleur@nysoa.mg', 'controleur123')"><span class="role">Contrôleur</span><span class="cred">controleur@nysoa.mg</span></div>
-        <div class="compte-item" onclick="fillLogin('technicien@nysoa.mg', 'tech123')" style="display:none"><span class="role">Technicien</span><span class="cred">technicien@nysoa.mg</span></div>
+        <div class="compte-item" data-email="admin@nysoa.mg"><span class="role">Administrateur</span><span class="cred">admin@nysoa.mg</span></div>
+        <div class="compte-item" data-email="daf@nysoa.mg"><span class="role">DAF</span><span class="cred">daf@nysoa.mg</span></div>
+        <div class="compte-item" data-email="rh@nysoa.mg"><span class="role">RH</span><span class="cred">rh@nysoa.mg</span></div>
+        <div class="compte-item" data-email="controleur@nysoa.mg"><span class="role">Contrôleur</span><span class="cred">controleur@nysoa.mg</span></div>
+        <div class="compte-item" data-email="technicien@nysoa.mg" style="display:none"><span class="role">Technicien</span><span class="cred">technicien@nysoa.mg</span></div>
     </div>
 </div>
 
@@ -151,6 +151,15 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const DEMO_PASSWORDS = {
+    'admin@nysoa.mg':      'admin123',
+    'daf@nysoa.mg':        'daf123',
+    'rh@nysoa.mg':         'rh123',
+    'chef@nysoa.mg':       'chef123',
+    'controleur@nysoa.mg': 'controleur123',
+    'technicien@nysoa.mg': 'tech123',
+};
 
 // Redirection selon le rôle
 const DASHBOARDS = {
@@ -166,10 +175,16 @@ function showError(msg)   { const el = document.getElementById('error-msg');   e
 function showSuccess(msg) { const el = document.getElementById('success-msg'); el.textContent = msg; el.style.display = 'block'; document.getElementById('error-msg').style.display = 'none'; }
 function hideMessages()   { document.getElementById('error-msg').style.display = 'none'; document.getElementById('success-msg').style.display = 'none'; }
 
-function fillLogin(email, pass) {
-    document.getElementById('email').value    = email;
-    document.getElementById('password').value = pass;
-}
+document.querySelector('.comptes').addEventListener('click', function(e) {
+    const item = e.target.closest('.compte-item');
+    if (!item) return;
+    const email = item.dataset.email;
+    const pass = DEMO_PASSWORDS[email];
+    if (email && pass) {
+        document.getElementById('email').value = email;
+        document.getElementById('password').value = pass;
+    }
+});
 
 document.getElementById('form-login').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -200,43 +215,19 @@ document.getElementById('form-login').addEventListener('submit', async function(
 
     } catch (err) {
         console.error(err);
-
-        // Fallback localStorage si Supabase pas encore configuré
-        fallbackLogin(email, password);
+        showError('⚠ Erreur de connexion : ' + (err.message || 'Vérifiez vos identifiants'));
     } finally {
         btn.disabled = false;
         loading.style.display = 'none';
     }
 });
 
-// Fallback local si Supabase pas encore configuré (comptes principaux uniquement)
-function fallbackLogin(email, password) {
-    const hash = (s) => btoa(s);
-    const users = [
-        { email:'admin@nysoa.mg',       hash:'YWRtaW4xMjM=',       role:'admin',       user_metadata:{} },
-        { email:'daf@nysoa.mg',         hash:'ZGFmMTIz',           role:'daf',         user_metadata:{} },
-        { email:'rh@nysoa.mg',          hash:'cmgxMjM=',           role:'rh',          user_metadata:{} },
-        { email:'controleur@nysoa.mg',  hash:'Y29udHJvbGV1cjEyMw==',role:'controleur', user_metadata:{} },
-        { email:'technicien@nysoa.mg',  hash:'dGVjaDEyMw==',       role:'technicien',  user_metadata:{} },
-    ];
-    const user = users.find(u => u.email === email && u.hash === hash(password));
-    if (user) {
-        localStorage.setItem('nysoa_current_user', JSON.stringify(user));
-        showSuccess('Connexion réussie ! Redirection...');
-        setTimeout(() => { window.location.href = DASHBOARDS[user.role]; }, 800);
-    } else {
-        document.getElementById('btn-login').disabled = false;
-        showError('⚠ Connexion Supabase requise. Les chefs de chantier doivent utiliser leur compte auth.users. Contactez l\'administrateur.');
-    }
-}
-
 // Si déjà connecté avec une session valide → rediriger directement
 window.addEventListener('load', async () => {
     try {
         const { data, error } = await db.auth.getSession();
-        if (error || !data?.session) return; // Pas de session → rester sur login
+        if (error || !data?.session) return;
 
-        // Vérifier que le token n'est pas expiré
         const expiresAt = (data.session.expires_at || 0) * 1000;
         if (Date.now() > expiresAt) {
             await db.auth.signOut();
@@ -251,14 +242,6 @@ window.addEventListener('load', async () => {
         console.warn('[Login] getSession error:', e);
     }
 });
-
-// Helpers pour liste chefs
-function fillLogin(email) {
-    document.getElementById('email').value = email;
-    document.getElementById('password').focus();
-}
-
-// Note : les comptes chefs sont créés via create_chef.js dans auth.users
 </script>
 </body>
 </html>

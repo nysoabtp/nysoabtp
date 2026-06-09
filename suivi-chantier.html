@@ -696,6 +696,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 function loadUser() {
+    checkAuthOrRedirect();
     const u = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
     if (!u) { window.location.href = 'login.html'; return; }
     document.getElementById('sidebar-username').textContent = u.name || u.username || 'Utilisateur';
@@ -724,7 +725,7 @@ async function loadChantiers() {
         if (!error && data && data.length > 0) {
             chantiersList = data.map(c => c.nom);
         }
-    } catch(e) {}
+    } catch(e) { console.warn('Suivi: loadChantiers error:', e); }
 }
 
 function fillChantierSelects() {
@@ -970,7 +971,7 @@ async function loadRapports() {
         if (filterMois) { query = query.gte('date', filterMois+'-01').lt('date', nextMonth(filterMois)+'-01'); }
         const { data, error } = await query.limit(100);
         if (!error && data) rapports = data;
-    } catch(e) {}
+    } catch(e) { console.warn('Suivi: loadRapports error (fallback localStorage):', e); }
 
     // Fallback localStorage
     if (rapports.length === 0) {
@@ -1191,7 +1192,7 @@ async function loadControles() {
         if (filterChantier) query = query.eq('chantier', filterChantier);
         const { data, error } = await query.limit(100);
         if (!error && data) controles = data;
-    } catch(e) {}
+    } catch(e) { console.warn('Suivi: loadControles error (fallback localStorage):', e); }
     if (controles.length === 0) {
         controles = JSON.parse(localStorage.getItem('nysoa_controles') || '[]');
         if (filterChantier) controles = controles.filter(c => c.chantier === filterChantier);
@@ -1260,7 +1261,7 @@ async function loadGanttTasks() {
     try {
         const { data, error } = await db.from('gantt_taches').select('*').order('debut');
         if (!error && data) { ganttTasks = data; return; }
-    } catch(e) {}
+    } catch(e) { console.warn('Suivi: loadGanttTasks error (fallback localStorage):', e); }
     // Fallback localStorage
     ganttTasks = JSON.parse(localStorage.getItem('nysoa_gantt') || '[]');
     if (ganttTasks.length === 0) {
@@ -1394,7 +1395,7 @@ async function deleteGanttTask(id) {
     if (!confirm('Supprimer cette tâche ?')) return;
     try {
         await db.from('gantt_taches').delete().eq('id', id);
-    } catch(e) {}
+    } catch(e) { console.warn('Suivi: deleteGanttTask error:', e); }
     ganttTasks = ganttTasks.filter(t => t.id !== id);
     localStorage.setItem('nysoa_gantt', JSON.stringify(ganttTasks));
     renderGantt();
@@ -1409,7 +1410,7 @@ function editGanttTask(id) {
     const val = Math.max(0, Math.min(100, parseInt(pct) || 0));
     t.avancement = val;
     (async () => {
-        try { await db.from('gantt_taches').update({ avancement: val }).eq('id', id); } catch(e) {}
+        try { await db.from('gantt_taches').update({ avancement: val }).eq('id', id); } catch(e) { console.warn('Suivi: updateGanttTask error:', e); }
         localStorage.setItem('nysoa_gantt', JSON.stringify(ganttTasks));
         renderGantt();
         showNotif(`Avancement mis à jour : ${val}%`, 'success');

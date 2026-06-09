@@ -105,17 +105,18 @@ async function logout() {
     window.location.href = 'login.html';
 }
 
-console.log('[NYSOA BTP] auth.js fonctions chargées ✓');
+// Récupère l'utilisateur courant (Supabase d'abord, fallback localStorage)
+function getCurrentUser() {
+    return JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
+}
 
 // ══════════════════════════════════════════════════════════════
 // INITIALISATION
 // ══════════════════════════════════════════════════════════════
 async function initSupabase() {
-    console.log('[Supabase] Connexion…', SUPABASE_URL);
     try {
         const { error } = await db.from('chantiers').select('code').limit(1);
         if (error) throw error;
-        console.log('[Supabase] ✓ Connecté');
         if (typeof showNotification === 'function')
             showNotification('Connecté à Supabase ✓', 'success');
 

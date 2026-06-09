@@ -94,6 +94,11 @@
         .card p  { font-size: 13px; color: #636e72; }
 
         /* ── IMPORT ZONE ── */
+        .modal { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:9999; }
+        .modal-content { background:white; border-radius:14px; width:90%; max-width:500px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+        .modal-header { display:flex; justify-content:space-between; align-items:center; padding:20px; border-bottom:1px solid #f0f0f0; }
+        .modal-header h3 { font-size:16px; font-weight:600; }
+        .close-modal { background:none; border:none; font-size:1.6rem; cursor:pointer; color:#888; }
         .import-zone {
             border: 2px dashed #dee2e6; border-radius: 10px;
             padding: 28px 20px; text-align: center; cursor: pointer;
@@ -237,6 +242,9 @@
             <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0">
             <a class="nav-item" href="index.html">
                 <i class="fas fa-home"></i><span>Accueil appli</span>
+            </a>
+            <a class="nav-item" onclick="openModal('modal-changement-mdp')">
+                <i class="fas fa-key"></i><span>Changer mot de passe</span>
             </a>
             <a class="nav-item" onclick="logout()">
                 <i class="fas fa-sign-out-alt"></i><span>Déconnexion</span>
@@ -826,6 +834,32 @@
             </div>
         </div>
 
+        <!-- Modal Changer mot de passe -->
+        <div id="modal-changement-mdp" class="modal" style="display:none">
+            <div class="modal-content" style="max-width:440px">
+                <div class="modal-header">
+                    <h3><i class="fas fa-key" style="color:var(--orange)"></i> Changer mon mot de passe</h3>
+                    <button class="close-modal" onclick="closeModal('modal-changement-mdp')">&times;</button>
+                </div>
+                <form onsubmit="return changePassword(event)" style="display:flex;flex-direction:column;gap:14px;padding:20px">
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Mot de passe actuel</label>
+                        <input type="password" id="mdp-actuel" required style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px">
+                    </div>
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Nouveau mot de passe</label>
+                        <input type="password" id="mdp-nouveau" required minlength="6" style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px">
+                    </div>
+                    <div>
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Confirmer le nouveau mot de passe</label>
+                        <input type="password" id="mdp-confirm" required minlength="6" style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px">
+                    </div>
+                    <div id="mdp-result"></div>
+                    <button type="submit" class="btn" style="margin-top:4px"><i class="fas fa-save"></i> Changer le mot de passe</button>
+                </form>
+            </div>
+        </div>
+
     </main>
 </div>
 
@@ -1347,24 +1381,22 @@ async function createUser(e) {
 }
 
 // ── USERS TABLE ────────────────────────────────────────────────
-const DEFAULT_USERS = [
-    { nom:'Administrateur', email:'admin@nysoa.mg',      role:'Admin',      statut:'Actif' },
-    { nom:'DAF',            email:'daf@nysoa.mg',        role:'DAF',        statut:'Actif' },
-    { nom:'Chef Chantier',  email:'chef@nysoa.mg',       role:'Chef',       statut:'Actif' },
-    { nom:'RH',             email:'rh@nysoa.mg',         role:'RH',         statut:'Actif' },
-    { nom:'Contrôleur',     email:'controleur@nysoa.mg', role:'Contrôleur', statut:'Actif' },
-    { nom:'Technicien',     email:'technicien@nysoa.mg', role:'Technicien', statut:'Actif' },
-];
-
 function loadUsers() {
     const tb = document.getElementById('users-table');
-    tb.innerHTML = DEFAULT_USERS.map(u => `
-        <tr style="border-bottom:1px solid #f0f0f0">
-            <td style="padding:10px"><strong>${u.nom}</strong></td>
-            <td style="padding:10px;font-family:monospace;font-size:12px">${u.email}</td>
-            <td style="padding:10px"><span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:12px">${u.role}</span></td>
-            <td style="padding:10px"><span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:12px">${u.statut}</span></td>
-        </tr>`).join('');
+    tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:#adb5bd"><i class="fas fa-spinner fa-spin"></i>&nbsp; Chargement...</td></tr>';
+    db.from('personnel').select('nom, prenom, email, poste, statut').then(({ data, error }) => {
+        if (error || !data || data.length === 0) {
+            tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:#adb5bd">Aucun utilisateur trouvé</td></tr>';
+            return;
+        }
+        tb.innerHTML = data.map(u => `
+            <tr style="border-bottom:1px solid #f0f0f0">
+                <td style="padding:10px"><strong>${u.nom || ''} ${u.prenom || ''}</strong></td>
+                <td style="padding:10px;font-family:monospace;font-size:12px">${u.email || '—'}</td>
+                <td style="padding:10px"><span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:12px">${u.poste || '—'}</span></td>
+                <td style="padding:10px"><span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:12px">${u.statut || 'Actif'}</span></td>
+            </tr>`).join('');
+    });
 }
 
 
@@ -1906,6 +1938,31 @@ async function voirDetailValidation(id) {
 }
 
 // logout() est défini dans supabase.js (centralisé avec db.auth.signOut)
+
+// ── CHANGEMENT MOT DE PASSE ─────────────────────────────────────
+async function changePassword(e) {
+    e.preventDefault();
+    const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
+    if (!currentUser) { showNotification('Session expirée', 'error'); return false; }
+    const oldPwd = document.getElementById('mdp-actuel').value;
+    const newPwd = document.getElementById('mdp-nouveau').value;
+    const confirmPwd = document.getElementById('mdp-confirm').value;
+    const result = document.getElementById('mdp-result');
+    if (!oldPwd || !newPwd || !confirmPwd) { result.innerHTML = '<span style="color:var(--red)">Tous les champs obligatoires</span>'; return false; }
+    if (newPwd.length < 6) { result.innerHTML = '<span style="color:var(--red)">Nouveau mot de passe (min 6 car.)</span>'; return false; }
+    if (newPwd !== confirmPwd) { result.innerHTML = '<span style="color:var(--red)">✗ Nouveaux mots de passe différents</span>'; return false; }
+    try {
+        const { error: reAuthError } = await db.auth.signInWithPassword({ email: currentUser.email, password: oldPwd });
+        if (reAuthError) { result.innerHTML = '<span style="color:var(--red)">✗ Mot de passe actuel incorrect</span>'; return false; }
+        const { error } = await db.auth.updateUser({ password: newPwd });
+        if (error) throw error;
+        result.innerHTML = '<span style="color:var(--green)">✓ Mot de passe changé avec succès !</span>';
+        setTimeout(() => closeModal('modal-changement-mdp'), 1500);
+    } catch(err) {
+        result.innerHTML = `<span style="color:var(--red)">Erreur: ${err.message}</span>`;
+    }
+    return false;
+}
 
 // ── INIT ───────────────────────────────────────────────────────
 window.addEventListener('load', async () => {

@@ -5,20 +5,15 @@
 ## Sommaire
 
 1. [Connexion](#1-connexion)
-2. [Tableau de bord](#2-tableau-de-bord)
-3. [Projets / Chantiers](#3-projets--chantiers)
-4. [Achats](#4-achats)
-5. [Journal comptable](#5-journal-comptable)
-6. [Personnel](#6-personnel)
-7. [Pointage](#7-pointage)
-8. [Salaires](#8-salaires)
-9. [Caisse interne](#9-caisse-interne)
-10. [Antoka (Acomptes)](#10-antoka-acomptes)
-11. [Crédits fournisseurs](#11-crédits-fournisseurs)
-12. [Catalogue prix](#12-catalogue-prix)
-13. [Contrats](#13-contrats)
-14. [Stock](#14-stock)
-15. [Devis](#15-devis)
+2. [Rôles et accès](#2-rôles-et-accès)
+3. [Administrateur](#3-administrateur)
+4. [DAF — Direction Administrative et Financière](#4-daf--direction-administrative-et-financière)
+5. [RH — Ressources Humaines](#5-rh--ressources-humaines)
+6. [Chef de chantier](#6-chef-de-chantier)
+7. [Contrôleur](#7-contrôleur)
+8. [Technicien](#8-technicien)
+9. [Fonctions transverses](#9-fonctions-transverses)
+10. [Dépannage](#10-dépannage)
 
 ---
 
@@ -30,322 +25,292 @@
 - Cliquer **Se connecter**
 
 ### Comptes de démonstration
-| Rôle | Email |
-|------|-------|
-| Administrateur | `admin@nysoa.mg` |
-| DAF | `daf@nysoa.mg` |
-| Chef chantier | `chef@nysoa.mg` |
-| RH | `rh@nysoa.mg` |
-| Contrôleur | `controleur@nysoa.mg` |
-| Technicien | `technicien@nysoa.mg` |
 
-Cliquer sur un compte pour remplir l'email, puis saisir le mot de passe.
+| Rôle | Email | Mot de passe |
+|------|-------|-------------|
+| Administrateur | `admin@nysoa.mg` | `admin123` |
+| DAF | `daf@nysoa.mg` | `daf123` |
+| RH | `rh@nysoa.mg` | `rh123` |
+| Chef chantier | `chef@nysoa.mg` | `chef123` |
+| Contrôleur | `controleur@nysoa.mg` | `controleur123` |
+| Technicien | `technicien@nysoa.mg` | `tech123` |
 
----
-
-## 2. Tableau de bord
-
-La page d'accueil après connexion affiche :
-
-- **Statistiques** : nombre de projets, employés actifs, budget total
-- **Graphiques** : dépenses par mois, répartition par catégorie
-- **Activités récentes** : dernières écritures, achats, pointages
-- **Alertes** : stock faible, échéances à venir
-
-Navigation par menu latéral gauche.
+Cliquer sur un email pour le remplir automatiquement, puis saisir le mot de passe.
 
 ---
 
-## 3. Projets / Chantiers
+## 2. Rôles et accès
 
-### Ajouter un projet
-1. Aller dans l'onglet **Projets**
-2. Cliquer **Nouveau projet**
-3. Remplir : nom, client, budget, dates début/fin
-4. Cliquer **Enregistrer**
+Chaque rôle a son propre tableau de bord, accessible après connexion :
 
-### Modifier le statut
-- Cliquer sur le statut d'un projet pour le changer
-- Statuts disponibles : **EN COURS**, **TERMINÉ**, **EN PAUSE**
+| Rôle | Page | Rôle |
+|------|------|------|
+| **Admin** | `admin.html` | Gère les utilisateurs, imports, backups, contrôles, validations |
+| **DAF** | `daf.html` | Comptabilité, budgets, devis, factures, rapports financiers |
+| **RH** | `rh.html` | Employés, paie, congés, formations, recrutement |
+| **Chef chantier** | `chef-chantier.html` | Gère son chantier : équipe, pointage, matériaux, planning |
+| **Contrôleur** | `controleur.html` | Inspections qualité/sécurité sur tous les chantiers |
+| **Technicien** | `technicien.html` | Projets, tâches, interventions techniques |
 
-### Barre de progression
-- Ajuster le pourcentage de progression
-- La couleur change automatiquement (vert > 50%, orange > 25%, rouge < 25%)
-
----
-
-## 4. Achats
-
-### Enregistrer un achat
-1. Aller dans **Achats**
-2. Cliquer **Nouvel achat**
-3. Remplir :
-   - **Libellé** — nom de l'article
-   - **Prix unitaire** — montant par unité
-   - **Quantité** — nombre d'articles
-   - **Fournisseur** — nom du vendeur
-   - **Date** — date de l'achat
-4. Cliquer **Enregistrer**
-
-Le total est calculé automatiquement : `prix unitaire × quantité`.
-
-### Importer depuis Excel
-1. Cliquer **Importer Excel**
-2. Sélectionner un fichier `.xlsx` ou `.xls`
-3. Associer les colonnes si demandé
+### Scope chantier (Chef)
+Le Chef de chantier voit uniquement les données de **son chantier**.
+- Le chantier est défini dans `user_metadata.chantier` (JWT)
+- Toutes ses requêtes sont filtrées automatiquement par RLS (Row Level Security)
+- Exemple : un chef affecté à `AMBATOMAINTY` ne voit que les employés, pointages et stocks de ce chantier
 
 ---
 
-## 5. Journal comptable
+## 3. Administrateur
 
-### Ajouter une écriture
-1. Aller dans **Journal**
-2. Cliquer **Nouvelle écriture**
-3. Remplir :
-   - **Date**
-   - **Chantier** (optionnel)
-   - **Désignation** — description de l'opération
-   - **Montant** — en Ariary
-   - **Catégorie** : Salaire, Antoka, Approvisionnement, etc.
-   - **Mode de paiement** : Espèce, Chèque, Mobile Money, Virement
-   - **Type de travaux** : Maçonnerie, Plomberie, etc.
-4. Cliquer **Enregistrer**
+### Dashboard
+La sidebar contient 9 sections :
 
-### Filtrer
-- Par type : **Recette** ou **Dépense**
-- Par chantier
-- Par catégorie
+#### Import Excel
+1. Cliquer **Import Excel**
+2. Sélectionner un fichier `.xlsx`
+3. Cliquer **Importer**
+4. Les données sont chargées dans la base Supabase
 
-### Exporter
-- Cliquer **Exporter** pour télécharger en Excel
+#### Sauvegarde
+1. Cliquer **Sauvegarde**
+2. Cliquer **Sauvegarder maintenant**
+3. Les données sont exportées
 
----
+#### Supabase
+Affiche la configuration Supabase (URL, statut de connexion).
 
-## 6. Personnel
+#### Utilisateurs — Gestion des comptes
+Créer un nouvel utilisateur :
+1. Remplir le formulaire :
+   - **Email** (ou laisser vide pour génération automatique)
+   - **Mot de passe**
+   - **Rôle** : admin, daf, rh, chef, controleur, technicien
+   - **Chantier** (uniquement pour le rôle chef)
+2. Cliquer **Créer l'utilisateur**
 
-### Ajouter un employé
-1. Aller dans **Personnel**
-2. Cliquer **Nouvel employé**
-3. Remplir :
-   - **Nom**, **Prénom**
-   - **Poste**, **Département**
-   - **Date d'embauche** — l'ancienneté est calculée automatiquement
-   - **Salaire** — montant en Ariary
-4. Cliquer **Enregistrer**
+Remarques :
+- L'email est généré automatiquement depuis le nom du chantier pour les chefs (ex: `ambatomainty@nysoa.mg`)
+- Le compte est créé dans Supabase Auth + un profil dans la table `personnel`
 
-### Colonnes du tableau
-| Colonne | Description |
-|---------|-------------|
-| Matricule | Identifiant unique (EMP-001...) |
-| Nom | Nom de l'employé |
-| Métier | Fonction occupée |
-| Chantier | Affectation actuelle |
-| Date embauche | Date d'entrée |
-| Ancienneté | Calculée automatiquement (X ans Y mois) |
-| Salaire | Montant + type (journalier/mensuel) |
-| Statut | Actif ou inactif |
+#### Rapports Chantier
+Liste tous les rapports de chantier. Filtres disponibles.
 
-### Désactiver un employé
-- Cliquer l'icône **supprimer** — l'employé est désactivé (pas supprimé définitivement)
+#### Contrôles
+Liste tous les contrôles inopinés effectués par les contrôleurs.
+
+#### Validations
+Filtres : En attente, Approuvé, Refusé.
+
+#### Avancement Gantt
+Diagramme de Gantt de l'avancement des chantiers.
 
 ---
 
-## 7. Pointage
+## 4. DAF — Direction Administrative et Financière
 
-### Pointage par QR Code
-1. Aller dans **Pointage**
-2. Chaque employé a un QR Code unique
-3. Scanner le QR Code avec la caméra
-4. L'arrivée/départ est enregistré automatiquement
+### Dashboard
+Indicateurs financiers : budget, dépenses, recettes.
 
-### Pointage manuel
-1. Dans la section **Pointage Manuel**
-2. Saisir ou sélectionner le **nom de l'employé**
-3. Choisir le **chantier**
-4. Sélectionner la **date**
-5. Choisir le **type** : Arrivée ou Départ
-6. Cliquer **Enregistrer**
+### Sections
 
-### Visualiser les pointages
-- Tableau récapitulatif : employé, jours travaillés, salaire, avances
+#### Comptabilité
+- **Journal comptable** : liste toutes les écritures
+- **Nouvelle écriture** : ajouter une ligne (date, libellé, débit, crédit, catégorie, chantier)
+- **Filtres** : par type (Recette/Dépense), chantier, catégorie
 
----
+#### Budget
+Gestion budgétaire globale.
 
-## 8. Salaires
+#### Budget FELANA
+Budget dédié FELANA :
+- Tableau des lignes budgétaires
+- Ajouter une nouvelle ligne (poste, montant, chantier)
 
-### Calculer les salaires
-1. Aller dans **Salaires**
-2. Cliquer **Calculer salaires**
-3. Le système regroupe tous les pointages par employé
+#### Devis & Proforma
+- Tableau des devis
+- Créer / modifier / suivre les devis
 
-### Tableaux
-- **Journaliers** : employés payés à la journée
-- **Mensuels** : employés payés au mois
+#### Factures
+- Tableau des factures
+- Bouton **Nouvelle Facture**
 
-### Colonnes
-| Colonne | Description |
-|---------|-------------|
-| Employé | Nom |
-| Jours | Nombre de jours travaillés |
-| Taux | Salaire journalier ou mensuel |
-| Total brut | `jours × taux` |
-| Avances | Montant des avances déduit |
-| Net à payer | `total brut − avances` |
-
-### Fiche de paie
-1. Cliquer le bouton **Fiche** dans une ligne de salaire
-2. La fiche affiche :
-   - **Revenus** : salaire de base, heures sup (50% du taux), primes (5%)
-   - **Déductions** : avances, retenues (2%), CNaPS (1%), OSTIE (0.5%)
-   - **Net à payer**
-3. Cliquer **Exporter PDF** pour télécharger
+#### Rapports Financiers
+- Export des rapports
+- Téléchargement en PDF/Excel
 
 ---
 
-## 9. Caisse interne
+## 5. RH — Ressources Humaines
 
-### Enregistrer une entrée
-1. Cliquer **Entrée caisse**
-2. Remplir : date, montant, désignation
+### Dashboard
+Statistiques : effectif total, nouveaux employés, congés en cours, formations.
+
+### Sections
+
+#### Employés
+- Tableau du personnel (82 employés)
+- **Nouvel employé** : formulaire (nom, prénom, poste, département, date embauche, salaire)
+- Filtres par département / chantier
+- Désactiver un employé (icône supprimer)
+
+#### Recrutement
+- Suivi des recrutements en cours
+- Nouvelle demande de recrutement
+
+#### Congés
+- Tableau des demandes de congés
+- **Nouvelle demande** : employé, dates, motif
+
+#### Formations
+- Plan de formation
+- Suivi des formations effectuées
+
+#### Paie
+- **Générer fiches** : calcule les salaires depuis les pointages
+- Tableau : employé, jours, taux, brut, avances, net
+- **Fiche de paie** : détail revenus/déductions, export PDF
+- **Export global** : télécharger toutes les fiches
+- **Export chantier** : filtrer par chantier
+- **Réajuster salaires** : modal d'indexation des salaires
+
+#### Rapports
+Statistiques RH exportables.
+
+---
+
+## 6. Chef de chantier
+
+Le Chef est **scopé par chantier** — il ne voit que les données de son affectation.
+
+### Dashboard
+Indicateurs : nombre d'ouvriers, pointage du jour, alertes stock, planning.
+
+### Sections
+
+#### Mes Chantiers
+Liste des chantiers assignés. Informations : statut, budget, avancement.
+
+#### Mon Équipe
+Tableau du personnel affecté au chantier.
+- Ajouter un ouvrier (nom, métier, date embauche, salaire journalier)
+
+#### Pointage
+**Pointage manuel :**
+1. Sélectionner l'employé dans la liste déroulante
+2. Choisir la date et le statut (Présent, Absent, etc.)
 3. Cliquer **Enregistrer**
 
-### Enregistrer une sortie
-1. Cliquer **Sortie caisse**
-2. Remplir : date, montant, désignation
-3. Cliquer **Enregistrer**
+#### Planning
+Planification des tâches du chantier.
+- **Nouvelle tâche** : nom, date, équipe, priorité
 
-### Statistiques affichées
-- **Solde actuel** — balance actuelle
-- **Total entrées** — somme des entrées
-- **Total sorties** — somme des sorties
-- **Nb mouvements** — nombre d'opérations
+#### Matériaux
+Gestion des matériaux et stocks du chantier.
+- **Demande de matériaux** : matériau, quantité, motif
 
-### Supprimer un mouvement
-- Cliquer l'icône **corbeille** à droite de la ligne
+#### Recrutement
+Demande de recrutement pour le chantier.
 
----
-
-## 10. Antoka (Acomptes)
-
-### Ajouter un antoka
-1. Aller dans **Antoka**
-2. Cliquer **Nouvel antoka**
-3. Remplir :
-   - **Employé**
-   - **Chantier**
-   - **Montant accordé**
-   - **Déjà remboursé**
-   - **Date**, **Motif**
-   - **Tranches de remboursement** (jusqu'à 3 tranches avec montant + date)
-4. Cliquer **Enregistrer**
-
-### Ajouter un paiement
-1. Cliquer **+** dans la colonne Actions
-2. Saisir **montant remboursé** et **date**
-3. Cliquer **Confirmer**
-
-### Barre de progression
-- Verte : remboursé à 100%
-- Orange : remboursé à plus de 50%
-- Rouge : moins de 50% remboursé
+#### Rapports
+Rapports journaliers du chantier :
+- Météo, nombre d'ouvriers, travaux effectués, problèmes
+- Créer, modifier, supprimer des rapports
 
 ---
 
-## 11. Crédits fournisseurs
+## 7. Contrôleur
 
-### Ajouter un crédit
-1. Aller dans **Crédits Fournisseurs**
-2. Cliquer **Nouveau crédit**
-3. Remplir :
-   - **Fournisseur**
-   - **Montant total**
-   - **3 échéances** (date + montant par échéance)
-4. Cliquer **Enregistrer**
+### Dashboard
+Activité récente : 3 dernières inspections.
 
-### Statistiques
-- **Total dettes** — somme de tous les crédits
-- **Reste à payer** — somme des montants restants
+### Sections
 
----
+#### Inspections
+- Tableau de toutes les inspections
+- **Nouvelle Inspection** :
+  1. Sélectionner un chantier
+  2. Remplir les checklists qualité et sécurité
+  3. Ajouter des observations
+  4. Le statut "Non conforme" est détecté automatiquement
+- Supprimer une inspection
 
-## 12. Catalogue prix
+#### Qualité
+Checklists qualité (7 éléments).
+- Cocher/décocher les critères respectés
+- Persisté en localStorage
 
-### Ajouter un article
-1. Aller dans **Catalogue Prix**
-2. Cliquer **Ajouter article**
-3. Remplir : désignation, prix unitaire, unité, fournisseur
-4. Cliquer **Enregistrer**
+#### Sécurité
+Checklists sécurité (7 éléments).
+- Vérifications sécurité sur le chantier
 
-### Rechercher
-- Utiliser le champ de recherche par désignation
-- Filtrer par fournisseur
-
----
-
-## 13. Contrats
-
-### Ajouter un contrat
-1. Aller dans **Contrats**
-2. Cliquer **Nouveau contrat**
-3. Remplir : désignation, prestataire, chantier, prix, dates
-4. Cliquer **Enregistrer**
+#### Rapports
+Export des inspections.
 
 ---
 
-## 14. Stock
+## 8. Technicien
 
-### Ajouter un article
-1. Aller dans **Stock**
-2. Cliquer **Nouvel article**
-3. Remplir : nom, catégorie, quantité, unité, prix, seuil d'alerte
-4. Cliquer **Enregistrer**
+### Dashboard
+Statistiques : projets en cours, tâches, interventions.
 
-### Mouvements
-- **Entrée** : approvisionnement
-- **Sortie** : utilisation chantier
-- **Transfert** : entre emplacements
+### Sections
 
-### Alertes
-- Les articles en dessous du seuil d'alerte sont surlignés en rouge
+#### Mes Projets
+Tableau des projets techniques.
 
----
+#### Tâches
+- Tableau des tâches
+- **Nouvelle tâche** : description, priorité, échéance
 
-## 15. Devis
+#### Interventions
+- Tableau des interventions
+- **Nouvelle intervention** : type, lieu, description, durée
 
-### Créer un devis
-1. Aller dans **Devis**
-2. Cliquer **Nouveau devis**
-3. L'éditeur de devis s'ouvre :
-   - Remplir : client, lieu, contact, objet
-   - Ajouter des **lots** avec désignation, quantité, prix unitaire
-   - Chaque lot peut avoir des sous-lignes
-4. Cliquer **Sauvegarder**
-
-### Statuts
-- **BROUILLON** : en cours d'édition
-- **ENVOYÉ** : transmis au client
-- **ACCEPTÉ** : validé par le client
-- **REFUSÉ** : rejeté
-
-### Imprimer
-- Cliquer **Imprimer** pour générer un PDF imprimable
+#### Rapports
+Rapports techniques.
 
 ---
 
-## Raccourcis et astuces
+## 9. Fonctions transverses
 
-| Action | Comment faire |
-|--------|---------------|
-| Importer Excel | Bouton **Importer Excel** dans chaque module |
-| Exporter Excel | Bouton **Exporter** dans les tableaux |
-| Filtrer par chantier | Utiliser les filtres en haut des tableaux |
-| Rechercher | Champ de recherche dans Catalogue et Stock |
-| Mode déconnecté | L'application fonctionne en offline (Service Worker) |
+### Changer son mot de passe
+1. Connecté, cliquer le bouton **Changer le mot de passe** (en haut à droite)
+2. Saisir le nouveau mot de passe
+3. Confirmer
+
+### Déconnexion
+Cliquer **Déconnexion** en haut à droite. Retour à la page de connexion.
+
+### Créer un nouveau Chef de chantier (Admin uniquement)
+Depuis le dashboard Admin > **Utilisateurs** :
+1. Sélectionner rôle **chef**
+2. Saisir ou générer l'email (ex: `chantier@nysoa.mg`)
+3. Saisir un mot de passe
+4. **Important :** renseigner le champ **Chantier** (doit correspondre exactement à un nom dans la table `chantiers`)
+5. Cliquer **Créer**
+
+Le nouveau chef pourra se connecter et verra uniquement son chantier.
+
+### Mode hors-ligne
+L'application est une PWA : elle peut fonctionner sans connexion internet pour les fonctionnalités de base (saisies locales).
+
+### Installation PWA
+Sur mobile : le navigateur propose "Installer l'application" (icône dans la barre d'adresse).
 
 ---
 
-## Support
+## 10. Dépannage
 
-Pour toute question ou anomalie :
+### Problèmes courants
+
+| Problème | Solution |
+|----------|----------|
+| Connexion refusée | Vérifier email/mot de passe. Contacter l'admin si le compte n'existe pas |
+| Page blanche après connexion | Attendre le chargement. Vider le cache navigateur |
+| "Erreur 401" ou "RLS policy" | L'utilisateur n'a pas les droits pour cette action. Vérifier le rôle |
+| Données non chargées | Vérifier la connexion internet. Recharger la page |
+| Chef ne voit aucun employé | Vérifier que le champ `chantier` du compte correspond exactement au nom dans la DB |
+
+### Support
 - Contacter l'administrateur système
 - Ouvrir une issue sur https://github.com/nysoabtp/nysoabtp/issues

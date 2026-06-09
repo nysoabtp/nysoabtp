@@ -458,7 +458,7 @@
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
                 if (key && key.startsWith('nysoa_nouvelle_tache_')) {
-                    try { rows.push(JSON.parse(localStorage.getItem(key))); } catch(_) {}
+                    try { rows.push(JSON.parse(localStorage.getItem(key))); } catch(_) { console.warn('Technicien: parse tache error:', key); }
                 }
             }
             rows.sort((a,b) => (b.deadline||'').localeCompare(a.deadline||''));

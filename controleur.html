@@ -480,7 +480,7 @@
                     sel.innerHTML = '<option value="">Sélectionner...</option>'
                         + data.map(c => `<option value="${c.nom}">${c.nom}</option>`).join('');
                 }
-            } catch(_) {}
+            } catch(_) { console.warn('loadInspections: erreur silencieuse'); }
         }
 
         // ═══ CHARGEMENT INSPECTIONS ═══
