@@ -1385,17 +1385,17 @@ async function createUser(e) {
 function loadUsers() {
     const tb = document.getElementById('users-table');
     tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:#adb5bd"><i class="fas fa-spinner fa-spin"></i>&nbsp; Chargement...</td></tr>';
-    db.from('personnel').select('nom, prenom, email, poste, statut').then(({ data, error }) => {
+    db.from('personnel').select('nom, email, metier, statut_validation').then(({ data, error }) => {
         if (error || !data || data.length === 0) {
             tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:#adb5bd">Aucun utilisateur trouvé</td></tr>';
             return;
         }
         tb.innerHTML = data.map(u => `
             <tr style="border-bottom:1px solid #f0f0f0">
-                <td style="padding:10px"><strong>${esc(u.nom || '')} ${esc(u.prenom || '')}</strong></td>
+                <td style="padding:10px"><strong>${esc(u.nom || '')}</strong></td>
                 <td style="padding:10px;font-family:monospace;font-size:12px">${esc(u.email || '—')}</td>
-                <td style="padding:10px"><span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:12px">${esc(u.poste || '—')}</span></td>
-                <td style="padding:10px"><span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:12px">${esc(u.statut || 'Actif')}</span></td>
+                <td style="padding:10px"><span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:12px">${esc(u.metier || '—')}</span></td>
+                <td style="padding:10px"><span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:12px">${esc(u.statut_validation || 'Actif')}</span></td>
             </tr>`).join('');
     });
 }
