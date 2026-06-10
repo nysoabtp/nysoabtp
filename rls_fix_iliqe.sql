@@ -28,6 +28,12 @@ CREATE POLICY "chef_read_own_chantier" ON chantiers FOR SELECT TO authenticated
   USING ((auth.jwt()->'user_metadata'->>'role') = 'chef' 
     AND nom ILIKE auth.jwt()->'user_metadata'->>'chantier');
 
+CREATE POLICY "controleur_read_chantiers" ON chantiers FOR SELECT TO authenticated 
+  USING ((auth.jwt()->'user_metadata'->>'role') = 'controleur');
+
+CREATE POLICY "technicien_read_chantiers" ON chantiers FOR SELECT TO authenticated 
+  USING ((auth.jwt()->'user_metadata'->>'role') = 'technicien');
+
 -- Policies pointage
 CREATE POLICY "admin_daf_rh_all_pointage" ON pointage FOR ALL TO authenticated 
   USING ((auth.jwt()->'user_metadata'->>'role') = ANY (ARRAY['admin', 'daf', 'rh']));
