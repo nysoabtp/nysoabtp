@@ -373,7 +373,8 @@ async function dupliquerDevis(id) {
     await ouvrirEditeurDevis(id);
     devisEnCours.id = null;
     const { data: numData } = await db.rpc('next_devis_numero').single().catch(() => ({ data: null }));
-    devisEnCours.numero = numData || ('DEV-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 900) + 100));
+    // BUG-09 FIX: fallback avec timestamp pour éviter les collisions UNIQUE
+    devisEnCours.numero = numData || ('DEV-' + new Date().getFullYear() + '-' + Date.now().toString(36).toUpperCase().slice(-6));
     devisEnCours.statut = 'BROUILLON';
     devisEnCours.date = today();
     renderEditeurDevis();

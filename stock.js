@@ -52,15 +52,19 @@ async function stockSyncToSupabase() {
     const articles = getArticles();
     for (const art of articles) {
         try {
-            await db.from('materiels').upsert({
-                libelle: art.nom,
-                quantite: art.quantite,
-                etat: art.categorie,
-                chantier_actuel: art.emplacement || null,
-                prix_unitaire: art.prix_unitaire || 0,
-                fournisseur: '',
-                seuil_alerte: art.seuil_alerte || 0
-            }, { onConflict: 'id' });
+        // BUG-03 FIX: inclure l'id Supabase si disponible, sinon conflit sur libelle
+        const payload = {
+            libelle: art.nom,
+            quantite: art.quantite,
+            etat: art.categorie,
+            chantier_actuel: art.emplacement || null,
+            prix_unitaire: art.prix_unitaire || 0,
+            fournisseur: '',
+            seuil_alerte: art.seuil_alerte || 0
+        };
+        if (art.id) payload.id = art.id;
+        const conflictCol = art.id ? 'id' : 'libelle';
+        await db.from('materiels').upsert(payload, { onConflict: conflictCol });
         } catch(e) { console.warn('[Stock] Sync error:', e); }
     }
 }

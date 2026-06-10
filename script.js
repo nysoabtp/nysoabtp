@@ -1002,6 +1002,8 @@ navItems.forEach(item => {
         if (href && href !== '#') return; // laisser naviguer les liens externes
         e.preventDefault();
         const sectionId = item.getAttribute('data-section');
+        // BUG-19 FIX: mémoriser si cette section était déjà active avant le clic
+        const wasAlreadyActive = item.classList.contains('active');
         navItems.forEach(n => n.classList.remove('active'));
         item.classList.add('active');
         sections.forEach(s => {
@@ -1009,12 +1011,14 @@ navItems.forEach(item => {
             if (s.id === sectionId) s.classList.add('active');
         });
         pageTitle.textContent = sectionTitles[sectionId] || 'Tableau de bord';
-        if (sectionId === 'pointage')  setTimeout(initializeQRScanner, 500);
-        if (sectionId === 'antoka')    setTimeout(loadAntoka, 100);
-        if (sectionId === 'credits')   setTimeout(loadCredits, 100);
-        if (sectionId === 'caisse')    setTimeout(loadCaisse, 100);
-        if (sectionId === 'catalogue') setTimeout(loadCatalogue, 100);
-        if (sectionId === 'contrats')  setTimeout(loadContrats, 100);
+        if (!wasAlreadyActive) {
+            if (sectionId === 'pointage')  setTimeout(initializeQRScanner, 500);
+            if (sectionId === 'antoka')    setTimeout(loadAntoka, 100);
+            if (sectionId === 'credits')   setTimeout(loadCredits, 100);
+            if (sectionId === 'caisse')    setTimeout(loadCaisse, 100);
+            if (sectionId === 'catalogue') setTimeout(loadCatalogue, 100);
+            if (sectionId === 'contrats')  setTimeout(loadContrats, 100);
+        }
     });
 });
 
@@ -1592,38 +1596,61 @@ function filtrerTableParStatut(tableId, statut, statutColIndex) {
     });
 }
 
-function filtrerJournalDate(dateValue) {
+// BUG-01 FIX: les deux filtres opèrent en AND via applyJournalFilters()
+function _getJournalFilterDate() {
+    const el = document.getElementById('journal-filter-date') || document.querySelector('[onchange*="filtrerJournalDate"]');
+    return el ? el.value : '';
+}
+function _getJournalFilterType() {
+    const el = document.getElementById('journal-filter-type') || document.querySelector('[onchange*="filtrerJournalType"]');
+    return el ? el.value : '';
+}
+
+function applyJournalFilters() {
     const table = document.getElementById('journal-table');
     if (!table) return;
     const rows = table.querySelectorAll('tbody tr');
-    // Convertir "yyyy-mm-dd" en format fr-FR "dd/mm/yyyy" pour comparer avec la cellule
+
+    const dateValue = _getJournalFilterDate();
     let filterFormatted = '';
     if (dateValue) {
         const [y, m, d] = dateValue.split('-');
         filterFormatted = `${d}/${m}/${y}`;
     }
+
+    const typeValue = _getJournalFilterType();
+
     rows.forEach(row => {
-        if (!filterFormatted) { row.style.display = ''; return; }
-        const cell = row.cells[0];
-        if (!cell) return;
-        const cellDate = cell.textContent.trim();
-        const match = cellDate === filterFormatted;
-        row.style.display = match ? '' : 'none';
+        let showByDate = true;
+        let showByType = true;
+
+        if (filterFormatted) {
+            const cell = row.cells[0];
+            const raw = cell ? cell.textContent.trim() : '';
+            // BUG-17 FIX: normaliser la date cellule dd/mm/yyyy même si format court (1/6/2026)
+            const parts = raw.split('/');
+            const cellDate = parts.length === 3
+                ? `${parts[0].padStart(2,'0')}/${parts[1].padStart(2,'0')}/${parts[2]}`
+                : raw;
+            showByDate = cellDate === filterFormatted;
+        }
+
+        if (typeValue) {
+            const cell = row.cells[5];
+            const text = cell ? cell.textContent.trim().toUpperCase() : '';
+            showByType = text.includes(typeValue.toUpperCase());
+        }
+
+        row.style.display = (showByDate && showByType) ? '' : 'none';
     });
 }
 
+function filtrerJournalDate(dateValue) {
+    applyJournalFilters();
+}
+
 function filtrerJournalType(typeValue) {
-    const table = document.getElementById('journal-table');
-    if (!table) return;
-    const rows = table.querySelectorAll('tbody tr');
-    rows.forEach(row => {
-        if (!typeValue) { row.style.display = ''; return; }
-        const cell = row.cells[5]; // colonne Catégorie
-        if (!cell) return;
-        const text = cell.textContent.trim().toUpperCase();
-        const match = text.includes(typeValue.toUpperCase());
-        row.style.display = match ? '' : 'none';
-    });
+    applyJournalFilters();
 }
 
 // Appeler au démarrage après Supabase

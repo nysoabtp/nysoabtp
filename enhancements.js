@@ -682,6 +682,26 @@ function filterTableByChantier(tableId, chantierRef) {
     const table = document.getElementById(tableId);
     if (!table) return;
     const rows = table.querySelectorAll('tbody tr');
+
+    // BUG-08 FIX: pour journal-table, on relance applyJournalFilters()
+    // après avoir marqué les lignes non-chantier, au lieu d'écraser display=''
+    if (tableId === 'journal-table') {
+        rows.forEach(row => {
+            if (!chantierRef) {
+                // pas de filtre chantier : laisser applyJournalFilters décider
+            } else {
+                const text = row.textContent.toLowerCase();
+                if (!text.includes(chantierRef.toLowerCase())) {
+                    row.style.display = 'none';
+                    return;
+                }
+            }
+        });
+        // Réappliquer les filtres date+type en AND sur les lignes restantes visibles
+        if (typeof applyJournalFilters === 'function') applyJournalFilters();
+        return;
+    }
+
     rows.forEach(row => {
         if (!chantierRef) { row.style.display = ''; return; }
         const text = row.textContent.toLowerCase();

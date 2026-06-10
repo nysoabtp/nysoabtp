@@ -82,7 +82,8 @@ async function tryUpdate(table, id, data, lsKey) {
         if (error) throw error;
     } catch (e) {
         const items = LS.get(lsKey);
-        const idx = items.findIndex(i => i.id === id);
+        // BUG-11 FIX: == (égalité faible) car les IDs localStorage peuvent être string ou number
+        const idx = items.findIndex(i => i.id == id);
         if (idx >= 0) { items[idx] = { ...items[idx], ...data }; LS.set(lsKey, items); }
     }
 }
@@ -91,7 +92,8 @@ async function tryDelete(table, id, lsKey) {
         const { error } = await db.from(table).delete().eq('id', id);
         if (error) throw error;
     } catch (e) {
-        const items = LS.get(lsKey).filter(i => i.id !== id);
+        // BUG-11 FIX: != (faible) pour cohérence type string/number
+        const items = LS.get(lsKey).filter(i => i.id != id);
         LS.set(lsKey, items);
     }
 }
@@ -164,9 +166,15 @@ async function saveAntokaPayment() {
         let row;
         try { const { data } = await db.from('antoka').select('montant_paye,montant_depart').eq('id',id).single(); row = data; }
         catch (e) { row = LS.get('antoka').find(i => i.id == id); }
+        const reste = (row.montant_depart||0) - (row.montant_paye||0);
+        // BUG-02 FIX: bloquer le sur-remboursement
+        if (montant > reste) {
+            alert(`Le montant saisi (${montant.toLocaleString('fr-FR')} Ar) dépasse le reste dû (${reste.toLocaleString('fr-FR')} Ar)`);
+            return;
+        }
         const newPaye  = (row.montant_paye||0) + montant;
         const newReste = (row.montant_depart||0) - newPaye;
-        await tryUpdate('antoka', id, { montant_paye: newPaye, reste: Math.max(0,newReste), date }, 'antoka');
+        await tryUpdate('antoka', id, { montant_paye: newPaye, reste: Math.max(0, newReste), date }, 'antoka');
         closeModal('modal-antoka-payment');
         loadAntoka();
         showNotification('Paiement antoka enregistré ✓', 'success');
@@ -241,6 +249,49 @@ async function loadCredits() {
     } catch(e) { el.innerHTML = `<tr><td colspan="11" style="color:var(--red);padding:20px">${e.message}</td></tr>`; }
 }
 
+// BUG-05 FIX: fonction openCreditPayment() manquante — ajout d'une échéance à un crédit existant
+async function openCreditPayment(id) {
+    let row;
+    try { const { data } = await db.from('credits_fournisseurs').select('*').eq('id', id).single(); row = data; }
+    catch (e) { row = LS.get('credits').find(i => i.id == id); }
+    if (!row) { alert('Crédit introuvable'); return; }
+
+    // Trouver le prochain slot libre (date/montant/reste null ou 0)
+    const slots = [
+        { d: row.date1, m: row.montant1 },
+        { d: row.date2, m: row.montant2 },
+        { d: row.date3, m: row.montant3 }
+    ];
+    const nextSlot = slots.findIndex(s => !s.d && !s.m);
+    if (nextSlot === -1) {
+        alert('Ce crédit a déjà 3 échéances enregistrées. Pour aller au-delà, refactorisez avec une table de paiements liée.');
+        return;
+    }
+
+    const dateStr = prompt(`Échéance ${nextSlot + 1} — Date (AAAA-MM-JJ) :`, new Date().toISOString().slice(0, 10));
+    if (!dateStr) return;
+    const montantStr = prompt(`Échéance ${nextSlot + 1} — Montant (Ar) :`);
+    const montant = parseFloat(montantStr) || 0;
+    if (!montant) return;
+
+    const totalPayéAvant = (row.montant1||0) + (row.montant2||0) + (row.montant3||0);
+    const resteAvant = (row.montant_total||0) - totalPayéAvant;
+    if (montant > resteAvant) {
+        alert(`Montant (${montant.toLocaleString('fr-FR')} Ar) dépasse le reste dû (${resteAvant.toLocaleString('fr-FR')} Ar)`);
+        return;
+    }
+
+    const slotNum = nextSlot + 1;
+    const patch = {};
+    patch[`date${slotNum}`]    = dateStr;
+    patch[`montant${slotNum}`] = montant;
+    patch[`reste${slotNum}`]   = resteAvant - montant;
+
+    await tryUpdate('credits_fournisseurs', id, patch, 'credits');
+    loadCredits();
+    showNotification(`Échéance ${slotNum} enregistrée ✓`, 'success');
+}
+
 async function saveCredit(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -312,10 +363,16 @@ async function saveCaisse(e) {
     const type = fd.get('type') || 'sortie';
     try {
         let last;
-        try { const { data } = await db.from('caisse').select('solde_fin').order('date',{ascending:false}).limit(1); last = data; }
+        // BUG-04 FIX: trier par created_at DESC pour avoir le vrai dernier solde
+        try { const { data } = await db.from('caisse').select('solde_fin').order('created_at',{ascending:false}).limit(1); last = data; }
         catch (e) { last = LS.get('caisse').sort((a,b)=>new Date(b.date)-new Date(a.date)); }
         const soldeDebut = last && last.length ? (last[0].solde_fin||0) : 0;
-        const soldeFin   = type === 'entree' ? soldeDebut + montant : Math.max(0, soldeDebut - montant);
+        // BUG-12 FIX: bloquer silencieusement une sortie supérieure au solde
+        if (type === 'sortie' && montant > soldeDebut) {
+            alert(`Solde insuffisant. Solde disponible : ${soldeDebut.toLocaleString('fr-FR')} Ar, montant demandé : ${montant.toLocaleString('fr-FR')} Ar`);
+            return;
+        }
+        const soldeFin   = type === 'entree' ? soldeDebut + montant : soldeDebut - montant;
         const obj = { date: fd.get('date'), designation: fd.get('designation'), montant, solde_debut: soldeDebut, solde_fin: soldeFin };
         await trySave('caisse', obj, 'caisse');
         closeModal('modal-caisse');
@@ -343,6 +400,8 @@ async function loadCatalogue() {
             let q = db.from('catalogue_prix').select('*').order('designation');
             if (search) q = q.ilike('designation', `%${search}%`);
             if (fourn)  q = q.eq('fournisseur', fourn);
+            // BUG-20 FIX: limiter à 200 résultats pour éviter rendu DOM bloquant
+            q = q.limit(200);
             const { data } = await q; if (data) rows = data; else throw 404;
         }
         catch (e) {
@@ -366,8 +425,24 @@ async function loadCatalogue() {
     } catch(e) { el.innerHTML = `<tr><td colspan="5" style="color:var(--red);padding:20px">${e.message}</td></tr>`; }
 }
 
+// BUG-13 FIX: usePrix navigue vers la section Achats et pré-remplit le formulaire
 function usePrix(designation, pu) {
-    showNotification(`${designation} — ${pu.toLocaleString('fr-FR')} Ar copié`, 'info');
+    // Naviguer vers la section achats via le mécanisme de navigation existant
+    const navItem = document.querySelector('[data-section="achats"]');
+    if (navItem) navItem.click();
+
+    // Ouvrir le modal achat et pré-remplir les champs
+    setTimeout(() => {
+        openModal('modal-achat');
+        const form = document.getElementById('form-achat');
+        if (form) {
+            const libelleField = form.querySelector('[name="libelle"]');
+            const puField      = form.querySelector('[name="prix_unitaire"]');
+            if (libelleField) libelleField.value = designation;
+            if (puField)      puField.value      = pu;
+        }
+        showNotification(`${designation} pré-rempli dans le formulaire d'achat`, 'success');
+    }, 200);
 }
 
 async function savePrix(e) {
@@ -434,8 +509,10 @@ async function saveContrat(e) {
 
 async function cloturerContrat(id) {
     if (!confirm('Marquer ce contrat comme terminé ?')) return;
-    const today = new Date().toISOString().split('T')[0];
-    await tryUpdate('contrats', id, { statut:'TERMINE', date_fin: today }, 'contrats_prestataires');
+    const todayStr = new Date().toISOString().split('T')[0];
+    // BUG-14 FIX: mettre à jour les deux colonnes possibles (date_fin et date_fin_prevue)
+    // selon le schéma réel. tryUpdate ignore silencieusement les colonnes absentes via Supabase.
+    await tryUpdate('contrats', id, { statut: 'TERMINE', date_fin: todayStr, date_fin_prevue: todayStr }, 'contrats_prestataires');
     loadContrats(); showNotification('Contrat clôturé ✓', 'success');
 }
 
