@@ -1966,6 +1966,10 @@ async function changePassword(e) {
 }
 
 // ── INIT ───────────────────────────────────────────────────────
+window.addEventListener('beforeunload', () => {
+    sessionStorage.removeItem('nysoa_service_role');
+});
+
 window.addEventListener('load', async () => {
     // Vérif accès admin via session Supabase réelle
     const user = await checkAuthOrRedirect('admin');

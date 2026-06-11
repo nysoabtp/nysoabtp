@@ -1073,9 +1073,10 @@
             try {
                 const { data: files, error } = await db.storage.from('photos').list(chefChantier, { sortBy: { column: 'created_at', order: 'desc' } });
                 if (error || !files || !files.length) { container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Aucune photo</p>'; return; }
-                const { data: { publicUrl } } = db.storage.from('photos').getPublicUrl('');
-                const baseUrl = publicUrl.replace(/\/$/, '');
-                container.innerHTML = files.map(f => `<img src="${baseUrl}/${encodeURIComponent(chefChantier)}/${encodeURIComponent(f.name)}" style="width:160px;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" onclick="window.open(this.src)" title="${f.name}">`).join('');
+                container.innerHTML = files.map(f => {
+                    const { data: { publicUrl } } = db.storage.from('photos').getPublicUrl(`${chefChantier}/${f.name}`);
+                    return `<img src="${publicUrl}" style="width:160px;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" onclick="window.open(this.src)" title="${f.name}">`;
+                }).join('');
             } catch(e) { container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Aucune photo</p>'; }
         }
 
@@ -1105,9 +1106,10 @@
 
             result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Vérification...';
 
-            // 1. Vérifier l'ancien mot de passe en se reconnectant
-            const user = JSON.parse(localStorage.getItem('nysoa_current_user') || '{}');
-            const { error: reAuthError } = await db.auth.signInWithPassword({ email: user.email, password: oldPwd });
+            // 1. Vérifier l'ancien mot de passe via la session Supabase active
+            const { data: { session } } = await db.auth.getSession();
+            if (!session?.user?.email) { result.innerHTML = '<span style="color:var(--red)">✗ Session introuvable, reconnectez-vous</span>'; return false; }
+            const { error: reAuthError } = await db.auth.signInWithPassword({ email: session.user.email, password: oldPwd });
             if (reAuthError) { result.innerHTML = '<span style="color:var(--red)">✗ Mot de passe actuel incorrect</span>'; return false; }
 
             // 2. Mettre à jour

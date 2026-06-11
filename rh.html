@@ -1189,22 +1189,14 @@
             if (newPwd !== confirm) { result.innerHTML = '<span style="color:var(--red)">✗ Les mots de passe ne correspondent pas</span>'; return false; }
             if (newPwd.length < 6) { result.innerHTML = '<span style="color:var(--red)">✗ Minimum 6 caractères</span>'; return false; }
             result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Vérification...';
-            // BUG-15 FIX: user peut être null si session Supabase uniquement (pas de localStorage)
-            const user = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
-            const userEmail = user?.email || null;
-            if (!userEmail) {
-                // Récupérer l'email depuis la session Supabase active
-                const { data: { session } } = await db.auth.getSession();
-                if (!session?.user?.email) {
-                    result.innerHTML = '<span style="color:var(--red)">✗ Session introuvable, reconnectez-vous</span>';
-                    return false;
-                }
-                const { error: reAuthError } = await db.auth.signInWithPassword({ email: session.user.email, password: oldPwd });
-                if (reAuthError) { result.innerHTML = '<span style="color:var(--red)">✗ Mot de passe actuel incorrect</span>'; return false; }
-            } else {
-                const { error: reAuthError } = await db.auth.signInWithPassword({ email: userEmail, password: oldPwd });
-                if (reAuthError) { result.innerHTML = '<span style="color:var(--red)">✗ Mot de passe actuel incorrect</span>'; return false; }
+            // Récupérer l'email depuis la session Supabase active (source unique)
+            const { data: { session } } = await db.auth.getSession();
+            if (!session?.user?.email) {
+                result.innerHTML = '<span style="color:var(--red)">✗ Session introuvable, reconnectez-vous</span>';
+                return false;
             }
+            const { error: reAuthError } = await db.auth.signInWithPassword({ email: session.user.email, password: oldPwd });
+            if (reAuthError) { result.innerHTML = '<span style="color:var(--red)">✗ Mot de passe actuel incorrect</span>'; return false; }
             result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mise à jour...';
             const { error: updateError } = await db.auth.updateUser({ password: newPwd });
             if (updateError) { result.innerHTML = `<span style="color:var(--red)">✗ ${updateError.message}</span>`; return false; }

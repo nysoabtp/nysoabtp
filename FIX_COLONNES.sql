@@ -62,13 +62,42 @@ ALTER TABLE rapports_chantier    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE controles_inopines   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gantt_taches         ENABLE ROW LEVEL SECURITY;
 
--- Politiques allow_all
+-- rapports_chantier : chef gère ses propres rapports, admin/daf/controleur lisent tout
 DROP POLICY IF EXISTS allow_all_rapports_chantier ON rapports_chantier;
-CREATE POLICY allow_all_rapports_chantier ON rapports_chantier FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Chef manage own rapports" ON rapports_chantier;
+CREATE POLICY "Chef manage own rapports" ON rapports_chantier
+FOR ALL USING (
+    auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
+    AND chantier = auth.jwt()->'user_metadata'->>'chantier'
+) WITH CHECK (
+    auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
+    AND chantier = auth.jwt()->'user_metadata'->>'chantier'
+);
+DROP POLICY IF EXISTS "Admin DAF CTR read rapports" ON rapports_chantier;
+CREATE POLICY "Admin DAF CTR read rapports" ON rapports_chantier
+FOR SELECT USING (
+    auth.jwt()->'user_metadata'->>'role' IN ('admin', 'daf', 'controleur', 'rh')
+);
+
+-- controles_inopines : controleur gère ses contrôles, admin lit tout
 DROP POLICY IF EXISTS allow_all_controles_inopines ON controles_inopines;
-CREATE POLICY allow_all_controles_inopines ON controles_inopines FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Controleur manage controles" ON controles_inopines;
+CREATE POLICY "Controleur manage controles" ON controles_inopines
+FOR ALL USING (
+    auth.jwt()->'user_metadata'->>'role' = 'controleur'
+) WITH CHECK (
+    auth.jwt()->'user_metadata'->>'role' = 'controleur'
+);
+DROP POLICY IF EXISTS "Admin read all controles" ON controles_inopines;
+CREATE POLICY "Admin read all controles" ON controles_inopines
+FOR SELECT USING (
+    auth.jwt()->'user_metadata'->>'role' IN ('admin', 'daf')
+);
+
+-- gantt_taches : politiques granulaires dans FIX_RLS_ALL_TABLES.sql
 DROP POLICY IF EXISTS allow_all_gantt_taches ON gantt_taches;
-CREATE POLICY allow_all_gantt_taches ON gantt_taches FOR ALL USING (true) WITH CHECK (true);
 
 -- 6. Vue corrigee (date_ecriture au lieu de date)
 CREATE OR REPLACE VIEW v_depenses_par_mois AS

@@ -16,6 +16,7 @@ ALTER TABLE personnel ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Chef read own chantier personnel" ON personnel
 FOR SELECT USING (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 
@@ -29,6 +30,7 @@ FOR SELECT USING (
 CREATE POLICY "Chef insert own chantier personnel" ON personnel
 FOR INSERT WITH CHECK (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 
@@ -69,6 +71,7 @@ ALTER TABLE pointage_attendance ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Chef insert pointage own chantier" ON pointage_attendance
 FOR INSERT WITH CHECK (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 
@@ -76,6 +79,7 @@ FOR INSERT WITH CHECK (
 CREATE POLICY "Chef read pointage own chantier" ON pointage_attendance
 FOR SELECT USING (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 
@@ -173,6 +177,7 @@ ALTER TABLE rapports_chantier ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Chef insert rapports own chantier" ON rapports_chantier
 FOR INSERT WITH CHECK (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 

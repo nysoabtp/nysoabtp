@@ -463,23 +463,38 @@
             }
         }
 
-        function loadTachesLocales() {
+        async function loadTachesLocales() {
             const tbody = document.querySelector('#taches .table tbody');
             if (!tbody) return;
-            const rows = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith('nysoa_nouvelle_tache_')) {
-                    try { rows.push(JSON.parse(localStorage.getItem(key))); } catch(_) { console.warn('Technicien: parse tache error:', key); }
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#adb5bd"><i class="fas fa-spinner fa-spin"></i> Chargement...</td></tr>';
+            try {
+                const { data: chantiersData, error } = await db.from('chantiers').select('nom, taches').limit(100);
+                if (error) throw error;
+                const rows = [];
+                (chantiersData || []).forEach(c => {
+                    let taches = c.taches;
+                    if (!taches) return;
+                    if (typeof taches === 'string') { try { taches = JSON.parse(taches); } catch(_) { return; } }
+                    if (!Array.isArray(taches)) return;
+                    taches.forEach(t => rows.push({ ...t, chantier: t.chantier || c.nom }));
+                });
+                rows.sort((a,b) => (b.deadline||'').localeCompare(a.deadline||''));
+                tbody.innerHTML = '';
+                if (!rows.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#adb5bd">Aucune tâche enregistrée</td></tr>';
+                    return;
                 }
+                rows.forEach(t => {
+                    const tr = document.createElement('tr');
+                    tr.dataset.task = t.nom || '';
+                    tr.dataset.chantier = t.chantier || '';
+                    tr.innerHTML = `<td>${esc(t.nom||'—')}</td><td>${esc(t.chantier||'—')}</td><td>${esc(t.deadline||'—')}</td><td><span class="status warning">${esc(t.priorite||'Moyenne')}</span></td><td><span class="status ${t.termine ? 'success' : 'info'}">${esc(t.statut||'En cours')}</span></td><td><button class="btn-small" onclick="completeTask(this)">Terminer</button></td>`;
+                    tbody.appendChild(tr);
+                });
+            } catch(e) {
+                console.error('loadTachesLocales error:', e);
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#dc3545">⚠ Erreur chargement tâches</td></tr>';
             }
-            rows.sort((a,b) => (b.deadline||'').localeCompare(a.deadline||''));
-            if (!rows.length) return;
-            rows.forEach(t => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${t.nom||'—'}</td><td>${t.chantier||'—'}</td><td>${t.deadline||'—'}</td><td><span class="status warning">${t.priorite||'Moyenne'}</span></td><td><span class="status ${t.termine ? 'success' : 'info'}">${t.statut||'En cours'}</span></td><td><button class="btn-small" onclick="completeTask(this)">Terminer</button></td>`;
-                tbody.appendChild(tr);
-            });
         }
 
         async function loadTechnicienData() {
@@ -556,7 +571,6 @@
                     await db.from('chantiers').update({ taches: JSON.stringify(taches) }).eq('id', c.id);
                 }
             }
-            localStorage.setItem('nysoa_nouvelle_tache_' + Date.now(), JSON.stringify(tache));
             closeModal('modal-nouvelle-tache');
             e.target.reset();
             showNotification('Tâche créée ✓', 'success');
@@ -620,8 +634,9 @@
             if (newPwd !== confirm) { result.innerHTML = '<span style="color:var(--red)">✗ Les mots de passe ne correspondent pas</span>'; return false; }
             if (newPwd.length < 6) { result.innerHTML = '<span style="color:var(--red)">✗ Minimum 6 caractères</span>'; return false; }
             result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Vérification...';
-            const user = JSON.parse(localStorage.getItem('nysoa_current_user') || '{}');
-            const { error: reAuthError } = await db.auth.signInWithPassword({ email: user.email, password: oldPwd });
+            const { data: { session } } = await db.auth.getSession();
+            if (!session?.user?.email) { result.innerHTML = '<span style="color:var(--red)">✗ Session introuvable, reconnectez-vous</span>'; return false; }
+            const { error: reAuthError } = await db.auth.signInWithPassword({ email: session.user.email, password: oldPwd });
             if (reAuthError) { result.innerHTML = '<span style="color:var(--red)">✗ Mot de passe actuel incorrect</span>'; return false; }
             result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mise à jour...';
             const { error: updateError } = await db.auth.updateUser({ password: newPwd });

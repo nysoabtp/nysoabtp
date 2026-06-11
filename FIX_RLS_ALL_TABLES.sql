@@ -14,18 +14,21 @@ DROP POLICY IF EXISTS "Chef manage own stock" ON stocks_chantier;
 CREATE POLICY "Chef read own stock" ON stocks_chantier
 FOR SELECT USING (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 
 CREATE POLICY "Chef insert own stock" ON stocks_chantier
 FOR INSERT WITH CHECK (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 
 CREATE POLICY "Chef update own stock" ON stocks_chantier
 FOR UPDATE USING (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 
@@ -79,6 +82,7 @@ DROP POLICY IF EXISTS "Chef read own journal" ON journal;
 CREATE POLICY "Chef read own journal" ON journal
 FOR SELECT USING (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 
@@ -120,6 +124,7 @@ DROP POLICY IF EXISTS "Chef read own devis" ON devis;
 CREATE POLICY "Chef read own devis" ON devis
 FOR SELECT USING (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 
@@ -161,6 +166,7 @@ DROP POLICY IF EXISTS "Chef read own commandes" ON commandes;
 CREATE POLICY "Chef read own commandes" ON commandes
 FOR SELECT USING (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 
@@ -196,6 +202,7 @@ DROP POLICY IF EXISTS "Chef read own gantt" ON gantt_taches;
 CREATE POLICY "Chef read own gantt" ON gantt_taches
 FOR SELECT USING (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 
@@ -203,6 +210,27 @@ DROP POLICY IF EXISTS "Chef manage own gantt" ON gantt_taches;
 CREATE POLICY "Chef manage own gantt" ON gantt_taches
 FOR INSERT WITH CHECK (
     auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
+    AND chantier = auth.jwt()->'user_metadata'->>'chantier'
+);
+
+DROP POLICY IF EXISTS "Chef update own gantt" ON gantt_taches;
+CREATE POLICY "Chef update own gantt" ON gantt_taches
+FOR UPDATE USING (
+    auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
+    AND chantier = auth.jwt()->'user_metadata'->>'chantier'
+) WITH CHECK (
+    auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
+    AND chantier = auth.jwt()->'user_metadata'->>'chantier'
+);
+
+DROP POLICY IF EXISTS "Chef delete own gantt" ON gantt_taches;
+CREATE POLICY "Chef delete own gantt" ON gantt_taches
+FOR DELETE USING (
+    auth.jwt()->'user_metadata'->>'role' = 'chef'
+    AND (auth.jwt()->'user_metadata'->>'chantier') IS NOT NULL
     AND chantier = auth.jwt()->'user_metadata'->>'chantier'
 );
 
