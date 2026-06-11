@@ -907,7 +907,7 @@
             const cards = document.querySelectorAll('#materiaux .card');
             const tbody = cards[1]?.querySelector('table tbody');
             if (!tbody) return;
-            const { data } = await db.from('validations').select('*').eq('type', 'materiaux').order('created_at', { ascending: false });
+            const { data } = await db.from('validations').select('*').eq('type', 'demande_materiaux').order('created_at', { ascending: false });
             const mesDemandes = (data||[]).filter(v => v.emetteur_id === chefChantier);
             if (!mesDemandes.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#888">Aucune demande</td></tr>'; return; }
             const stCls = { 'EN_ATTENTE':'warning', 'APPROUVE':'success', 'REJETE':'error' };
@@ -924,7 +924,7 @@
             e.preventDefault();
             const fd = new FormData(e.target);
             const { error } = await db.from('validations').insert({
-                type: 'materiaux', statut: 'EN_ATTENTE',
+                type: 'demande_materiaux', statut: 'EN_ATTENTE',
                 emetteur_role: 'chef', emetteur_id: chefChantier || 'inconnu',
                 commentaire: (fd.get('materiau')+'|'+fd.get('quantite')+' '+fd.get('unite')+'|Urgence: '+fd.get('urgence'))
             });
@@ -939,7 +939,7 @@
         async function loadRecrutements() {
             const tbody = document.getElementById('recrut-body');
             if (!tbody) return;
-            const { data } = await db.from('validations').select('*').eq('type', 'recrutement').order('created_at', { ascending: false });
+            const { data } = await db.from('validations').select('*').eq('type', 'demande_recrutement').order('created_at', { ascending: false });
             const mesDemandes = (data||[]).filter(v => v.emetteur_id === chefChantier);
             document.getElementById('recrut-attente').textContent = mesDemandes.filter(d=>d.statut==='EN_ATTENTE').length;
             document.getElementById('recrut-approuve').textContent = mesDemandes.filter(d=>d.statut==='APPROUVE').length;
@@ -958,7 +958,7 @@
             e.preventDefault();
             const fd = new FormData(e.target);
             const { error } = await db.from('validations').insert({
-                type: 'recrutement', statut: 'EN_ATTENTE',
+                type: 'demande_recrutement', statut: 'EN_ATTENTE',
                 emetteur_role: 'chef', emetteur_id: chefChantier || 'inconnu',
                 commentaire: (fd.get('poste')+'|'+fd.get('nombre')+' pers., '+fd.get('duree')+' mois|'+fd.get('justification'))
             });

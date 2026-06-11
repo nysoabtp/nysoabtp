@@ -519,8 +519,18 @@ function stockResetFilters() {
 // ── Suppression article ───────────────────────────────
 function deleteArticle(ref) {
     if (!confirm('Supprimer cet article du stock ?')) return;
-    const articles = getArticles().filter(a => a.ref !== ref);
-    stockSave(STOCK_KEY, articles);
+    const articles = getArticles();
+    const art = articles.find(a => a.ref === ref);
+    const remaining = articles.filter(a => a.ref !== ref);
+    stockSave(STOCK_KEY, remaining);
+    // Sync suppression vers Supabase
+    if (typeof db !== 'undefined' && art?.id) {
+        db.from('materiels').delete().eq('id', art.id)
+          .then(({ error }) => { if (error) console.warn('[Stock] sync delete error:', error.message); });
+    } else if (typeof db !== 'undefined' && art?.nom) {
+        db.from('materiels').delete().eq('libelle', art.nom)
+          .then(({ error }) => { if (error) console.warn('[Stock] sync delete error:', error.message); });
+    }
     refreshStock();
     showNotification('Article supprimé', 'info');
 }
@@ -579,6 +589,18 @@ function saveEditArticle(ref) {
     articles[i].seuil_alerte = parseFloat(document.getElementById('ea-seuil').value) || 0;
     articles[i].notes        = document.getElementById('ea-notes').value;
     stockSave(STOCK_KEY, articles);
+    // Sync immédiat vers Supabase
+    if (typeof db !== 'undefined') {
+        const art = articles[i];
+        const payload = {
+            libelle: art.nom, quantite: art.quantite, etat: art.categorie,
+            chantier_actuel: art.emplacement || null,
+            prix_unitaire: art.prix_unitaire || 0, seuil_alerte: art.seuil_alerte || 0
+        };
+        if (art.id) payload.id = art.id;
+        db.from('materiels').upsert(payload, { onConflict: art.id ? 'id' : 'libelle' })
+          .then(({ error }) => { if (error) console.warn('[Stock] sync edit error:', error.message); });
+    }
     document.querySelector('.modal.active')?.remove();
     refreshStock();
     showNotification('Article mis à jour', 'success');
@@ -626,6 +648,25 @@ function initStockForm() {
 
         articles.push(art);
         stockSave(STOCK_KEY, articles);
+        // Sync immédiat vers Supabase — stocker l'id retourné pour les futurs upserts
+        if (typeof db !== 'undefined') {
+            const payload = {
+                libelle: art.nom, quantite: art.quantite, etat: art.categorie,
+                chantier_actuel: art.emplacement || null,
+                prix_unitaire: art.prix_unitaire || 0,
+                fournisseur: '',
+                seuil_alerte: art.seuil_alerte || 0
+            };
+            db.from('materiels').upsert(payload, { onConflict: 'libelle' }).select('id').single()
+              .then(({ data: row, error }) => {
+                  if (error) { console.warn('[Stock] sync insert error:', error.message); return; }
+                  if (row?.id) {
+                      const all = getArticles();
+                      const idx = all.findIndex(a => a.ref === art.ref);
+                      if (idx >= 0) { all[idx].id = row.id; stockSave(STOCK_KEY, all); }
+                  }
+              });
+        }
         closeModal('modal-stock');
         this.reset();
         refreshStock();
