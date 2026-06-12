@@ -1,0 +1,18 @@
+name: Rebuild Pages
+on:
+  workflow_dispatch:
+
+jobs:
+  trigger-rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Force empty commit
+        run: |
+          git config user.email "rebuild@nysoabtp.mg"
+          git config user.name "Rebuild Trigger"
+          git commit --allow-empty -m "chore: force pages rebuild"
+          git push
