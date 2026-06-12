@@ -50,8 +50,6 @@ Application web de gestion intégrée pour les entreprises de Bâtiment et Trava
 
 Tables principales : `chantiers`, `personnel`, `pointage_attendance`, `salaires`, `controles_inopines`, `rapports_chantier`, `stocks_chantier`, `materiels`, `journal`, `devis`, `gantt_taches`, `caisse`.
 
-RLS activée sur toutes les tables (22 policies) — les chefs sont scopés par `user_metadata.chantier`.
-
 ## Développement
 
 ```bash
