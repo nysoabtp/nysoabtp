@@ -1930,10 +1930,29 @@
     <script src="devis.js"></script>
     <script src="import-excel.js"></script>
     <script>
-        // Auth guard — vérifie la session Supabase réelle
+        // Auth guard centralisé — vérifie la session Supabase réelle
+        // Ce guard est SYNCHRONE et bloque l'initialisation si le rôle ne correspond pas
         (async () => {
             const user = await checkAuthOrRedirect('admin');
-            // checkAuthOrRedirect redirige si non authentifié ou mauvais rôle
+            if (!user) {
+                // Redirection en cours, arrêter l'initialisation
+                return;
+            }
+            
+            // Utilisateur admin confirmé — initialiser l'interface
+            console.log('[index] Auth OK, rôle:', user.role);
+            
+            // Mettre à jour le nom utilisateur dans la sidebar
+            const userNameEl = document.querySelector('.user-name');
+            if (userNameEl) userNameEl.textContent = user.user_metadata?.nom || user.email || 'Administrateur';
+            
+            // Marquer l'interface comme prête
+            document.body.classList.add('auth-ready');
+            
+            // Initialiser les données (uniquement après confirmation auth)
+            if (typeof loadAllData === 'function') {
+                loadAllData().catch(e => console.error('[index] loadAllData error:', e));
+            }
         })();
 
         // Service Worker Registration

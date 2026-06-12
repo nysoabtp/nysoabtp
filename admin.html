@@ -3113,26 +3113,47 @@ async function autoriserDafCredit(id) {
 // Remplace / étend la fonction showSection définie dans script.js
 // showSection — version unique, CEO + sections classiques
 function showSection(name) {
+    // Masquer toutes les sections
     document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
+    // Mise à jour navigation
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    event?.currentTarget?.classList.add('active');
+    if (event?.currentTarget) event.currentTarget.classList.add('active');
 
     const ceoSections = ['journal-global', 'budgets-ceo', 'recettes-ceo', 'credits-fournisseurs'];
+    const allSections = ['import', 'backup', 'supabase', 'users', 'rapports', 'controles', 'validations', 'gantt', ...ceoSections];
+    
+    const sec = document.getElementById('section-' + name);
+    if (!sec) {
+        console.warn('[admin] Section introuvable: section-' + name);
+        return;
+    }
+    sec.style.display = 'block';
+
+    // Charger les données de la section (avec gestion d'erreurs)
     if (ceoSections.includes(name)) {
-        const sec = document.getElementById('section-' + name);
-        if (sec) {
-            sec.style.display = 'block';
-            populateCEOChantierSelects().then(() => {
+        populateCEOChantierSelects().then(() => {
+            try {
                 if (name === 'journal-global')        loadJournalGlobal();
                 else if (name === 'budgets-ceo')      loadBudgetsCEO();
                 else if (name === 'recettes-ceo')     loadRecettesCEO();
                 else if (name === 'credits-fournisseurs') loadCreditsFournisseurs();
-            });
-        }
+            } catch(e) { console.error('[admin] Erreur chargement section CEO:', name, e); }
+        }).catch(e => console.error('[admin] populateCEOChantierSelects error:', e));
     } else {
-        const sec = document.getElementById('section-' + name);
-        if (sec) sec.style.display = 'block';
-        if (name === 'users') loadChantierSelect();
+        // Sections classiques admin
+        const loaders = {
+            'import':   loadImportStatus,
+            'backup':   () => { loadBackupStatus(); loadBackupList(); },
+            'supabase': testConnection,
+            'users':    () => { loadChantierSelect(); loadUsers(); },
+            'rapports': loadRapports,
+            'controles': loadControles,
+            'validations': () => loadValidations('EN_ATTENTE'),
+            'gantt':    loadGantt,
+        };
+        if (loaders[name]) {
+            try { loaders[name](); } catch(e) { console.error('[admin] Erreur chargement section:', name, e); }
+        }
     }
 }
 

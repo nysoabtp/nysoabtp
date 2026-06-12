@@ -1069,12 +1069,20 @@ let _felanaCatChart = null;
 // NAVIGATION
 // ─────────────────────────────────────────────────────────────────
 function showSection(name) {
+    // Masquer toutes les sections
     document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
+    // Afficher la section demandée (si elle existe)
     const el = document.getElementById('section-' + name);
-    if (el) el.style.display = 'block';
+    if (el) {
+        el.style.display = 'block';
+    } else {
+        console.warn('[daf] Section introuvable: section-' + name);
+        // Ne pas blocker, la section peut ne pas exister encore
+    }
+    // Mise à jour navigation
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    event?.currentTarget?.classList.add('active');
-
+    if (event?.currentTarget) event.currentTarget.classList.add('active');
+    // Charger les données de la section (avec gestion d'erreurs)
     const loaders = {
         'dashboard':          loadDashboard,
         'depenses':           () => { loadDepensesDAF(); loadChantiersSelects(); updateSoldeRapide(); },
@@ -1085,7 +1093,9 @@ function showSection(name) {
         'devis':              loadDevisDAF,
         'rapports-daf':       loadRapportsDAF,
     };
-    if (loaders[name]) loaders[name]();
+    if (loaders[name]) {
+        try { loaders[name](); } catch(e) { console.error('[daf] Erreur chargement section', name, e); }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1197,99 +1207,134 @@ async function updateSoldeRapide() {
 // DASHBOARD DAF
 // ─────────────────────────────────────────────────────────────────
 async function loadDashboard() {
-    // Solde Felana
-    const { solde, dotations, depenses } = await calculerSoldeFelana();
-
-    const elSolde = document.getElementById('db-solde-felana');
-    elSolde.textContent = fmt(solde);
-    elSolde.style.color = solde >= 0 ? '#a5d6a7' : '#ff8a80';
-
-    document.getElementById('db-total-dotations').textContent = fmt(dotations);
-    document.getElementById('db-total-depenses').textContent  = fmt(depenses);
-
-    // Crédits en attente
     try {
-        const { data: credits } = await db.from('credits_fournisseurs').select('montant,date_echeance,statut').eq('statut','EN_COURS');
-        const creditsRows = credits || [];
-        const totalCredits = creditsRows.reduce((s,c) => s+(c.montant||0), 0);
-        document.getElementById('db-credits-attente').textContent = fmt(totalCredits);
-        document.getElementById('db-credits-en-cours').textContent = fmt(totalCredits);
+        // Solde Felana
+        const { solde, dotations, depenses } = await calculerSoldeFelana();
 
-        // Badge navigation
-        const retards = creditsRows.filter(c => new Date(c.date_echeance) < new Date());
-        const badge = document.getElementById('credits-badge');
-        badge.textContent = retards.length;
-        badge.style.display = retards.length > 0 ? 'inline' : 'none';
-
-        // Preview crédits
-        const preview = document.getElementById('db-credits-preview');
-        if (!creditsRows.length) {
-            preview.innerHTML = '<div style="text-align:center;padding:20px;color:#adb5bd;font-size:13px"><i class="fas fa-check-circle" style="color:var(--green)"></i> Aucun crédit en attente</div>';
-        } else {
-            const today_dt = new Date();
-            preview.innerHTML = creditsRows.slice(0,4).map(c => {
-                const isRetard = new Date(c.date_echeance) < today_dt;
-                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px">
-                    <span style="color:${isRetard?'var(--red)':'var(--dark)'}">${c.date_echeance}</span>
-                    <span style="font-weight:700;color:var(--gold)">${fmt(c.montant)}</span>
-                    ${isRetard ? '<span class="badge badge-error">Retard</span>' : '<span class="badge badge-warning">En cours</span>'}
-                </div>`;
-            }).join('');
-            if (creditsRows.length > 4) preview.innerHTML += `<div style="text-align:center;font-size:12px;color:#adb5bd;padding-top:8px">+ ${creditsRows.length-4} autres</div>`;
+        const elSolde = document.getElementById('db-solde-felana');
+        if (elSolde) {
+            elSolde.textContent = fmt(solde);
+            elSolde.style.color = solde >= 0 ? '#a5d6a7' : '#ff8a80';
         }
-    } catch(e) {}
 
-    // Dépenses ce mois
-    const moisDebut = new Date(); moisDebut.setDate(1);
-    const moisDebutStr = moisDebut.toISOString().split('T')[0];
-    try {
-        const { data: depMois } = await db.from('journal_global').select('montant')
-            .eq('type_ecriture','depense_daf').gte('date_ecriture', moisDebutStr);
-        const totalMois = (depMois||[]).reduce((s,r) => s+(r.montant||0), 0);
-        document.getElementById('db-depenses-mois').textContent    = fmtM(totalMois);
-        document.getElementById('db-depenses-mois-nb').textContent = (depMois||[]).length + ' lignes';
-    } catch(e) {}
+        const elDot = document.getElementById('db-total-dotations');
+        if (elDot) elDot.textContent = fmt(dotations);
+        const elDep = document.getElementById('db-total-depenses');
+        if (elDep) elDep.textContent = fmt(depenses);
 
-    // Dernière dotation
-    try {
-        const { data: lastDot } = await db.from('journal_global').select('montant,date_ecriture')
-            .eq('type_ecriture','dotation_felana').eq('visible_daf',true)
-            .order('date_ecriture',{ascending:false}).limit(1);
-        if (lastDot && lastDot.length) {
-            document.getElementById('db-dotation-last').textContent      = fmtM(lastDot[0].montant);
-            document.getElementById('db-dotation-last-date').textContent = lastDot[0].date_ecriture;
+        // Crédits en attente
+        try {
+            const { data: credits } = await db.from('credits_fournisseurs').select('montant,date_echeance,statut').eq('statut','EN_COURS');
+            const creditsRows = credits || [];
+            const totalCredits = creditsRows.reduce((s,c) => s+(c.montant||0), 0);
+            const elCredAtt = document.getElementById('db-credits-attente');
+            if (elCredAtt) elCredAtt.textContent = fmt(totalCredits);
+            const elCredEnc = document.getElementById('db-credits-en-cours');
+            if (elCredEnc) elCredEnc.textContent = fmt(totalCredits);
+
+            // Badge navigation
+            const retards = creditsRows.filter(c => c.date_echeance && new Date(c.date_echeance) < new Date());
+            const badge = document.getElementById('credits-badge');
+            if (badge) {
+                badge.textContent = retards.length;
+                badge.style.display = retards.length > 0 ? 'inline' : 'none';
+            }
+
+            // Preview crédits
+            const preview = document.getElementById('db-credits-preview');
+            if (preview) {
+                if (!creditsRows.length) {
+                    preview.innerHTML = '<div style="text-align:center;padding:20px;color:#adb5bd;font-size:13px"><i class="fas fa-check-circle" style="color:var(--green)"></i> Aucun crédit en attente</div>';
+                } else {
+                    const today_dt = new Date();
+                    preview.innerHTML = creditsRows.slice(0,4).map(c => {
+                        const isRetard = c.date_echeance && new Date(c.date_echeance) < today_dt;
+                        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px">
+                            <span style="color:${isRetard?'var(--red)':'var(--dark)'}">${c.date_echeance||'—'}</span>
+                            <span style="font-weight:700;color:var(--gold)">${fmt(c.montant||0)}</span>
+                            ${isRetard ? '<span class="badge badge-error">Retard</span>' : '<span class="badge badge-warning">En cours</span>'}
+                        </div>`;
+                    }).join('');
+                    if (creditsRows.length > 4) preview.innerHTML += `<div style="text-align:center;font-size:12px;color:#adb5bd;padding-top:8px">+ ${creditsRows.length-4} autres</div>`;
+                }
+            }
+        } catch(e) {
+            // Silencieux: les crédits sont optionnels
+            const preview = document.getElementById('db-credits-preview');
+            if (preview) preview.innerHTML = '<div style="text-align:center;padding:20px;color:#adb5bd">—</div>';
         }
-    } catch(e) {}
 
-    // Chantiers actifs
-    try {
-        const { data: chDep } = await db.from('journal_global').select('chantier_id').eq('type_ecriture','depense_daf').not('chantier_id','is',null);
-        const nbCh = new Set((chDep||[]).map(r=>r.chantier_id)).size;
-        document.getElementById('db-nb-chantiers').textContent = nbCh || '—';
-    } catch(e) {}
+        // Dépenses ce mois
+        const moisDebut = new Date(); moisDebut.setDate(1);
+        const moisDebutStr = moisDebut.toISOString().split('T')[0];
+        try {
+            const { data: depMois } = await db.from('journal_global').select('montant')
+                .eq('type_ecriture','depense_daf').gte('date_ecriture', moisDebutStr);
+            const totalMois = (depMois||[]).reduce((s,r) => s+(r.montant||0), 0);
+            const elDepMois = document.getElementById('db-depenses-mois');
+            if (elDepMois) elDepMois.textContent = fmtM(totalMois);
+            const elDepNb = document.getElementById('db-depenses-mois-nb');
+            if (elDepNb) elDepNb.textContent = (depMois||[]).length + ' lignes';
+        } catch(e) {}
 
-    // Dépenses récentes
-    try {
-        const { data: recentes } = await db.from('journal_global')
-            .select('*, chantiers(nom)')
-            .eq('type_ecriture','depense_daf')
-            .order('date_ecriture',{ascending:false}).limit(5);
+        // Dernière dotation
+        try {
+            const { data: lastDot } = await db.from('journal_global').select('montant,date_ecriture')
+                .eq('type_ecriture','dotation_felana').eq('visible_daf',true)
+                .order('date_ecriture',{ascending:false}).limit(1);
+            if (lastDot && lastDot.length) {
+                const elDotLast = document.getElementById('db-dotation-last');
+                if (elDotLast) elDotLast.textContent = fmtM(lastDot[0].montant||0);
+                const elDotDate = document.getElementById('db-dotation-last-date');
+                if (elDotDate) elDotDate.textContent = lastDot[0].date_ecriture||'—';
+            }
+        } catch(e) {}
+
+        // Chantiers actifs
+        try {
+            const { data: chDep } = await db.from('journal_global').select('chantier_id').eq('type_ecriture','depense_daf').not('chantier_id','is',null);
+            const nbCh = new Set((chDep||[]).map(r=>r.chantier_id)).size;
+            const elNbCh = document.getElementById('db-nb-chantiers');
+            if (elNbCh) elNbCh.textContent = nbCh || '—';
+        } catch(e) {}
+
+        // Dépenses récentes
+        try {
+            const { data: recentes } = await db.from('journal_global')
+                .select('*, chantier:nom')
+                .eq('type_ecriture','depense_daf')
+                .order('date_ecriture',{ascending:false}).limit(5);
+            const el = document.getElementById('db-depenses-recentes');
+            if (el) {
+                if (!recentes || !recentes.length) {
+                    el.innerHTML = '<div style="text-align:center;padding:20px;color:#adb5bd">Aucune dépense enregistrée</div>';
+                } else {
+                    el.innerHTML = `<table>
+                        <thead><tr><th>Date</th><th>Chantier</th><th>Désignation</th><th>Catégorie</th><th>Montant</th></tr></thead>
+                        <tbody>${recentes.map(r=>`<tr>
+                            <td style="font-weight:600">${r.date_ecriture||'—'}</td>
+                            <td>${r.chantier ? `<span class="badge badge-info">${esc(r.chantier)}</span>` : '<em style="color:#adb5bd">—</em>'}</td>
+                            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.designation||'—')}</td>
+                            <td><span class="badge badge-orange">${esc(r.categorie||'—')}</span></td>
+                            <td style="color:var(--red);font-weight:700">− ${fmt(r.montant||0)}</td>
+                        </tr>`).join('')}</tbody>
+                    </table>`;
+                }
+            }
+        } catch(e) {}
+
+    } catch(e) {
+        console.error('[daf] loadDashboard error:', e);
+        // Met à jour avec des valeurs par défaut pour que le dashboard reste utilisable
+        const elSolde = document.getElementById('db-solde-felana');
+        if (elSolde) { elSolde.textContent = '0 Ar'; elSolde.style.color = '#a5d6a7'; }
+        const elDot = document.getElementById('db-total-dotations');
+        if (elDot) elDot.textContent = '—';
+        const elDep = document.getElementById('db-total-depenses');
+        if (elDep) elDep.textContent = '—';
         const el = document.getElementById('db-depenses-recentes');
-        if (!recentes || !recentes.length) {
-            el.innerHTML = '<div style="text-align:center;padding:20px;color:#adb5bd">Aucune dépense enregistrée</div>';
-        } else {
-            el.innerHTML = `<table>
-                <thead><tr><th>Date</th><th>Chantier</th><th>Désignation</th><th>Catégorie</th><th>Montant</th></tr></thead>
-                <tbody>${recentes.map(r=>`<tr>
-                    <td style="font-weight:600">${r.date_ecriture}</td>
-                    <td>${r.chantiers?.nom ? `<span class="badge badge-info">${esc(r.chantiers.nom)}</span>` : '<em style="color:#adb5bd">—</em>'}</td>
-                    <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.designation||'—')}</td>
-                    <td><span class="badge badge-orange">${esc(r.categorie||'—')}</span></td>
-                    <td style="color:var(--red);font-weight:700">− ${fmt(r.montant)}</td>
-                </tr>`).join('')}</tbody>
-            </table>`;
-        }
-    } catch(e) {}
+        if (el) el.innerHTML = '<div style="text-align:center;padding:20px;color:#adb5bd">Erreur de chargement. <button onclick="loadDashboard()" style="color:var(--orange);border:none;background:none;cursor:pointer">Réessayer</button></div>';
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────
