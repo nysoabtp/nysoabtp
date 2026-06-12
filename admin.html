@@ -1536,10 +1536,10 @@ async function startImport() {
 
     const tables = [];
     if (parsedData.journal)   tables.push({ table: 'journal',   data: parsedData.journal });
-    if (parsedData.achats)    tables.push({ table: 'achats',    data: parsedData.achats });
+    if (parsedData.achats)    tables.push({ table: 'commandes',    data: parsedData.achats });
     if (parsedData.personnel) tables.push({ table: 'personnel', data: parsedData.personnel });
     if (parsedData.pointage)  tables.push({ table: 'pointage',  data: parsedData.pointage });
-    if (parsedData.materiaux) tables.push({ table: 'materiaux', data: parsedData.materiaux });
+    if (parsedData.materiaux) tables.push({ table: 'materiels', data: parsedData.materiaux });
 
     let done = 0;
     for (const { table, data } of tables) {
@@ -1625,9 +1625,9 @@ async function backupAll() {
 async function exportModule(module) {
     const map = {
         journal:    { table: 'journal',   cols: ['date_ecriture','chantier','designation','montant','mode_paiement','categorie','travaux'] },
-        achats:     { table: 'achats',    cols: ['date_achat','chantier','libelle','quantite','prix','fournisseur','mode_paiement','statut'] },
+        achats:     { table: 'commandes',    cols: ['date_achat','chantier','libelle','quantite','prix','fournisseur','mode_paiement','statut'] },
         personnel:  { table: 'personnel', cols: ['nom','chantier_code','metier','salaire_journalier','type_salaire'] },
-        logistique: { table: 'materiaux', cols: ['etat','quantite','libelle','chantier_actuel'] },
+        logistique: { table: 'materiels', cols: ['etat','quantite','libelle','chantier_actuel'] },
     };
     const m = map[module];
     if (!m) return;
