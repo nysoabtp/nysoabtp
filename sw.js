@@ -1,18 +1,20 @@
 // ══════════════════════════════════════════════════════════════
-// NYSOA BTP — Service Worker v0.3
+// NYSOA BTP — Service Worker v0.4
 // Cache-first pour offline, sync en arrière-plan pour Supabase
+// CORRIGÉ Bug #10: NE JAMAIS CACHER config.js (contient les clés API)
 // ══════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'nysoa-btp-v3';
+const CACHE_NAME = 'nysoa-btp-v4';
 const DATA_CACHE = 'nysoa-data-v1';
 
 // Fichiers à mettre en cache pour fonctionnement offline
+// IMPORTANT: NE PAS inclure config.js (contient SUPABASE_URL et SUPABASE_KEY)
 const STATIC_ASSETS = [
   './',
   './index.html',
   './login.html',
   './manifest.json',
-  './config.js',
+  // './config.js',  // ← RETIRÉ Bug #10: Ne jamais cacher les credentials
   './icon.svg',
   './styles.css',
   './script.js',
@@ -33,6 +35,13 @@ const STATIC_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './LOGO_NYSOA.png',
+];
+
+// Extensions de fichiers à ne JAMAIS mettre en cache
+const NEVER_CACHE = [
+  'config.js',
+  '.env',
+  '.example',
 ];
 
 // ── INSTALL ───────────────────────────────────────────────────
@@ -76,13 +85,27 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   if (url.protocol === 'chrome-extension:') return;
 
-  // Requêtes Supabase → Network first, fallback cache data
-  if (url.hostname.includes('supabase.co')) {
-    event.respondWith(networkFirstWithCache(event.request, DATA_CACHE));
+  // CORRIGÉ Bug #10: Ne jamais mettre en cache config.js ou fichiers sensibles
+  const path = url.pathname.split('/').pop() || '';
+  if (NEVER_CACHE.some(f => path.includes(f))) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
-  // Ressources Google Fonts → Cache first
+  // Requêtes Supabase → Network first avec no-store (données sensibles)
+  // Ne pas mettre en cache les réponses API (peuvent contenir des données utilisateurs)
+  if (url.hostname.includes('supabase.co')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .catch(() => new Response(
+          JSON.stringify({ error: 'offline', data: [] }),
+          { headers: { 'Content-Type': 'application/json' }, status: 200 }
+        ))
+    );
+    return;
+  }
+
+  // Ressources Google Fonts → Cache first (statiques et publiques)
   if (url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com')) {
     event.respondWith(cacheFirst(event.request));
     return;

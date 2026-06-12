@@ -38,25 +38,6 @@ function chainable(result) {
  */
 function esc(str) {
     if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
-
-function formatAriary(num) {
-    if (!num && num !== 0) return '—';
-    return new Intl.NumberFormat('fr-FR').format(num) + ' Ar';
-}
-
-// ── XSS Sanitization ──────────────────────────────────────────
-// Échappe tout contenu utilisateur avant insertion dans le DOM
-// Empêche les attaques XSS via les champs Supabase non validés
-function esc(str) {
-    if (str === null || str === undefined) return '';
     const s = String(str);
     return s
         .replace(/&/g, '&amp;')
@@ -68,6 +49,12 @@ function esc(str) {
 
 // Alias court pour usage intensif
 const e = esc;
+
+function formatAriary(num) {
+    if (!num && num !== 0) return '—';
+    return new Intl.NumberFormat('fr-FR').format(num) + ' Ar';
+}
+
 function formatDate(dateStr) {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('fr-FR');
@@ -150,35 +137,74 @@ function getCurrentUser() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// INITIALISATION
+// INITIALISATION — Chargement rôle-based pour optimiser les requêtes
 // ══════════════════════════════════════════════════════════════
 async function initSupabase() {
+    // Vérifier la connexion Supabase d'abord
     try {
         const { error } = await db.from('chantiers').select('code').limit(1);
         if (error) throw error;
         if (typeof showNotification === 'function')
             showNotification('Connecté à Supabase ✓', 'success');
-
-        // Charger toutes les données uniquement sur la page principale (index)
-        const page = window.location.pathname.split('/').pop() || 'index.html';
-        if (page === 'index.html' || page === '' || page === 'index') {
-            if (typeof loadAllData === 'function') await loadAllData();
-        }
-
-        // Initialiser le module devis (seed + liste)
-        if (typeof initDevis === 'function') await initDevis();
-
-        // Charger les nouveaux modules
-        if (typeof loadAntoka    === 'function') await loadAntoka();
-        if (typeof loadCredits   === 'function') await loadCredits();
-        if (typeof loadCaisse    === 'function') await loadCaisse();
-        if (typeof loadCatalogue === 'function') await loadCatalogue();
-        if (typeof loadContrats  === 'function') await loadContrats();
-
     } catch (err) {
         console.error('[Supabase] Erreur connexion:', err);
         if (typeof showNotification === 'function')
             showNotification('⚠ Supabase hors ligne — vérifiez la connexion', 'warning');
+        return; // Ne pas charger les données si Supabase est inaccessible
+    }
+
+    // Déterminer la page courante et le rôle de l'utilisateur
+    const page = window.location.pathname.split('/').pop() || 'index.html';
+    const user = getCurrentUser();
+    const role = user?.role || 'admin';
+
+    // CORRIGÉ Bug #11: Chargement sélectif par page/rôle (pas de chargement inutile)
+    try {
+        // Page principale: charger les données dashboard
+        if (page === 'index.html' || page === '' || page === 'index') {
+            if (typeof loadAllData === 'function') await loadAllData();
+        }
+
+        // Module devis: sur toutes les pages qui l'utilisent
+        if (typeof initDevis === 'function') await initDevis();
+
+        // Modules spécifiques par page (évite les requêtes inutiles)
+        // DAF / Admin: antoka, credits, caisse
+        if ((role === 'daf' || role === 'admin') && page !== 'chef-chantier.html') {
+            if (typeof loadAntoka  === 'function') await loadAntoka().catch(() => {});
+            if (typeof loadCredits === 'function') await loadCredits().catch(() => {});
+            if (typeof loadCaisse  === 'function') await loadCaisse().catch(() => {});
+        }
+
+        // Admin / DAF: catalogue prix
+        if (role === 'admin' || role === 'daf') {
+            if (typeof loadCatalogue === 'function') await loadCatalogue().catch(() => {});
+        }
+
+        // Admin / DAF / RH: contrats prestataires
+        if (role === 'admin' || role === 'daf' || role === 'rh') {
+            if (typeof loadContrats === 'function') await loadContrats().catch(() => {});
+        }
+
+        // Pages spécifiques: charger les modules appropriés
+        if (page === 'daf.html') {
+            if (typeof loadDevisDAF === 'function') await loadDevisDAF().catch(() => {});
+            if (typeof loadAntoka  === 'function') await loadAntoka().catch(() => {});
+            if (typeof loadCredits === 'function') await loadCredits().catch(() => {});
+            if (typeof loadCaisse  === 'function') await loadCaisse().catch(() => {});
+        }
+
+        if (page === 'rh.html') {
+            if (typeof loadContrats === 'function') await loadContrats().catch(() => {});
+        }
+
+        if (page === 'chef-chantier.html') {
+            if (typeof loadChefData === 'function') await loadChefData().catch(() => {});
+        }
+
+    } catch (err) {
+        console.error('[Supabase] Erreur chargement données:', err);
+        // Ne pas bloquer l'interface, juste logger l'erreur
     }
 }
 
@@ -278,11 +304,21 @@ async function deletePersonnel(id) {
 }
 
 async function deleteJournal(id) {
+    // CORRIGÉ Bug #1: utiliser journal_global (table sécurisée RLS)
+    // et attendre la résolution complète avant de déclencher le rechargement
     if (!confirm('Supprimer cette écriture ?')) return;
-    const { error } = await db.from('journal').delete().eq('id', id);
-    if (error) return handleError(error, 'deleteJournal');
-    showNotification('Écriture supprimée', 'success');
-    if (typeof loadJournalTable === 'function') loadJournalTable();
+    try {
+        const { error } = await db.from('journal_global').delete().eq('id', id);
+        if (error) {
+            handleError(error, 'deleteJournal');
+            return;
+        }
+        showNotification('Écriture supprimée', 'success');
+        if (typeof loadJournalTable === 'function') await loadJournalTable();
+    } catch (err) {
+        console.error('[Supabase] deleteJournal error:', err);
+        showNotification('Erreur suppression écriture', 'error');
+    }
 }
 
 async function deleteAchat(id) {
@@ -295,17 +331,28 @@ async function deleteAchat(id) {
 
 // ── Export Excel depuis Supabase ──────────────────────────────
 async function exportJournalToExcel() {
-    const { data, error } = await db.from('journal').select('*').order('date');
-    if (error) return handleError(error, 'exportJournalToExcel');
-    const ws = XLSX.utils.json_to_sheet(data.map(r => ({
-        'Date': r.date, 'Chantier': r.chantier, 'Désignation': r.designation,
-        'Montant (Ar)': r.montant, 'Mode paiement': r.mode_paiement,
-        'Catégorie': r.categorie, 'Travaux': r.travaux,
-    })));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Journal 2026');
-    XLSX.writeFile(wb, `JOURNAL_NYSOA_${today()}.xlsx`);
-    showNotification('Export Journal Excel ✓', 'success');
+    // CORRIGÉ Bug #1: utiliser journal_global (table sécurisée RLS)
+    showNotification('Export en cours...', 'info');
+    try {
+        const { data, error } = await db.from('journal_global').select('*').order('date_ecriture');
+        if (error) {
+            handleError(error, 'exportJournalToExcel');
+            return;
+        }
+        const ws = XLSX.utils.json_to_sheet((data || []).map(r => ({
+            'Date': r.date_ecriture, 'Type': r.type_ecriture, 'Chantier ID': r.chantier_id,
+            'Désignation': r.designation, 'Montant (Ar)': r.montant,
+            'Débit': r.debit, 'Crédit': r.credit, 'Mode paiement': r.mode_paiement,
+            'Référence': r.reference, 'Saisi par': r.saisi_par, 'Statut': r.statut,
+        })));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Journal 2026');
+        XLSX.writeFile(wb, `JOURNAL_NYSOA_${today()}.xlsx`);
+        showNotification('Export Journal Excel ✓', 'success');
+    } catch (err) {
+        console.error('[Supabase] exportJournalToExcel error:', err);
+        showNotification('Erreur export journal', 'error');
+    }
 }
 
 async function exportPointageToExcel() {
