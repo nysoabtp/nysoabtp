@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', initSupabase);
 
 // ── Temps réel ────────────────────────────────────────────────
 db.channel('nysoa-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'journal' },
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'journal_global' },
         () => { if (typeof loadJournalTable === 'function') loadJournalTable(); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'commandes' },
         () => { if (typeof loadAchatsTable === 'function') loadAchatsTable(); })
@@ -180,14 +180,22 @@ db.channel('nysoa-realtime')
 // ══════════════════════════════════════════════════════════════
 
 async function addJournalEntry(entry) {
-    const { error } = await db.from('journal').insert({
-        date:          entry.date || today(),
-        chantier:      entry.chantier      || null,
+    // ERR-14 CORRIGÉ : insertion dans journal_global (table centrale V2).
+    // L'ancienne table 'journal' est non sécurisée par les RLS de l'ERP V2.
+    const montant = parseFloat(entry.montant) || 0;
+    const { error } = await db.from('journal_global').insert({
+        date_ecriture: entry.date          || today(),
+        type_ecriture: entry.type_ecriture || 'depense_daf',
+        chantier_id:   entry.chantier_id   || null,
         designation:   entry.designation,
-        montant:       parseFloat(entry.montant) || 0,
+        montant,
+        debit:         entry.debit  !== undefined ? parseFloat(entry.debit)  : montant,
+        credit:        entry.credit !== undefined ? parseFloat(entry.credit) : 0,
         mode_paiement: entry.mode_paiement || null,
-        categorie:     entry.categorie     || null,
-        travaux:       entry.travaux       || null,
+        reference:     entry.reference     || null,
+        saisi_par:     entry.saisi_par     || 'SYSTEME',
+        visible_daf:   entry.visible_daf   !== undefined ? entry.visible_daf : true,
+        statut:        'VALIDE',
     });
     if (error) return handleError(error, 'addJournalEntry');
     showNotification('Écriture ajoutée ✓', 'success');
@@ -220,7 +228,7 @@ async function addPersonnel(emp) {
         salaire_journalier: parseFloat(emp.salaire) || 0,
         metier:            emp.metier      || null,
         date_embauche:     emp.date_embauche || null,
-        type_salaire:      parseFloat(emp.salaire) >= 100000 ? 'MENSUEL' : 'JOURNALIER',
+        type_salaire:      emp.type_salaire || 'JOURNALIER',  // ERR-12 CORRIGÉ : champ explicite, pas de déduction heuristique
         actif:             true,
     });
     if (error) return handleError(error, 'addPersonnel');

@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
-    <meta name="description" content="Direction Administrative et Financière NYSOA BTP — Comptabilité, budget, factures">
-    <title>NySoa Construct - DAF</title>
+    <meta name="description" content="DAF — Direction Administrative et Financière NySoa BTP">
+    <title>NySoa BTP — DAF</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1C2B3A">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -13,1321 +15,2081 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
-    <link rel="manifest" href="manifest.json">
-</head>
-<body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="logo">
-                <img src="LOGO_NYSOA.png" alt="NySoa" style="height:32px;width:auto;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4))">
-            </div>
-            <nav>
-                <a href="#" class="nav-item active" data-section="dashboard">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>Tableau de bord</span>
-                </a>
-                <a href="#" class="nav-item" data-section="comptabilite">
-                    <i class="fas fa-calculator"></i>
-                    <span>Comptabilité</span>
-                </a>
-                <a href="#" class="nav-item" data-section="budget">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Budget</span>
-                </a>
-                <a href="#" class="nav-item" data-section="budget-felana">
-                    <i class="fas fa-hand-holding-usd"></i>
-                    <span>Budget FELANA</span>
-                </a>
-                <a href="#" class="nav-item" data-section="devis">
-                    <i class="fas fa-file-signature"></i>
-                    <span>Devis & Proforma</span>
-                </a>
-                <a href="#" class="nav-item" data-section="factures">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                    <span>Factures</span>
-                </a>
-                <a href="#" class="nav-item" data-section="rapports-fin">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>Rapports Financiers</span>
-                </a>
-                <a href="#" class="nav-item" onclick="openModal('modal-changement-mdp')">
-                    <i class="fas fa-key"></i>
-                    <span>Changer mot de passe</span>
-                </a>
-                <a href="#" class="nav-item" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Déconnexion</span>
-                </a>
-            </nav>
-            <div class="user-info">
-                <div class="user-avatar">
-                    <i class="fas fa-user-tie"></i>
-                </div>
-                <div class="user-details">
-                    <p class="user-name">DAF</p>
-                    <p class="user-role">Direction Financière</p>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Mobile Menu Toggle -->
-            <button class="menu-toggle" onclick="toggleSidebar()">
-                <i class="fas fa-bars"></i>
-            </button>
-            
-            <!-- Header -->
-            <header class="header">
-                <div class="header-left">
-                    <h1 id="page-title">Tableau de bord</h1>
-                </div>
-                <div class="header-right">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Rechercher...">
-                    </div>
-                    <div class="notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="badge">5</span>
-                    </div>
-                    <div class="date-display">
-                        <span id="current-date"></span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Dashboard Section -->
-            <section id="dashboard" class="section active">
-                <div class="dashboard-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon blue">
-                            <i class="fas fa-money-bill-wave"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3 id="stat-ca">12.5MAr</h3>
-                            <p>Chiffre d'affaires</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon red">
-                            <i class="fas fa-arrow-down"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3 id="stat-depenses">9MAr</h3>
-                            <p>Dépenses</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon green">
-                            <i class="fas fa-balance-scale"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3 id="stat-benefice">3.5MAr</h3>
-                            <p>Bénéfice net</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange">
-                            <i class="fas fa-file-invoice"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3 id="stat-factures">45</h3>
-                            <p>Factures en attente</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="dashboard-grid">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Flux de Trésorerie</h3>
-                            <div class="card-actions">
-                                <button class="btn-small" onclick="exportChart('cashflowChart', 'pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                                <button class="btn-small" onclick="exportChart('cashflowChart', 'excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="cashflowChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Répartition Budgétaire</h3>
-                            <div class="card-actions">
-                                <button class="btn-small" onclick="exportChart('budgetChart', 'pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                                <button class="btn-small" onclick="exportChart('budgetChart', 'excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="budgetChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="dashboard-grid">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Bénéfice Mensuel</h3>
-                            <div class="card-actions">
-                                <button class="btn-small" onclick="exportChart('beneficeChart', 'pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="beneficeChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Flux de Trésorerie</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="activity-timeline">
-                                <div class="activity-item">
-                                    <div class="activity-icon success">
-                                        <i class="fas fa-arrow-down"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="activity-title">Encaissement - Résidence Palmiers</p>
-                                        <p class="activity-time">Aujourd'hui, 10:30</p>
-                                        <p class="activity-amount">+750 000 Ar</p>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon error">
-                                        <i class="fas fa-arrow-up"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="activity-title">Décaissement - Salaires mai</p>
-                                        <p class="activity-time">Hier, 14:00</p>
-                                        <p class="activity-amount">-425 000 Ar</p>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon error">
-                                        <i class="fas fa-arrow-up"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="activity-title">Décaissement - Achat matériaux</p>
-                                        <p class="activity-time">12/05/2026</p>
-                                        <p class="activity-amount">-77 500 Ar</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Budget par Projet</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="budget-item">
-                                <div class="budget-label">Résidence Les Palmiers</div>
-                                <div class="budget-bar">
-                                    <div class="budget-progress" style="width: 75%"></div>
-                                </div>
-                                <div class="budget-amount">637 500 / 850 000 Ar</div>
-                            </div>
-                            <div class="budget-item">
-                                <div class="budget-label">Centre Commercial</div>
-                                <div class="budget-bar">
-                                    <div class="budget-progress" style="width: 45%"></div>
-                                </div>
-                                <div class="budget-amount">540 000 / 1 200 000 Ar</div>
-                            </div>
-                            <div class="budget-item">
-                                <div class="budget-label">Bureau Ecobank</div>
-                                <div class="budget-bar">
-                                    <div class="budget-progress" style="width: 90%"></div>
-                                </div>
-                                <div class="budget-amount">405 000 / 450 000 Ar</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Comptabilité Section -->
-            <section id="comptabilite" class="section">
-                <div class="section-header">
-                    <h2>Comptabilité</h2>
-                    <button class="btn btn-primary" onclick="openModal('modal-journal')">
-                        <i class="fas fa-plus"></i> Nouvelle écriture
-                    </button>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Journal des écritures</h3>
-                        <div class="filters">
-                            <input type="date" class="filter-input">
-                            <select class="filter-select">
-                                <option value="">Tous les types</option>
-                                <option value="recette">Recettes</option>
-                                <option value="depense">Dépenses</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <table class="table" id="journal-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Chantier</th>
-                                    <th>Désignation</th>
-                                    <th>Montant</th>
-                                    <th>Mode paiment</th>
-                                    <th>Catégorie</th>
-                                    <th>Travaux</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="journal-table-body">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Budget Section -->
-            <section id="budget" class="section">
-                <div class="section-header">
-                    <h2>Gestion Budgétaire</h2>
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon blue">
-                            <i class="fas fa-wallet"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3>15MAr</h3>
-                            <p>Budget total</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon green">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3>10.5MAr</h3>
-                            <p>Budget utilisé</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange">
-                            <i class="fas fa-piggy-bank"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3>4.5MAr</h3>
-                            <p>Budget restant</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Répartition du Budget</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="budget-item">
-                            <div class="budget-label">Matériaux</div>
-                            <div class="budget-bar">
-                                <div class="budget-progress" style="width: 80%"></div>
-                            </div>
-                            <div class="budget-amount">4 000 000 / 5 000 000 Ar</div>
-                        </div>
-                        <div class="budget-item">
-                            <div class="budget-label">Main d'œuvre</div>
-                            <div class="budget-bar">
-                                <div class="budget-progress" style="width: 65%"></div>
-                            </div>
-                            <div class="budget-amount">3 250 000 / 5 000 000 Ar</div>
-                        </div>
-                        <div class="budget-item">
-                            <div class="budget-label">Équipements</div>
-                            <div class="budget-bar">
-                                <div class="budget-progress" style="width: 50%"></div>
-                            </div>
-                            <div class="budget-amount">1 500 000 / 3 000 000 Ar</div>
-                        </div>
-                        <div class="budget-item">
-                            <div class="budget-label">Frais généraux</div>
-                            <div class="budget-bar">
-                                <div class="budget-progress" style="width: 70%"></div>
-                            </div>
-                            <div class="budget-amount">1 750 000 / 2 500 000 Ar</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Suivi Budget Section -->
-            <section id="budget" class="section">
-                <div class="section-header">
-                    <h2>Suivi Budgétaire</h2>
-                    <button class="btn btn-primary" onclick="openModal('modal-budget')">
-                        <i class="fas fa-plus"></i> Nouveau Budget
-                    </button>
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon blue"><i class="fas fa-coins"></i></div>
-                        <div class="stat-info">
-                            <h3 id="budget-stat-total">0 Ar</h3>
-                            <p>Budget total</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
-                        <div class="stat-info">
-                            <h3 id="budget-stat-depense">0 Ar</h3>
-                            <p>Dépensé</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange"><i class="fas fa-hourglass-half"></i></div>
-                        <div class="stat-info">
-                            <h3 id="budget-stat-reste">0 Ar</h3>
-                            <p>Reste</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Ligne Budgétaire</h3>
-                        <div class="filters">
-                            <select class="filter-select" id="budget-filter-chantier" onchange="loadBudget()">
-                                <option value="">Tous les chantiers</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="card-body" id="budget-list"></div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Dépenses par Chantier</h3>
-                        <button class="btn-small" onclick="exportTableToExcel('depenses-chantier-table','depenses_chantier')"><i class="fas fa-file-excel"></i> Excel</button>
-                    </div>
-                    <div class="card-body">
-                        <table class="table" id="depenses-chantier-table">
-                            <thead>
-                                <tr>
-                                    <th>Chantier</th>
-                                    <th>Budget</th>
-                                    <th>Dépensé</th>
-                                    <th>Reste</th>
-                                    <th>Utilisation</th>
-                                </tr>
-                            </thead>
-                            <tbody id="depenses-chantier-body"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Budget Felana Section -->
-            <section id="budget-felana" class="section">
-                <div class="section-header">
-                    <h2>Budget FELANA</h2>
-                    <button class="btn btn-primary" onclick="nouvelleLigneFelana()">
-                        <i class="fas fa-plus"></i> Nouvelle ligne
-                    </button>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Suivi budgétaire par chantier</h3>
-                        <div class="filters">
-                            <select class="filter-select" id="felana-filter-chantier" onchange="loadBudgetFelana()">
-                                <option value="">Tous les chantiers</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Chantier</th>
-                                    <th>Poste</th>
-                                    <th>Période</th>
-                                    <th>Prévu (Ar)</th>
-                                    <th>Réel (Ar)</th>
-                                    <th>Écart</th>
-                                    <th>Progression</th>
-                                    <th>Statut</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="felana-table-body">
-                                <tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px">Chargement…</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Factures Section -->
-            <section id="factures" class="section">
-                <div class="section-header">
-                    <h2>Gestion des Factures</h2>
-                    <button class="btn btn-primary" onclick="openModal('modal-facture')">
-                        <i class="fas fa-plus"></i> Nouvelle Facture
-                    </button>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Liste des Factures</h3>
-                        <div class="filters">
-                            <select class="filter-select">
-                                <option value="">Tous les statuts</option>
-                                <option value="payee">Payée</option>
-                                <option value="attente">En attente</option>
-                                <option value="retard">En retard</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>N° Facture</th>
-                                    <th>Client</th>
-                                    <th>Montant</th>
-                                    <th>Date</th>
-                                    <th>Échéance</th>
-                                    <th>Statut</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>FAC-001</td>
-                                    <td>SCI Immobilier</td>
-                                    <td>750 000 Ar</td>
-                                    <td>10/05/2026</td>
-                                    <td>10/06/2026</td>
-                                    <td><span class="status warning">En attente</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>FAC-002</td>
-                                    <td>Ecobank</td>
-                                    <td>450 000 Ar</td>
-                                    <td>15/04/2026</td>
-                                    <td>15/05/2026</td>
-                                    <td><span class="status success">Payée</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" onclick="printRow(this)"><i class="fas fa-print"></i></button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Devis & Proforma Section -->
-            <section id="devis" class="section">
-                <div class="section-header">
-                    <h2>Devis & Proforma</h2>
-                    <button class="btn btn-primary" onclick="ouvrirEditeurDevis()">
-                        <i class="fas fa-plus"></i> Nouveau Devis
-                    </button>
-                </div>
-
-                <div class="dashboard-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon blue"><i class="fas fa-file-invoice"></i></div>
-                        <div class="stat-info">
-                            <h3 id="d-stat-total">0</h3>
-                            <p>Total devis</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
-                        <div class="stat-info">
-                            <h3 id="d-stat-acceptes">0</h3>
-                            <p>Acceptés</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange"><i class="fas fa-hourglass-half"></i></div>
-                        <div class="stat-info">
-                            <h3 id="d-stat-attente">0</h3>
-                            <p>En attente</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon red"><i class="fas fa-times-circle"></i></div>
-                        <div class="stat-info">
-                            <h3 id="d-stat-refuses">0</h3>
-                            <p>Refusés</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Liste des Devis</h3>
-                        <div class="filters">
-                            <select class="filter-select" id="devis-filter-status" onchange="filtrerDevisDAF(this.value)">
-                                <option value="">Tous</option>
-                                <option value="BROUILLON">Brouillon</option>
-                                <option value="SOUMIS">Soumis (validation)</option>
-                                <option value="APPROUVE">Approuvé</option>
-                                <option value="ENVOYE">Envoyé</option>
-                                <option value="ACCEPTE">Accepté</option>
-                                <option value="REFUSE">Refusé</option>
-                            </select>
-                            <button class="btn-small" onclick="exportDevisExcel()"><i class="fas fa-file-excel"></i> Excel</button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>N°</th>
-                                    <th>Client</th>
-                                    <th>Objet</th>
-                                    <th>Total</th>
-                                    <th>Date</th>
-                                    <th>Validité</th>
-                                    <th>Statut</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="devis-tbody-daf">
-                                <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px">Chargement…</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Rapports Financiers Section -->
-            <section id="rapports-fin" class="section">
-                <div class="section-header">
-                    <h2>Rapports Financiers</h2>
-                </div>
-
-                <div class="dashboard-grid">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Bilan</h3>
-                        </div>
-                        <div class="card-body">
-                            <ul class="report-list">
-                                <li>
-                                    <i class="fas fa-file-pdf"></i>
-                                    <span>Bilan Mai 2026</span>
-                                    <button class="btn-small" onclick="downloadReport(this)">Télécharger</button>
-                                </li>
-                                <li>
-                                    <i class="fas fa-file-pdf"></i>
-                                    <span>Bilan Avril 2026</span>
-                                    <button class="btn-small" onclick="downloadReport(this)">Télécharger</button>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Compte de Résultat</h3>
-                        </div>
-                        <div class="card-body">
-                            <ul class="report-list">
-                                <li>
-                                    <i class="fas fa-file-excel"></i>
-                                    <span>Compte résultat 2026</span>
-                                    <button class="btn-small" onclick="downloadReport(this)">Télécharger</button>
-                                </li>
-                                <li>
-                                    <i class="fas fa-file-excel"></i>
-                                    <span>Analyse rentabilité</span>
-                                    <button class="btn-small" onclick="downloadReport(this)">Télécharger</button>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Suivi Trésorerie</h3>
-                        </div>
-                        <div class="card-body">
-                            <ul class="report-list">
-                                <li>
-                                    <i class="fas fa-file-excel"></i>
-                                    <span>Trésorerie mensuelle</span>
-                                    <button class="btn-small" onclick="downloadReport(this)">Télécharger</button>
-                                </li>
-                                <li>
-                                    <i class="fas fa-file-pdf"></i>
-                                    <span>Prévisions trésorerie</span>
-                                    <button class="btn-small" onclick="downloadReport(this)">Télécharger</button>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
-
     <script src="supabase.js"></script>
     <script src="script.js"></script>
     <script src="enhancements.js"></script>
     <script src="stock.js"></script>
     <script src="devis.js"></script>
-    <script src="import-excel.js"></script>
     <script src="modules_new.js"></script>
-    <script>
-        // Check authentication
-        window.addEventListener('load', async function() {
-            const user = await checkAuthOrRedirect('daf');
-            if (!user) return;
-            loadFacturesTable();
-            loadDevisDAF();
-            loadBudgetFelana();
-            populateFelanaChantiers();
-            loadDAFData();
-            updateDate();
-        });
-
-        document.querySelectorAll('.nav-item[data-section="devis"]').forEach(item => {
-            item.addEventListener('click', () => setTimeout(loadDevisDAF, 200));
-        });
-        document.querySelectorAll('.nav-item[data-section="budget-felana"]').forEach(item => {
-            item.addEventListener('click', () => { setTimeout(loadBudgetFelana, 200); populateFelanaChantiers(); });
-        });
-
-        async function loadDAFData() {
-            try {
-                const { data: journal } = await db.from('journal').select('*').limit(5000);
-                const { data: chantiers } = await db.from('chantiers').select('nom, budget').eq('actif', true);
-                if (journal) {
-                    const recettes = journal.filter(r => r.categorie === 'RECETTE' || r.montant > 0);
-                    const depenses = journal.filter(r => r.categorie !== 'RECETTE' && r.montant >= 0);
-                    const totalCA = recettes.reduce((s, r) => s + (r.montant || 0), 0);
-                    const totalDep = depenses.reduce((s, r) => s + (r.montant || 0), 0);
-                    document.getElementById('stat-ca') && (document.getElementById('stat-ca').textContent = (totalCA / 1e6).toFixed(1) + 'MAr');
-                    document.getElementById('stat-depenses') && (document.getElementById('stat-depenses').textContent = (totalDep / 1e6).toFixed(1) + 'MAr');
-                    document.getElementById('stat-benefice') && (document.getElementById('stat-benefice').textContent = ((totalCA - totalDep) / 1e6).toFixed(1) + 'MAr');
-                    document.getElementById('stat-factures') && (document.getElementById('stat-factures').textContent = journal.length);
-                }
-                initializeDAFCharts(journal, chantiers);
-                if (typeof loadJournalTable === 'function') loadJournalTable();
-            } catch(_) { initializeDAFCharts(); }
+    <style>
+        :root {
+            --dark:   #1C2B3A;
+            --orange: #E8631A;
+            --green:  #10b981;
+            --red:    #ef4444;
+            --blue:   #0066cc;
+            --gold:   #f59e0b;
         }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; color: #2d3436; }
+        .app { display: flex; min-height: 100vh; }
 
-        // Update section titles
-        Object.assign(sectionTitles, {
-            'dashboard': 'Tableau de bord',
-            'comptabilite': 'Comptabilité',
-            'budget': 'Gestion Budgétaire',
-            'devis': 'Devis & Proforma',
-            'budget-felana': 'Budget FELANA',
-            'factures': 'Gestion des Factures',
-            'rapports-fin': 'Rapports Financiers'
-        });
-
-        // Initialize DAF Charts
-        function initializeDAFCharts(journal, chantiers) {
-            const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
-
-            // Cashflow from journal
-            const encaiss = new Array(12).fill(0);
-            const decaiss = new Array(12).fill(0);
-            if (journal) {
-                journal.forEach(r => {
-                    const m = r.date ? new Date(r.date).getMonth() : -1;
-                    if (m >= 0) {
-                        if (r.categorie === 'RECETTE' || r.montant > 0) encaiss[m] += (r.montant || 0) / 1e6;
-                        else decaiss[m] += (r.montant || 0) / 1e6;
-                    }
-                });
-            }
-
-            // Bénéfice mensuel chart
-            const beneficeCtx = document.getElementById('beneficeChart');
-            if (beneficeCtx) {
-                const benefData = months.slice(0, new Date().getMonth() + 1).map((_, i) =>
-                    ((encaiss[i] || 0) - (decaiss[i] || 0)).toFixed(1));
-                new Chart(beneficeCtx, {
-                    type: 'line',
-                    data: {
-                        labels: months.slice(0, new Date().getMonth() + 1),
-                        datasets: [{
-                            label: 'Bénéfice net (MAr)',
-                            data: benefData,
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16,185,129,0.1)',
-                            fill: true,
-                            tension: 0.3,
-                            pointBackgroundColor: benefData.map(v => v < 0 ? '#ef4444' : '#10b981'),
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { display: true, position: 'top' } },
-                        scales: { y: { beginAtZero: true } }
-                    }
-                });
-            }
-
-            // Cashflow Chart
-            const cashflowCtx = document.getElementById('cashflowChart');
-            if (cashflowCtx) {
-                new Chart(cashflowCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: months.slice(0, new Date().getMonth() + 1),
-                        datasets: [{
-                            label: 'Encaissements (MAr)',
-                            data: encaiss.slice(0, new Date().getMonth() + 1),
-                            backgroundColor: '#10b981'
-                        }, {
-                            label: 'Décaissements (MAr)',
-                            data: decaiss.slice(0, new Date().getMonth() + 1),
-                            backgroundColor: '#ef4444'
-                        }]
-                    },
-                    options: { responsive: true, plugins: { legend: { display: true, position: 'top' } }, scales: { y: { beginAtZero: true } } }
-                });
-            }
-
-            // Budget by category from journal
-            const cats = {};
-            if (journal) journal.forEach(r => { const c = r.categorie || 'Autres'; cats[c] = (cats[c] || 0) + (r.montant || 0); });
-            const budgetLabels = Object.keys(cats).length ? Object.keys(cats) : ['Matériaux', 'Main d\'œuvre', 'Équipements', 'Frais généraux'];
-            const budgetData = Object.keys(cats).length ? Object.values(cats) : [40, 35, 15, 10];
-
-            const budgetCtx = document.getElementById('budgetChart');
-            if (budgetCtx) {
-                new Chart(budgetCtx, {
-                    type: 'pie',
-                    data: {
-                        labels: budgetLabels,
-                        datasets: [{ data: budgetData, backgroundColor: ['#0066cc', '#ff6b35', '#10b981', '#636e72', '#e84393', '#00b894'] }]
-                    },
-                    options: { responsive: true, plugins: { legend: { display: true, position: 'right' } } }
-                });
-            }
-            loadBudget();
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: 240px; flex-shrink: 0;
+            background: var(--dark); color: white;
+            display: flex; flex-direction: column;
+            padding: 24px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
         }
-        async function submitFacture(e) {
-            e.preventDefault();
-            const fd = new FormData(e.target);
-            const numero = 'FACT-' + Date.now().toString(36).toUpperCase();
-            const { error } = await db.from('devis').insert({
-                numero, client: fd.get('client'), projet: fd.get('projet'),
-                date_devis: fd.get('date'), montant_ht: parseFloat(fd.get('montant_ht') || 0),
-                montant_ttc: parseFloat(fd.get('montant_ttc') || 0), statut: 'FACTURE',
-                reference: 'DEV-' + numero
-            });
-            if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
-            closeModal('modal-facture');
-            e.target.reset();
-            showNotification('Facture créée ✓', 'success');
-            loadFacturesTable();
+        .logo { padding: 0 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .logo img { height: 36px; width: auto; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
+        .logo h2 { font-size: 15px; font-weight: 600; margin-top: 8px; }
+        .logo p  { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+        nav { flex: 1; padding: 16px 12px; }
+        .nav-section-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; color: rgba(255,255,255,0.35);
+            padding: 10px 12px 4px; margin-top: 6px;
         }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 8px; cursor: pointer;
+            color: rgba(255,255,255,0.65); font-size: 14px;
+            transition: all 0.2s; text-decoration: none; margin-bottom: 2px;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(232,99,26,0.15); color: white; }
+        .nav-item i { width: 18px; text-align: center; }
+        .nav-item.locked { color: rgba(255,255,255,0.25) !important; cursor: not-allowed; pointer-events: none; }
+        .nav-item.locked:hover { background: none !important; }
 
-        // === BUDGET TRACKING ===
-        async function loadBudget() {
-            const budgets = JSON.parse(localStorage.getItem('nysoa_budgets') || '[]');
-            const chantierFilter = document.getElementById('budget-filter-chantier')?.value || '';
-            const { data: journal } = await db.from('journal').select('montant,categorie,chantier').limit(5000);
+        .user-info { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 34px; height: 34px; background: var(--blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .user-details p:first-child { font-size: 13px; font-weight: 600; }
+        .user-details p:last-child  { font-size: 11px; color: rgba(255,255,255,0.5); }
 
-            // Summary stats
-            let totalBudget = budgets.reduce((s, b) => s + (b.montant || 0), 0);
-            let totalDepenses = 0;
-            const depenses = {};
-            
-            if (journal) {
-                const chantiersSet = new Set(['GENERAL']);
-                journal.forEach(r => {
-                    const mt = r.montant || 0;
-                    if (mt > 0) {
-                        totalDepenses += mt;
-                        const ch = r.chantier || 'GENERAL';
-                        depenses[ch] = (depenses[ch] || 0) + mt;
-                        if (r.chantier) chantiersSet.add(r.chantier);
-                    }
-                });
-                // Populate chantier dropdowns
-                const opts = Array.from(chantiersSet).sort().map(c => `<option value="${c}">${c}</option>`).join('');
-                const filterSelect = document.getElementById('budget-filter-chantier');
-                const modalSelect = document.querySelector('#modal-budget select[name="chantier"]');
-                if (filterSelect) filterSelect.innerHTML = '<option value="">Tous les chantiers</option>' + opts;
-                if (modalSelect) modalSelect.innerHTML = '<option value="">Général</option>' + opts;
-            }
+        /* ── MAIN ── */
+        .main { flex: 1; padding: 28px 32px; }
+        .page-header { margin-bottom: 24px; }
+        .page-header h1 { font-size: 22px; font-weight: 700; color: var(--dark); }
+        .page-header p  { font-size: 14px; color: #636e72; margin-top: 4px; }
 
-            if (document.getElementById('budget-stat-total'))
-                document.getElementById('budget-stat-total').textContent = totalBudget.toLocaleString() + ' Ar';
-            if (document.getElementById('budget-stat-depense'))
-                document.getElementById('budget-stat-depense').textContent = totalDepenses.toLocaleString() + ' Ar';
-            if (document.getElementById('budget-stat-reste'))
-                document.getElementById('budget-stat-reste').textContent = Math.max(0, totalBudget - totalDepenses).toLocaleString() + ' Ar';
+        /* ── RESTRICTION BANNER ── */
+        .daf-scope-banner {
+            background: linear-gradient(135deg, #1565c0, #1976d2);
+            color: white; border-radius: 12px; padding: 14px 20px;
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 22px; font-size: 13px;
+        }
+        .daf-scope-banner i { font-size: 20px; color: #90caf9; }
+        .daf-scope-banner strong { font-size: 14px; display: block; margin-bottom: 2px; }
 
-            // Budget list
-            const list = document.getElementById('budget-list');
-            if (!list) return;
-            
-            const filtered = chantierFilter ? budgets.filter(b => b.chantier === chantierFilter) : budgets;
-            if (!filtered.length) {
-                list.innerHTML = '<div style="text-align:center;padding:30px;color:#adb5bd"><i class="fas fa-inbox fa-2x"></i><br><br>Aucun budget défini. Créez un budget depuis le bouton "Nouveau Budget".</div>';
-            } else {
-                list.innerHTML = filtered.map(b => {
-                    const dep = depenses[b.chantier] || 0;
-                    const reste = Math.max(0, b.montant - dep);
-                    const pct = b.montant > 0 ? Math.min(100, (dep / b.montant) * 100) : 0;
-                    const color = pct > 90 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981';
-                    return `<div class="budget-item" style="padding:12px 0;border-bottom:1px solid #f0f0f0">
-                        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                            <strong>${b.chantier || 'GENERAL'}</strong>
-                            <span>${b.designation || ''}</span>
+        .locked-banner {
+            background: #f5f5f5; border: 2px dashed #e0e0e0;
+            border-radius: 12px; padding: 40px 20px;
+            text-align: center; color: #adb5bd;
+        }
+        .locked-banner i { font-size: 40px; margin-bottom: 12px; display: block; }
+
+        /* ── CARDS ── */
+        .cards   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+        .cards-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .cards-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+        @media(max-width:900px) { .cards { grid-template-columns:1fr; } .cards-3,.cards-4 { grid-template-columns:1fr 1fr; } }
+
+        .card {
+            background: white; border-radius: 14px;
+            padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; justify-content: space-between; }
+        .card-header-left { display: flex; align-items: center; gap: 12px; }
+        .card-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .card-icon.orange { background: rgba(232,99,26,0.12); color: var(--orange); }
+        .card-icon.blue   { background: rgba(0,102,204,0.10); color: var(--blue); }
+        .card-icon.green  { background: rgba(16,185,129,0.12); color: var(--green); }
+        .card-icon.red    { background: rgba(239,68,68,0.10);  color: var(--red); }
+        .card-icon.gold   { background: rgba(245,158,11,0.12); color: var(--gold); }
+        .card h3 { font-size: 15px; font-weight: 600; }
+        .card p  { font-size: 13px; color: #636e72; }
+        .full-card { grid-column: 1 / -1; }
+
+        /* ── KPI CARDS ── */
+        .kpi-card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        .kpi-card .kpi-value { font-size: 24px; font-weight: 800; color: var(--dark); }
+        .kpi-card .kpi-label { font-size: 12px; color: #636e72; margin-top: 4px; }
+        .kpi-card .kpi-sub   { font-size: 11px; color: #adb5bd; margin-top: 2px; }
+
+        /* ── SOLDE FELANA WIDGET ── */
+        .solde-felana-widget {
+            background: linear-gradient(135deg, #1C2B3A 0%, #0d47a1 100%);
+            border-radius: 16px; padding: 24px 28px; color: white;
+            margin-bottom: 24px; position: relative; overflow: hidden;
+        }
+        .solde-felana-widget::after {
+            content: '₳'; position: absolute; right: 20px; top: 10px;
+            font-size: 100px; opacity: 0.06; font-weight: 900;
+        }
+        .solde-felana-widget .label  { font-size: 13px; opacity: 0.7; margin-bottom: 6px; }
+        .solde-felana-widget .amount { font-size: 36px; font-weight: 900; margin-bottom: 4px; }
+        .solde-felana-widget .sub    { font-size: 12px; opacity: 0.6; }
+        .solde-felana-widget .detail { display: flex; gap: 24px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.15); }
+        .solde-felana-widget .detail-item .d-label { font-size: 11px; opacity: 0.6; }
+        .solde-felana-widget .detail-item .d-value { font-size: 15px; font-weight: 700; }
+
+        /* ── BUTTONS ── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 10px 18px; border-radius: 8px; font-size: 14px;
+            font-weight: 600; border: none; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-primary   { background: var(--orange); color: white; }
+        .btn-primary:hover { background: #c95215; }
+        .btn-secondary { background: #f1f3f4; color: #444; }
+        .btn-secondary:hover { background: #e2e5e8; }
+        .btn-blue      { background: var(--blue); color: white; }
+        .btn-blue:hover { background: #0052a3; }
+        .btn-green     { background: var(--green); color: white; }
+        .btn-green:hover { background: #059669; }
+        .btn-danger    { background: var(--red); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-gold      { background: var(--gold); color: white; }
+        .btn-gold:hover { background: #d97706; }
+        .btn-row       { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-small { padding: 5px 12px; font-size: 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; }
+        .btn-small:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ── TABLES ── */
+        table { width: 100%; border-collapse: collapse; }
+        th { padding: 10px 12px; text-align: left; font-size: 12px; color: #636e72; font-weight: 600; border-bottom: 2px solid #f0f0f0; }
+        td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #f7f7f7; }
+        tr:hover td { background: #fafafa; }
+
+        /* ── BADGES ── */
+        .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .badge-success { background: #e8f5e9; color: #2e7d32; }
+        .badge-warning { background: #fff8e1; color: #f57f17; }
+        .badge-error   { background: #ffebee; color: #c62828; }
+        .badge-info    { background: #e3f2fd; color: #1565c0; }
+        .badge-dark    { background: rgba(28,43,58,0.1); color: var(--dark); }
+        .badge-orange  { background: rgba(232,99,26,0.12); color: var(--orange); }
+
+        /* ── FORMS ── */
+        .form-grid { display: grid; gap: 14px; }
+        .form-row  { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-row-3{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { font-size: 12px; font-weight: 600; color: #636e72; }
+        .form-input {
+            padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px;
+            font-size: 13px; width: 100%; transition: border-color 0.2s; background: white;
+        }
+        .form-input:focus { outline: none; border-color: var(--orange); }
+        select.form-input { background-color: white; }
+
+        /* ── MODALS ── */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 16px; }
+        .modal-content { background: white; border-radius: 14px; width: 100%; max-width: 520px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-height: 92vh; overflow-y: auto; }
+        .modal-content.modal-lg { max-width: 720px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #f0f0f0; }
+        .modal-header h3 { font-size: 16px; font-weight: 700; }
+        .modal-body   { padding: 20px; }
+        .modal-footer { padding: 16px 20px; border-top: 1px solid #f0f0f0; display: flex; gap: 10px; justify-content: flex-end; }
+        .close-modal  { background: none; border: none; font-size: 1.6rem; cursor: pointer; color: #888; }
+
+        /* ── ALERTS ── */
+        .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 10px; }
+        .alert-warning { background: #fff8e1; border-left: 4px solid var(--gold); color: #7c5800; }
+        .alert-info    { background: #e3f2fd; border-left: 4px solid var(--blue); color: #1565c0; }
+        .alert-danger  { background: #ffebee; border-left: 4px solid var(--red); color: #c62828; }
+        .alert-success { background: #e8f5e9; border-left: 4px solid var(--green); color: #2e7d32; }
+
+        /* ── PROGRESS ── */
+        .progress-wrap { background: #f0f0f0; border-radius: 10px; height: 10px; overflow: hidden; margin: 6px 0; }
+        .progress-fill { height: 100%; border-radius: 10px; transition: width 0.4s; }
+
+        /* ── NOTIFICATION ── */
+        .notif {
+            position: fixed; top: 20px; right: 20px;
+            padding: 14px 20px; border-radius: 10px;
+            font-size: 14px; font-weight: 600; z-index: 99999;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: flex; align-items: center; gap: 8px;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .notif-success { background: white; border-left: 4px solid var(--green); color: #2d3436; }
+        .notif-error   { background: white; border-left: 4px solid var(--red);   color: #2d3436; }
+        .notif-info    { background: white; border-left: 4px solid var(--blue);  color: #2d3436; }
+        .notif-warning { background: white; border-left: 4px solid var(--gold);  color: #2d3436; }
+
+        /* ── CREDIT ECHÉANCE ── */
+        .credit-row-retard td { background: #fff8f8 !important; }
+        .credit-row-retard td:first-child { border-left: 3px solid var(--red); }
+        .credit-row-ok td:first-child { border-left: 3px solid #e0e0e0; }
+
+        /* ── DEVIS EDITOR ── */
+        #editeur-devis-overlay { display:none; position:fixed; inset:0; z-index:2000; background:#f5f6fa; overflow-y:auto; }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="LOGO_NYSOA.png" alt="NySoa">
+            <h2>NySoa BTP</h2>
+            <p>DAF — Direction Financière</p>
+        </div>
+        <nav>
+            <div class="nav-section-label">Tableau de bord</div>
+            <a class="nav-item active" onclick="showSection('dashboard')">
+                <i class="fas fa-tachometer-alt"></i><span>Tableau de bord</span>
+            </a>
+
+            <div class="nav-section-label">Gestion des dépenses</div>
+            <a class="nav-item" onclick="showSection('depenses')">
+                <i class="fas fa-arrow-down" style="color:var(--red)"></i><span>Saisir une Dépense</span>
+            </a>
+            <a class="nav-item" onclick="showSection('journal-daf')">
+                <i class="fas fa-list-alt"></i><span>Journal DAF</span>
+            </a>
+            <a class="nav-item" onclick="showSection('credits-echeances')">
+                <i class="fas fa-credit-card" style="color:var(--gold)"></i><span>Crédits à Payer</span>
+                <span id="credits-badge" style="display:none;background:var(--red);color:white;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:auto">0</span>
+            </a>
+
+            <div class="nav-section-label">Budget Felana</div>
+            <a class="nav-item" onclick="showSection('budget-felana')">
+                <i class="fas fa-hand-holding-usd" style="color:var(--blue)"></i><span>Mon Budget Felana</span>
+            </a>
+            <a class="nav-item" onclick="showSection('suivi-chantiers')">
+                <i class="fas fa-hard-hat"></i><span>Suivi par Chantier</span>
+            </a>
+
+            <div class="nav-section-label">Outils</div>
+            <a class="nav-item" onclick="showSection('devis')">
+                <i class="fas fa-file-signature"></i><span>Devis & Proforma</span>
+            </a>
+            <a class="nav-item" onclick="showSection('rapports-daf')">
+                <i class="fas fa-chart-bar"></i><span>Rapports DAF</span>
+            </a>
+
+            <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0">
+            <!-- Zones verrouillées explicitement -->
+            <div class="nav-item locked" title="Réservé CEO uniquement">
+                <i class="fas fa-lock"></i><span style="text-decoration:line-through">Recettes</span>
+                <i class="fas fa-ban" style="font-size:10px;margin-left:auto;color:var(--red)"></i>
+            </div>
+            <div class="nav-item locked" title="Réservé CEO uniquement">
+                <i class="fas fa-lock"></i><span style="text-decoration:line-through">Budgets globaux</span>
+                <i class="fas fa-ban" style="font-size:10px;margin-left:auto;color:var(--red)"></i>
+            </div>
+
+            <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0">
+            <a class="nav-item" onclick="openModal('modal-changement-mdp')">
+                <i class="fas fa-key"></i><span>Changer mot de passe</span>
+            </a>
+            <a class="nav-item" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i><span>Déconnexion</span>
+            </a>
+        </nav>
+        <div class="user-info">
+            <div class="user-avatar"><i class="fas fa-user-tie" style="color:white;font-size:14px"></i></div>
+            <div class="user-details">
+                <p id="user-name">DAF</p>
+                <p>Direction Financière</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <main class="main">
+
+        <!-- ═══════════════════════════════════════════════════════
+             TABLEAU DE BORD DAF
+        ════════════════════════════════════════════════════════ -->
+        <div id="section-dashboard">
+            <div class="page-header">
+                <h1><i class="fas fa-tachometer-alt" style="color:var(--orange);margin-right:10px"></i>Tableau de bord DAF</h1>
+                <p id="current-date-header">Chargement...</p>
+            </div>
+
+            <div class="daf-scope-banner">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>Périmètre DAF</strong>
+                    Vous gérez les dépenses opérationnelles à partir des fonds alloués par le CEO (dotations Felana). Les recettes clients et marges sont gérées exclusivement par le CEO.
+                </div>
+            </div>
+
+            <!-- SOLDE FELANA PRINCIPAL -->
+            <div class="solde-felana-widget">
+                <div class="label"><i class="fas fa-wallet" style="margin-right:6px"></i>Solde disponible — Budget Felana</div>
+                <div class="amount" id="db-solde-felana">Chargement...</div>
+                <div class="sub">= Dotations reçues − Dépenses engagées</div>
+                <div class="detail">
+                    <div class="detail-item">
+                        <div class="d-label">Dotations reçues</div>
+                        <div class="d-value" id="db-total-dotations">—</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="d-label">Dépenses DAF</div>
+                        <div class="d-value" id="db-total-depenses">—</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="d-label">Crédits à échéance</div>
+                        <div class="d-value" id="db-credits-attente" style="color:#ffb74d">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPIs secondaires -->
+            <div class="cards-4" style="margin-bottom:24px">
+                <div class="kpi-card" style="border-left:4px solid var(--orange)">
+                    <div class="kpi-value" id="db-depenses-mois">—</div>
+                    <div class="kpi-label">Dépenses ce mois</div>
+                    <div class="kpi-sub" id="db-depenses-mois-nb">— lignes</div>
+                </div>
+                <div class="kpi-card" style="border-left:4px solid var(--gold)">
+                    <div class="kpi-value" id="db-credits-en-cours">—</div>
+                    <div class="kpi-label">Crédits fournisseurs</div>
+                    <div class="kpi-sub">À payer</div>
+                </div>
+                <div class="kpi-card" style="border-left:4px solid var(--blue)">
+                    <div class="kpi-value" id="db-dotation-last">—</div>
+                    <div class="kpi-label">Dernière dotation CEO</div>
+                    <div class="kpi-sub" id="db-dotation-last-date">—</div>
+                </div>
+                <div class="kpi-card" style="border-left:4px solid var(--green)">
+                    <div class="kpi-value" id="db-nb-chantiers">—</div>
+                    <div class="kpi-label">Chantiers actifs</div>
+                    <div class="kpi-sub">avec dépenses</div>
+                </div>
+            </div>
+
+            <!-- Raccourcis rapides -->
+            <div class="cards" style="margin-bottom:24px">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-icon red"><i class="fas fa-plus-circle"></i></div>
+                            <div><h3>Saisie rapide</h3><p>Enregistrer une dépense</p></div>
                         </div>
-                        <div class="budget-bar" style="height:10px;background:#f0f0f0;border-radius:10px;overflow:hidden">
-                            <div class="budget-progress" style="width:${pct}%;background:${color};height:100%;border-radius:10px"></div>
+                    </div>
+                    <p style="font-size:13px;color:#636e72;margin-bottom:16px">
+                        Enregistrez vos achats au comptant, salaires et frais de fonctionnement en temps réel.
+                    </p>
+                    <button class="btn btn-primary" onclick="showSection('depenses');openModal('modal-nouvelle-depense')">
+                        <i class="fas fa-plus"></i> Nouvelle dépense
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-icon gold"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div><h3>Crédits à régler</h3><p>Échéances fournisseurs</p></div>
                         </div>
-                        <div style="display:flex;justify-content:space-between;font-size:12px;color:#636e72;margin-top:4px">
-                            <span>Budget: <strong>${(b.montant || 0).toLocaleString()} Ar</strong></span>
-                            <span>Dépensé: <strong>${dep.toLocaleString()} Ar</strong></span>
-                            <span>Reste: <strong>${reste.toLocaleString()} Ar</strong></span>
-                            <span style="color:${color};font-weight:700">${pct.toFixed(0)}%</span>
-                        </div>
-                    </div>`;
-                }).join('');
-            }
-
-            // Dépenses par chantier table
-            const tbody = document.getElementById('depenses-chantier-body');
-            if (tbody) {
-                const chantierRows = Object.entries(depenses)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 20)
-                    .map(([ch, mt]) => {
-                        const budget = budgets.filter(b => b.chantier === ch).reduce((s, b) => s + (b.montant || 0), 0);
-                        const reste = Math.max(0, budget - mt);
-                        const pct = budget > 0 ? Math.min(100, (mt / budget) * 100) : 0;
-                        const color = pct > 90 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981';
-                        return `<tr>
-                            <td style="padding:8px;font-weight:600">${ch}</td>
-                            <td style="padding:8px">${budget.toLocaleString()} Ar</td>
-                            <td style="padding:8px">${mt.toLocaleString()} Ar</td>
-                            <td style="padding:8px">${reste.toLocaleString()} Ar</td>
-                            <td style="padding:8px">
-                                <div style="background:#f0f0f0;border-radius:10px;height:8px;width:100px;overflow:hidden;display:inline-block;vertical-align:middle">
-                                    <div style="width:${pct}%;background:${color};height:100%;border-radius:10px"></div>
-                                </div>
-                                <span style="font-size:11px;margin-left:6px;color:${color};font-weight:600">${pct.toFixed(0)}%</span>
-                            </td>
-                        </tr>`;
-                    }).join('');
-                tbody.innerHTML = chantierRows || '<tr><td colspan="5" style="text-align:center;padding:20px;color:#adb5bd">Aucune donnée</td></tr>';
-            }
-        }
-
-        async function loadFacturesTable() {
-            const { data } = await db.from('devis').select('*').eq('statut', 'FACTURE').order('date_devis', { ascending: false }).limit(100);
-            const tbody = document.querySelector('#facturation .table tbody, #factures .table tbody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#adb5bd">Aucune facture</td></tr>'; return; }
-            data.forEach(f => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${f.numero||'—'}</td><td>${f.client||'—'}</td><td>${f.projet||f.objet||'—'}</td><td>${(f.montant_ttc||f.total||0).toLocaleString('fr-FR')} Ar</td><td><span class="status success">Facturée</span></td>`;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // ── BUDGET FELANA ─────────────────────────────────────────
-        async function populateFelanaChantiers() {
-            const sel = document.querySelector('#modal-budget-felana select[name="chantier_id"]');
-            const filter = document.getElementById('felana-filter-chantier');
-            if (!sel && !filter) return;
-            try {
-                const { data } = await db.from('chantiers').select('id, nom').order('nom');
-                const opts = '<option value="">— Général —</option>' + (data||[]).map(c =>
-                    `<option value="${c.id}">${c.nom}</option>`).join('');
-                if (sel) sel.innerHTML = opts;
-                if (filter) filter.innerHTML = '<option value="">Tous les chantiers</option>' + (data||[]).map(c =>
-                    `<option value="${c.id}">${c.nom}</option>`).join('');
-            } catch(e) { console.warn('DAF: loadChantierSelect error:', e); }
-        }
-
-        async function loadBudgetFelana() {
-            const tbody = document.getElementById('felana-table-body');
-            if (!tbody) return;
-            try {
-                const { data } = await db.from('budget_felana').select('*, chantiers(nom)').order('annee', { ascending: false }).limit(200);
-                const filterVal = document.getElementById('felana-filter-chantier')?.value || '';
-                const list = (data || []).filter(r => !filterVal || String(r.chantier_id) === filterVal);
-                tbody.innerHTML = '';
-                if (!list.length) {
-                    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:30px">Aucune ligne budgétaire</td></tr>';
-                    return;
-                }
-                const posteLabels = { materiaux: 'Matériaux', main_oeuvre: 'Main-d\'œuvre', equipements: 'Équipements', divers: 'Divers' };
-                list.forEach(r => {
-                    const ecart = (r.montant_prevu||0) - (r.montant_reel||0);
-                    const pct = r.montant_prevu > 0 ? Math.min(100, ((r.montant_reel||0) / r.montant_prevu) * 100) : 0;
-                    const color = pct > 90 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981';
-                    const statCls = { BROUILLON:'', SOUMIS:'warning', APPROUVE:'success', ACTIF:'success' }[r.statut] || '';
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${r.chantiers?.nom || '—'}</td>
-                        <td>${posteLabels[r.poste] || r.poste}</td>
-                        <td>${r.mois}/${r.annee}</td>
-                        <td>${(r.montant_prevu||0).toLocaleString()}</td>
-                        <td>${(r.montant_reel||0).toLocaleString()}</td>
-                        <td style="color:${ecart < 0 ? '#ef4444' : '#10b981'};font-weight:600">${ecart.toLocaleString()}</td>
-                        <td><div style="background:#f0f0f0;border-radius:10px;height:8px;width:80px;overflow:hidden;display:inline-block"><div style="width:${pct}%;background:${color};height:100%"></div></div></td>
-                        <td><span class="status ${statCls}">${r.statut||'BROUILLON'}</span></td>
-                        <td><button class="btn-icon" onclick="editerBudgetFelana(${r.id})"><i class="fas fa-edit"></i></button></td>`;
-                    tbody.appendChild(tr);
-                });
-            } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
-        }
-
-        function nouvelleLigneFelana() {
-            const form = document.getElementById('felana-form');
-            form.reset();
-            form.querySelector('[name="id"]').value = '';
-            form.querySelector('[name="annee"]').value = new Date().getFullYear();
-            form.querySelector('[name="mois"]').value = new Date().getMonth() + 1;
-            form.querySelector('[name="statut"]').value = 'BROUILLON';
-            document.getElementById('felana-modal-title').textContent = 'Nouvelle ligne FELANA';
-            populateFelanaChantiers();
-            openModal('modal-budget-felana');
-        }
-
-        async function editerBudgetFelana(id) {
-            const { data, error } = await db.from('budget_felana').select('*').eq('id', id).single();
-            if (error || !data) { showNotification('Ligne introuvable', 'error'); return; }
-            const form = document.getElementById('felana-form');
-            form.querySelector('[name="id"]').value = data.id || '';
-            form.querySelector('[name="chantier_id"]').value = data.chantier_id || '';
-            form.querySelector('[name="poste"]').value = data.poste || 'materiaux';
-            form.querySelector('[name="annee"]').value = data.annee || new Date().getFullYear();
-            form.querySelector('[name="mois"]').value = data.mois || new Date().getMonth() + 1;
-            form.querySelector('[name="montant_prevu"]').value = data.montant_prevu || 0;
-            form.querySelector('[name="montant_reel"]').value = data.montant_reel || 0;
-            form.querySelector('[name="statut"]').value = data.statut || 'BROUILLON';
-            document.getElementById('felana-modal-title').textContent = 'Modifier ligne FELANA';
-            openModal('modal-budget-felana');
-        }
-
-        async function submitBudgetFelana(e) {
-            e.preventDefault();
-            const fd = new FormData(e.target);
-            const id = fd.get('id');
-            const payload = {
-                chantier_id: parseInt(fd.get('chantier_id')) || null,
-                poste: fd.get('poste'), annee: parseInt(fd.get('annee')) || new Date().getFullYear(),
-                mois: parseInt(fd.get('mois')) || new Date().getMonth() + 1,
-                montant_prevu: parseFloat(fd.get('montant_prevu')) || 0,
-                montant_reel: parseFloat(fd.get('montant_reel')) || 0,
-                statut: fd.get('statut') || 'BROUILLON',
-            };
-            try {
-                let err;
-                if (id) {
-                    ({ error: err } = await db.from('budget_felana').update(payload).eq('id', id));
-                } else {
-                    ({ error: err } = await db.from('budget_felana').insert(payload));
-                }
-                if (err) throw err;
-                closeModal('modal-budget-felana');
-                e.target.reset();
-                showNotification('Ligne FELANA ' + (id ? 'modifiée' : 'créée') + ' ✓', 'success');
-                loadBudgetFelana();
-            } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
-        }
-
-        async function submitBudget(e) {
-            e.preventDefault();
-            const fd = new FormData(e.target);
-            const budgets = JSON.parse(localStorage.getItem('nysoa_budgets') || '[]');
-            budgets.push({
-                id: Date.now(),
-                chantier: fd.get('chantier') || 'GENERAL',
-                designation: fd.get('designation') || '',
-                montant: parseFloat(fd.get('montant') || 0),
-                date: new Date().toISOString().split('T')[0]
-            });
-            localStorage.setItem('nysoa_budgets', JSON.stringify(budgets));
-            closeModal('modal-budget');
-            e.target.reset();
-            showNotification('Budget ajouté ✓', 'success');
-            loadBudget();
-        }
-
-        async function changePassword(e) {
-            e.preventDefault();
-            const oldPwd = document.getElementById('mdp-actuel').value;
-            const newPwd = document.getElementById('mdp-nouveau').value;
-            const confirm = document.getElementById('mdp-confirm').value;
-            const result = document.getElementById('mdp-result');
-            if (newPwd !== confirm) { result.innerHTML = '<span style="color:var(--red)">✗ Les mots de passe ne correspondent pas</span>'; return false; }
-            if (newPwd.length < 6) { result.innerHTML = '<span style="color:var(--red)">✗ Minimum 6 caractères</span>'; return false; }
-            result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Vérification...';
-            const { data: { session } } = await db.auth.getSession();
-            if (!session?.user?.email) { result.innerHTML = '<span style="color:var(--red)">✗ Session introuvable, reconnectez-vous</span>'; return false; }
-            const { error: reAuthError } = await db.auth.signInWithPassword({ email: session.user.email, password: oldPwd });
-            if (reAuthError) { result.innerHTML = '<span style="color:var(--red)">✗ Mot de passe actuel incorrect</span>'; return false; }
-            result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mise à jour...';
-            const { error: updateError } = await db.auth.updateUser({ password: newPwd });
-            if (updateError) { result.innerHTML = `<span style="color:var(--red)">✗ ${updateError.message}</span>`; return false; }
-            result.innerHTML = '<span style="color:var(--green)">✓ Mot de passe changé avec succès !</span>';
-            document.getElementById('mdp-actuel').value = '';
-            document.getElementById('mdp-nouveau').value = '';
-            document.getElementById('mdp-confirm').value = '';
-            setTimeout(() => closeModal('modal-changement-mdp'), 2000);
-            return false;
-        }
-    </script>
-
-    <!-- ═══ ÉDITEUR DE DEVIS — overlay ═══ -->
-    <div id="editeur-devis-overlay" style="display:none;position:fixed;inset:0;z-index:2000;background:#f5f6fa;overflow-y:auto;">
-      <div style="max-width:1050px;margin:0 auto;padding:24px 28px 60px">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;background:#f5f6fa;padding:12px 0;border-bottom:1px solid #e9ecef">
-          <button class="btn btn-secondary" onclick="fermerEditeurDevis()"><i class="fas fa-arrow-left"></i> Retour</button>
-          <span style="flex:1;font-size:16px;font-weight:700;color:#1C2B3A">Éditeur de Devis</span>
-          <select id="ed-statut" class="filter-select" style="width:140px">
-            <option value="BROUILLON">Brouillon</option>
-            <option value="SOUMIS">Soumis</option>
-            <option value="APPROUVE">Approuvé</option>
-            <option value="ENVOYE">Envoyé</option>
-            <option value="ACCEPTE">Accepté</option>
-            <option value="REFUSE">Refusé</option>
-          </select>
-          <button class="btn btn-secondary" onclick="if(devisEnCours&&devisEnCours.id)imprimerDevis(devisEnCours.id)"><i class="fas fa-print"></i> Imprimer</button>
-          <button id="btn-save-devis" class="btn btn-primary" onclick="sauvegarderDevis()"><i class="fas fa-save"></i> Sauvegarder</button>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:24px;margin-bottom:20px">
-          <div>
-            <div style="font-size:15px;font-weight:700;color:#1C2B3A;margin-bottom:2px">NySoa BTP</div>
-            <div style="font-size:12px;color:#888">Lot 0708 k Ambohimena Antsirabe · +261 34 99 498 49</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#1C2B3A">DEVIS</div>
-            <div style="font-size:12px;color:#888;margin-top:4px">
-              N° <input id="ed-numero" style="width:130px;font-size:12px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1C2B3A;outline:none;text-align:right">
+                    </div>
+                    <div id="db-credits-preview">
+                        <div style="text-align:center;padding:20px;color:#adb5bd;font-size:13px">Chargement...</div>
+                    </div>
+                </div>
             </div>
-            <div style="font-size:12px;color:#888;margin-top:3px">
-              Date : <input type="date" id="ed-date" style="font-size:12px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1C2B3A;outline:none">
-            </div>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;background:white;border:1px solid #e9ecef;border-radius:10px;padding:14px 18px;margin-bottom:16px">
-          <div><label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Client</label>
-            <input id="ed-client" style="width:100%;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a1a1a;outline:none;padding-bottom:2px"></div>
-          <div><label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Lieu des travaux</label>
-            <input id="ed-lieu" style="width:100%;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a1a1a;outline:none;padding-bottom:2px"></div>
-          <div><label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Contact</label>
-            <input id="ed-contact" style="width:100%;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a1a1a;outline:none;padding-bottom:2px"></div>
-        </div>
-        <div style="background:white;border:1px solid #e9ecef;border-radius:10px;padding:12px 18px;margin-bottom:20px">
-          <label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Objet des travaux</label>
-          <input id="ed-objet" style="width:100%;font-size:13px;border:none;background:transparent;color:#1a1a1a;outline:none">
-        </div>
-        <div id="ed-lots-container"></div>
-        <button class="btn btn-secondary" onclick="edAjouterLot()" style="margin-bottom:24px">
-          <i class="fas fa-plus"></i> Ajouter un lot
-        </button>
-        <div style="display:flex;justify-content:flex-end">
-          <div style="width:340px;border:1px solid #e9ecef;border-radius:10px;overflow:hidden">
-            <div id="ed-sous-totaux"></div>
-            <div style="display:flex;justify-content:space-between;padding:8px 14px;font-size:13px;border-top:1px solid #e9ecef">
-              <span style="color:#888">TVA (%)</span>
-              <input id="ed-tva" type="number" min="0" max="100" step="0.01" value="0"
-                style="width:60px;text-align:right;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;outline:none"
-                onchange="updateTotauxEditeur()">
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:8px 14px;font-size:13px;border-top:1px solid #e9ecef">
-              <span style="color:#888">Total HT</span><span id="ed-total-ht" style="font-weight:600">—</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:10px 14px;font-size:15px;font-weight:700;background:#1C2B3A;color:white">
-              <span>Total général</span><span id="ed-total-ttc">—</span>
-            </div>
-          </div>
-        </div>
-        <div id="ed-total-lettres" style="margin-top:12px;font-size:12px;font-style:italic;color:#888;text-align:right"></div>
-      </div>
-    </div>
 
-    <!-- Modal Budget FELANA -->
-    <div id="modal-budget-felana" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3 id="felana-modal-title">Nouvelle ligne FELANA</h3><button class="close-modal" onclick="closeModal('modal-budget-felana')">&times;</button></div>
-            <div class="modal-body">
-                <form id="felana-form" onsubmit="submitBudgetFelana(event)">
-                    <input type="hidden" name="id">
-                    <div class="form-group"><label>Chantier</label>
-                        <select name="chantier_id" class="form-input">
-                            <option value="">— Général —</option>
+            <!-- Dépenses récentes -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon orange"><i class="fas fa-history"></i></div>
+                        <div><h3>Dépenses récentes</h3><p>5 dernières écritures</p></div>
+                    </div>
+                    <button class="btn btn-secondary btn-small" onclick="showSection('journal-daf')"><i class="fas fa-external-link-alt"></i> Tout voir</button>
+                </div>
+                <div id="db-depenses-recentes">
+                    <div style="text-align:center;padding:30px;color:#adb5bd"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════
+             SAISIE DÉPENSES
+        ════════════════════════════════════════════════════════ -->
+        <div id="section-depenses" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-arrow-down" style="color:var(--red);margin-right:10px"></i>Saisir une Dépense</h1>
+                <p>Enregistrez vos débits opérationnels — achats comptant, salaires, logistique</p>
+            </div>
+
+            <div class="alert alert-warning">
+                <i class="fas fa-lock"></i>
+                <div>
+                    <strong>Règle de gestion.</strong>
+                    Le DAF ne peut enregistrer que des <strong>dépenses (débits)</strong>. Toute entrée de fonds (recette client) est gérée exclusivement par le CEO. Les achats à crédit sont également enregistrés par le CEO.
+                </div>
+            </div>
+
+            <!-- Solde rapide -->
+            <div style="background:linear-gradient(90deg,#1C2B3A,#0d47a1);color:white;border-radius:12px;padding:16px 24px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+                <div>
+                    <div style="font-size:11px;opacity:0.7">SOLDE DISPONIBLE</div>
+                    <div style="font-size:22px;font-weight:800" id="dep-solde-actuel">Chargement...</div>
+                </div>
+                <div style="margin-left:auto">
+                    <button class="btn btn-primary" onclick="openModal('modal-nouvelle-depense')">
+                        <i class="fas fa-plus"></i> Nouvelle Dépense
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filtres -->
+            <div class="card" style="margin-bottom:16px;padding:16px 20px">
+                <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+                    <div class="form-group" style="flex:1;min-width:140px">
+                        <label>Chantier</label>
+                        <select class="form-input" id="dep-filter-chantier" onchange="loadDepensesDAF()">
+                            <option value="">Tous</option>
                         </select>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group" style="flex:1"><label>Poste</label>
-                            <select name="poste" class="form-input">
-                                <option value="materiaux">Matériaux</option>
-                                <option value="main_oeuvre">Main-d'œuvre</option>
-                                <option value="equipements">Équipements</option>
-                                <option value="divers">Divers</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="flex:0.5"><label>Mois</label>
-                            <select name="mois" class="form-input">
-                                <option value="1">Jan</option><option value="2">Fév</option><option value="3">Mar</option>
-                                <option value="4">Avr</option><option value="5">Mai</option><option value="6">Juin</option>
-                                <option value="7">Juil</option><option value="8">Aoû</option><option value="9">Sep</option>
-                                <option value="10">Oct</option><option value="11">Nov</option><option value="12">Déc</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="flex:0.5"><label>Année</label><input name="annee" type="number" class="form-input" value="2026"></div>
+                    <div class="form-group" style="flex:1;min-width:130px">
+                        <label>Catégorie</label>
+                        <select class="form-input" id="dep-filter-categorie" onchange="loadDepensesDAF()">
+                            <option value="">Toutes</option>
+                            <option value="SALAIRE JOURNALIER">Salaire journalier</option>
+                            <option value="SALAIRE MENSUEL">Salaire mensuel</option>
+                            <option value="ANTOKA">Antoka</option>
+                            <option value="APPROVISIONNEMENT">Approvisionnement</option>
+                            <option value="MATERIEL">Matériel</option>
+                            <option value="SERVICE">Service</option>
+                            <option value="FRAIS DE TRANSPORT">Transport</option>
+                            <option value="FONCTIONNEMENT">Fonctionnement</option>
+                            <option value="COMMUNICATION">Communication</option>
+                            <option value="BONUS">Bonus</option>
+                            <option value="SAKAFO">Sakafo</option>
+                        </select>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group" style="flex:1"><label>Montant prévu (Ar)</label><input name="montant_prevu" type="number" step="any" class="form-input"></div>
-                        <div class="form-group" style="flex:1"><label>Montant réel (Ar)</label><input name="montant_reel" type="number" step="any" class="form-input"></div>
+                    <div class="form-group" style="flex:1;min-width:120px">
+                        <label>Du</label>
+                        <input type="date" class="form-input" id="dep-date-from" onchange="loadDepensesDAF()">
                     </div>
-                    <div class="form-group"><label>Statut</label>
-                        <select name="statut" class="form-input">
+                    <div class="form-group" style="flex:1;min-width:120px">
+                        <label>Au</label>
+                        <input type="date" class="form-input" id="dep-date-to" onchange="loadDepensesDAF()">
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadDepensesDAF()"><i class="fas fa-sync-alt"></i></button>
+                    <button class="btn btn-secondary" onclick="exportDepensesExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+                </div>
+            </div>
+
+            <div class="cards-3" style="margin-bottom:16px">
+                <div class="kpi-card" style="border-left:4px solid var(--red)">
+                    <div class="kpi-value" id="dep-kpi-total">—</div>
+                    <div class="kpi-label">Total dépenses (filtre)</div>
+                </div>
+                <div class="kpi-card" style="border-left:4px solid var(--orange)">
+                    <div class="kpi-value" id="dep-kpi-nb">—</div>
+                    <div class="kpi-label">Nombre d'écritures</div>
+                </div>
+                <div class="kpi-card" style="border-left:4px solid var(--blue)">
+                    <div class="kpi-value" id="dep-kpi-solde">—</div>
+                    <div class="kpi-label">Solde restant</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div id="depenses-table-container" style="overflow-x:auto">
+                    <div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════
+             JOURNAL DAF
+        ════════════════════════════════════════════════════════ -->
+        <div id="section-journal-daf" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-list-alt" style="color:var(--orange);margin-right:10px"></i>Journal DAF</h1>
+                <p>Toutes vos écritures de dépenses — dotations reçues et décaissements effectués</p>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="fas fa-eye"></i>
+                <div><strong>Vue filtrée DAF.</strong> Ce journal ne contient que vos écritures autorisées : dotations reçues du CEO et dépenses que vous avez enregistrées. Les recettes clients et budgets globaux ne sont pas visibles ici.</div>
+            </div>
+
+            <!-- Filtres -->
+            <div class="card" style="margin-bottom:16px;padding:16px 20px">
+                <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+                    <div class="form-group" style="flex:1;min-width:140px">
+                        <label>Type</label>
+                        <select class="form-input" id="jdaf-filter-type" onchange="loadJournalDAF()">
+                            <option value="">Tous</option>
+                            <option value="dotation_felana">Dotations reçues</option>
+                            <option value="depense_daf">Mes dépenses</option>
+                            <option value="paiement_credit">Décaissements Crédits</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1;min-width:130px">
+                        <label>Chantier</label>
+                        <select class="form-input" id="jdaf-filter-chantier" onchange="loadJournalDAF()">
+                            <option value="">Tous</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1;min-width:120px">
+                        <label>Du</label>
+                        <input type="date" class="form-input" id="jdaf-date-from" onchange="loadJournalDAF()">
+                    </div>
+                    <div class="form-group" style="flex:1;min-width:120px">
+                        <label>Au</label>
+                        <input type="date" class="form-input" id="jdaf-date-to" onchange="loadJournalDAF()">
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadJournalDAF()"><i class="fas fa-sync-alt"></i></button>
+                    <button class="btn btn-secondary" onclick="exportJournalDAFExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div id="journal-daf-container" style="overflow-x:auto">
+                    <div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════
+             CRÉDITS FOURNISSEURS — VUE DAF (Paiements à effectuer)
+        ════════════════════════════════════════════════════════ -->
+        <div id="section-credits-echeances" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-credit-card" style="color:var(--gold);margin-right:10px"></i>Crédits Fournisseurs — Paiements à effectuer</h1>
+                <p>Dettes enregistrées par le CEO — vous exécutez le décaissement à l'échéance</p>
+            </div>
+
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>Workflow de paiement des crédits.</strong>
+                    Le CEO a déjà enregistré la dette. Votre rôle : (1) vérifier que le CEO vous a alloué une dotation suffisante, (2) effectuer le paiement réel au fournisseur, (3) cliquer sur <strong>"Décaisser"</strong> pour enregistrer le paiement.
+                </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="cards-3" style="margin-bottom:20px">
+                <div class="kpi-card" style="border-left:4px solid var(--gold)">
+                    <div class="kpi-value" id="cred-daf-en-cours">—</div>
+                    <div class="kpi-label">Crédits à payer</div>
+                </div>
+                <div class="kpi-card" style="border-left:4px solid var(--red)">
+                    <div class="kpi-value" id="cred-daf-en-retard">—</div>
+                    <div class="kpi-label">En retard</div>
+                </div>
+                <div class="kpi-card" style="border-left:4px solid var(--green)">
+                    <div class="kpi-value" id="cred-daf-soldes">—</div>
+                    <div class="kpi-label">Soldés ce mois</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon gold"><i class="fas fa-calendar-alt"></i></div>
+                        <div><h3>Tableau des échéances fournisseurs</h3></div>
+                    </div>
+                    <select class="form-input" id="cred-daf-filter" onchange="loadCreditsDAF()" style="width:150px">
+                        <option value="">Tous</option>
+                        <option value="EN_COURS">En cours</option>
+                        <option value="EN_RETARD">En retard</option>
+                        <option value="SOLDE">Soldés</option>
+                    </select>
+                </div>
+                <div id="credits-daf-container" style="overflow-x:auto">
+                    <div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════
+             BUDGET FELANA
+        ════════════════════════════════════════════════════════ -->
+        <div id="section-budget-felana" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-hand-holding-usd" style="color:var(--blue);margin-right:10px"></i>Mon Budget Felana</h1>
+                <p>Enveloppe opérationnelle allouée par le CEO — suivi de caisse en temps réel</p>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>Gestion par enveloppe.</strong>
+                    Votre solde = Σ(dotations CEO) − Σ(dépenses DAF). Vous ne pouvez pas modifier les enveloppes ni voir les budgets globaux. Contactez le CEO pour une dotation supplémentaire.
+                </div>
+            </div>
+
+            <!-- Solde principal -->
+            <div class="solde-felana-widget" style="margin-bottom:20px">
+                <div class="label">Solde Felana disponible</div>
+                <div class="amount" id="felana-solde-principal">Chargement...</div>
+                <div class="sub">Dotations reçues − Dépenses engagées</div>
+                <div class="detail">
+                    <div class="detail-item">
+                        <div class="d-label">Dotations totales</div>
+                        <div class="d-value" id="felana-total-dot">—</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="d-label">Dépenses totales</div>
+                        <div class="d-value" id="felana-total-dep">—</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="d-label">Taux consommation</div>
+                        <div class="d-value" id="felana-taux">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dotations reçues -->
+            <div class="cards" style="margin-bottom:20px">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-icon blue"><i class="fas fa-arrow-circle-down"></i></div>
+                            <div><h3>Dotations reçues du CEO</h3><p>Fonds alloués à votre disposition</p></div>
+                        </div>
+                    </div>
+                    <div id="felana-dotations-list">
+                        <div style="text-align:center;padding:20px;color:#adb5bd"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-icon orange"><i class="fas fa-chart-pie"></i></div>
+                            <div><h3>Répartition des dépenses</h3><p>Par catégorie</p></div>
+                        </div>
+                    </div>
+                    <canvas id="felana-chart-categories" style="max-height:220px"></canvas>
+                </div>
+            </div>
+
+            <!-- Tableau budget Felana détaillé -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon blue"><i class="fas fa-table"></i></div>
+                        <div><h3>Lignes budget Felana par chantier</h3></div>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <select class="form-input" id="felana-filter-chantier" onchange="loadBudgetFelana()" style="width:180px">
+                            <option value="">Tous les chantiers</option>
+                        </select>
+                        <button class="btn btn-secondary btn-small" onclick="exportFelanaExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Chantier</th>
+                                <th>Poste</th>
+                                <th>Période</th>
+                                <th>Prévu (Ar)</th>
+                                <th>Réel (Ar)</th>
+                                <th>Écart</th>
+                                <th>Progression</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="felana-table-body">
+                            <tr><td colspan="8" style="text-align:center;padding:30px;color:#adb5bd">Chargement…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════
+             SUIVI PAR CHANTIER (Vue DAF - sans recettes ni marges)
+        ════════════════════════════════════════════════════════ -->
+        <div id="section-suivi-chantiers" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-hard-hat" style="color:var(--orange);margin-right:10px"></i>Suivi par Chantier</h1>
+                <p>Dépenses engagées et dotations utilisées — sans visibilité sur les budgets globaux</p>
+            </div>
+
+            <div class="alert alert-warning">
+                <i class="fas fa-lock"></i>
+                <div><strong>Vue partielle.</strong> Vous ne voyez ici que les dotations allouées et dépenses enregistrées. Les budgets globaux et recettes clients sont gérés par le CEO.</div>
+            </div>
+
+            <div id="chantiers-suivi-container">
+                <div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════
+             DEVIS & PROFORMA
+        ════════════════════════════════════════════════════════ -->
+        <div id="section-devis" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-file-signature" style="color:var(--orange);margin-right:10px"></i>Devis & Proforma</h1>
+                <p>Création et suivi des devis clients</p>
+            </div>
+
+            <div class="cards-4" style="margin-bottom:20px">
+                <div class="kpi-card" style="border-left:4px solid var(--blue)"><div class="kpi-value" id="d-stat-total">0</div><div class="kpi-label">Total devis</div></div>
+                <div class="kpi-card" style="border-left:4px solid var(--green)"><div class="kpi-value" id="d-stat-acceptes">0</div><div class="kpi-label">Acceptés</div></div>
+                <div class="kpi-card" style="border-left:4px solid var(--gold)"><div class="kpi-value" id="d-stat-attente">0</div><div class="kpi-label">En attente</div></div>
+                <div class="kpi-card" style="border-left:4px solid var(--red)"><div class="kpi-value" id="d-stat-refuses">0</div><div class="kpi-label">Refusés</div></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon blue"><i class="fas fa-list"></i></div>
+                        <div><h3>Liste des Devis</h3></div>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <select class="form-input" id="devis-filter-status" onchange="filtrerDevisDAF(this.value)" style="width:160px">
+                            <option value="">Tous</option>
                             <option value="BROUILLON">Brouillon</option>
                             <option value="SOUMIS">Soumis</option>
                             <option value="APPROUVE">Approuvé</option>
-                            <option value="ACTIF">Actif</option>
+                            <option value="ENVOYE">Envoyé</option>
+                            <option value="ACCEPTE">Accepté</option>
+                            <option value="REFUSE">Refusé</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="ouvrirEditeurDevis()"><i class="fas fa-plus"></i> Nouveau Devis</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr><th>N°</th><th>Client</th><th>Objet</th><th>Total HT</th><th>Date</th><th>Statut</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody id="devis-tbody-daf">
+                            <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:30px">Chargement…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════
+             RAPPORTS DAF
+        ════════════════════════════════════════════════════════ -->
+        <div id="section-rapports-daf" style="display:none">
+            <div class="page-header">
+                <h1><i class="fas fa-chart-bar" style="color:var(--orange);margin-right:10px"></i>Rapports DAF</h1>
+                <p>Analyses de vos dépenses opérationnelles — sans données confidentielles CEO</p>
+            </div>
+
+            <div class="cards" style="margin-bottom:20px">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-icon orange"><i class="fas fa-chart-bar"></i></div>
+                            <div><h3>Dépenses par catégorie</h3></div>
+                        </div>
+                    </div>
+                    <canvas id="rpt-cat-chart" style="max-height:260px"></canvas>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-icon blue"><i class="fas fa-chart-line"></i></div>
+                            <div><h3>Dépenses mensuelles</h3></div>
+                        </div>
+                    </div>
+                    <canvas id="rpt-monthly-chart" style="max-height:260px"></canvas>
+                </div>
+            </div>
+
+            <!-- Tableau synthèse par chantier -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon green"><i class="fas fa-table"></i></div>
+                        <div><h3>Synthèse Dotations vs Dépenses par Chantier</h3></div>
+                    </div>
+                    <button class="btn btn-secondary btn-small" onclick="exportRapportExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+                </div>
+                <div id="rpt-synthese-container" style="overflow-x:auto">
+                    <div style="text-align:center;padding:30px;color:#adb5bd">Chargement...</div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODALS
+════════════════════════════════════════════════════════════ -->
+
+<!-- Modal Nouvelle Dépense -->
+<div id="modal-nouvelle-depense" class="modal" style="display:none">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-arrow-down" style="color:var(--red)"></i> Enregistrer une Dépense</h3>
+            <button class="close-modal" onclick="closeModal('modal-nouvelle-depense')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="dep-solde-check" class="alert alert-info" style="margin-bottom:14px">
+                <i class="fas fa-info-circle"></i>
+                <span>Solde disponible : <strong id="dep-solde-modal">Calcul...</strong></span>
+            </div>
+            <form id="form-nouvelle-depense" onsubmit="return submitNouvelleDepense(event)" class="form-grid">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date *</label>
+                        <input type="date" name="date_ecriture" class="form-input" required id="dep-date-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Montant (Ar) *</label>
+                        <input type="number" name="montant" min="1" step="any" class="form-input" required
+                               placeholder="ex: 150000" oninput="checkSoldeAvantDepense(this.value)">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Désignation *</label>
+                    <input type="text" name="designation" class="form-input" required
+                           placeholder="ex: Achat ciment 50 sacs — Chantier Palmiers">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Chantier</label>
+                        <select name="chantier_id" id="dep-chantier-select" class="form-input">
+                            <option value="">— Sélectionner —</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width:100%">Enregistrer</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Budget -->
-    <div id="modal-budget" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3>Nouveau Budget</h3><button class="close-modal" onclick="closeModal('modal-budget')">&times;</button></div>
-            <div class="modal-body">
-                <form id="budget-form" onsubmit="submitBudget(event)">
-                    <div class="form-group"><label>Chantier</label>
-                        <select name="chantier" class="form-input">
-                            <option value="">Général</option>
+                    <div class="form-group">
+                        <label>Catégorie *</label>
+                        <select name="categorie" class="form-input" required>
+                            <option value="SALAIRE JOURNALIER">Salaire journalier</option>
+                            <option value="SALAIRE MENSUEL">Salaire mensuel</option>
+                            <option value="ANTOKA">Antoka</option>
+                            <option value="APPROVISIONNEMENT">Approvisionnement</option>
+                            <option value="MATERIEL">Matériel</option>
+                            <option value="SERVICE">Service</option>
+                            <option value="FRAIS DE TRANSPORT">Transport</option>
+                            <option value="FONCTIONNEMENT">Fonctionnement</option>
+                            <option value="COMMUNICATION">Communication</option>
+                            <option value="BONUS">Bonus</option>
+                            <option value="SAKAFO">Sakafo</option>
                         </select>
                     </div>
-                    <div class="form-group"><label>Désignation</label><input name="designation" type="text" class="form-input" placeholder="Ex: Budget FELANA"></div>
-                    <div class="form-group"><label>Montant (Ar) *</label><input name="montant" type="number" min="0" step="any" class="form-input" required></div>
-                    <button type="submit" class="btn btn-primary" style="width:100%">Créer le budget</button>
-                </form>
-            </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Mode de paiement</label>
+                        <select name="mode_paiement" class="form-input">
+                            <option value="ESPECE">Espèces</option>
+                            <option value="MOBILE_MONEY">Mobile Money</option>
+                            <option value="CHEQUE">Chèque</option>
+                            <option value="VIREMENT">Virement</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Travaux associés</label>
+                        <select name="travaux" class="form-input">
+                            <option value="">—</option>
+                            <option value="MAÇONNERIE">Maçonnerie</option>
+                            <option value="CARRELAGE">Carrelage</option>
+                            <option value="PLOMBERIE">Plomberie</option>
+                            <option value="ELECTRICITE">Électricité</option>
+                            <option value="PEINTURE">Peinture</option>
+                            <option value="MENUISERIE">Menuiserie</option>
+                            <option value="NETTOYAGE">Nettoyage</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Fournisseur / Bénéficiaire</label>
+                    <input type="text" name="fournisseur" class="form-input" placeholder="ex: BRICOMA, Jean Rakoto...">
+                </div>
+                <div class="form-group">
+                    <label>N° de pièce / Reçu</label>
+                    <input type="text" name="reference" class="form-input" placeholder="ex: REC-2026-0541">
+                </div>
+                <!-- Avertissement dépassement -->
+                <div id="dep-warning-solde" class="alert alert-danger" style="display:none;margin-bottom:0">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="dep-warning-text">Attention : cette dépense dépasse votre solde disponible.</span>
+                </div>
+                <div class="modal-footer" style="padding:0;border:none;margin-top:4px">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-nouvelle-depense')">Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-depense">
+                        <i class="fas fa-save"></i> Enregistrer la Dépense
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- Modal Journal (réutilisé du composant standard) -->
-    <div id="modal-journal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3>Nouvelle Écriture Comptable</h3><button class="close-modal" onclick="closeModal('modal-journal')">&times;</button></div>
-            <div class="modal-body">
-                <form onsubmit="submitJournalForm(event)">
-                    <div class="form-row">
-                        <div class="form-group"><label>Date *</label><input type="date" name="date" required></div>
-                        <div class="form-group"><label>Chantier</label><select name="chantier"><option value="">— Sélectionner —</option></select></div>
-                    </div>
-                    <div class="form-group"><label>Désignation *</label><input type="text" name="designation" placeholder="Ex: Achat ciment..." required></div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Montant (Ar) *</label><input type="number" name="montant" min="0" step="any" required></div>
-                        <div class="form-group"><label>Catégorie</label><select name="categorie">
-                            <option>SALAIRE JOURNALIER</option><option>SALAIRE MENSUEL</option><option>ANTOKA</option>
-                            <option>APPROVISIONNEMENT</option><option>MATERIEL</option><option>SERVICE</option>
-                            <option>FRAIS DE TRANSPORT</option><option>FONCTIONNEMENT</option><option>COMMUNICATION</option>
-                            <option>BONUS</option><option>SAKAFO</option>
-                        </select></div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Mode de paiement</label><select name="mode_paiement">
-                            <option>ESPECE</option><option>CHEQUE</option><option>MOBILE MONEY</option>
-                            <option>VIREMENT BANCAIRE</option><option>A CREDIT</option>
-                        </select></div>
-                        <div class="form-group"><label>Travaux</label><select name="travaux">
-                            <option value="">—</option><option>MAÇONNERIE</option><option>CARRELAGE</option>
-                            <option>PLOMBERIE</option><option>ELECTRICITE</option><option>PEINTURE</option>
-                            <option>MENUISERIE</option><option>NETTOYAGE</option>
-                        </select></div>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-journal')">Annuler</button>
-                        <button type="submit" class="btn btn-primary">Enregistrer</button>
-                    </div>
-                </form>
+<!-- Modal Décaissement Crédit Fournisseur -->
+<div id="modal-decaissement-credit" class="modal" style="display:none">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-money-bill-wave" style="color:var(--gold)"></i> Décaisser — Paiement Fournisseur</h3>
+            <button class="close-modal" onclick="closeModal('modal-decaissement-credit')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-warning" style="margin-bottom:16px">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>Vérifiez que le CEO vous a bien alloué une dotation suffisante avant de procéder au décaissement.</div>
             </div>
+            <div id="decaissement-info" style="background:#f8f9fa;border-radius:10px;padding:16px;margin-bottom:16px;font-size:13px"></div>
+            <form id="form-decaissement" onsubmit="return submitDecaissement(event)" class="form-grid">
+                <input type="hidden" id="decaiss-credit-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date de paiement *</label>
+                        <input type="date" name="date_paiement" class="form-input" required id="decaiss-date">
+                    </div>
+                    <div class="form-group">
+                        <label>Montant décaissé (Ar) *</label>
+                        <input type="number" name="montant_paye" min="1" step="any" class="form-input" required id="decaiss-montant">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Mode de paiement *</label>
+                    <select name="mode_paiement" class="form-input" required>
+                        <option value="ESPECE">Espèces</option>
+                        <option value="CHEQUE">Chèque</option>
+                        <option value="VIREMENT">Virement bancaire</option>
+                        <option value="MOBILE_MONEY">Mobile Money</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>N° de reçu / référence paiement</label>
+                    <input type="text" name="reference_paiement" class="form-input" placeholder="ex: CHQ-00452">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea name="notes" class="form-input" rows="2" placeholder="Observations sur le paiement..."></textarea>
+                </div>
+                <div class="modal-footer" style="padding:0;border:none;margin-top:4px">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-decaissement-credit')">Annuler</button>
+                    <button type="submit" class="btn btn-gold"><i class="fas fa-money-bill-wave"></i> Confirmer le Décaissement</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- Modal Facture -->
-    <div id="modal-facture" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3>Nouvelle Facture</h3><button class="close-modal" onclick="closeModal('modal-facture')">&times;</button></div>
-            <div class="modal-body">
-                <form onsubmit="submitFacture(event)">
-                    <div class="form-group"><label>Client *</label><input name="client" type="text" class="form-input" required></div>
-                    <div class="form-group"><label>Projet</label><input name="projet" type="text" class="form-input"></div>
-                    <div class="form-group"><label>Date</label><input name="date" type="date" class="form-input" required></div>
-                    <div class="form-group"><label>Montant HT (Ar)</label><input name="montant_ht" type="number" step="any" class="form-input"></div>
-                    <div class="form-group"><label>Montant TTC (Ar)</label><input name="montant_ttc" type="number" step="any" class="form-input"></div>
-                    <button type="submit" class="btn btn-primary" style="width:100%">Créer la facture</button>
-                </form>
-            </div>
+<!-- Modal Changer mot de passe -->
+<div id="modal-changement-mdp" class="modal" style="display:none">
+    <div class="modal-content" style="max-width:440px">
+        <div class="modal-header">
+            <h3><i class="fas fa-key" style="color:var(--orange)"></i> Changer mon mot de passe</h3>
+            <button class="close-modal" onclick="closeModal('modal-changement-mdp')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form onsubmit="return changePassword(event)" class="form-grid">
+                <div class="form-group"><label>Mot de passe actuel</label><input type="password" id="mdp-actuel" required class="form-input"></div>
+                <div class="form-group"><label>Nouveau mot de passe</label><input type="password" id="mdp-nouveau" required minlength="6" class="form-input"></div>
+                <div class="form-group"><label>Confirmer le nouveau</label><input type="password" id="mdp-confirm" required minlength="6" class="form-input"></div>
+                <div id="mdp-result" style="font-size:13px"></div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Changer le mot de passe</button>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- Modal Changer mot de passe -->
-    <div id="modal-changement-mdp" class="modal">
-        <div class="modal-content" style="max-width:420px">
-            <div class="modal-header"><h3><i class="fas fa-key" style="color:var(--orange)"></i> Changer mon mot de passe</h3><button class="close-modal" onclick="closeModal('modal-changement-mdp')">&times;</button></div>
-            <div class="modal-body">
-                <form onsubmit="return changePassword(event)" style="display:flex;flex-direction:column;gap:14px">
-                    <div>
-                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Mot de passe actuel</label>
-                        <input type="password" id="mdp-actuel" required style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px">
-                    </div>
-                    <div>
-                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Nouveau mot de passe</label>
-                        <input type="password" id="mdp-nouveau" required minlength="6" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px">
-                    </div>
-                    <div>
-                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Confirmer le nouveau mot de passe</label>
-                        <input type="password" id="mdp-confirm" required minlength="6" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px">
-                    </div>
-                    <button type="submit" class="btn" style="margin-top:4px"><i class="fas fa-save"></i> Changer le mot de passe</button>
-                    <div id="mdp-result" style="font-size:13px"></div>
-                </form>
+<!-- ── ÉDITEUR DEVIS ── -->
+<div id="editeur-devis-overlay">
+    <div style="max-width:1050px;margin:0 auto;padding:24px 28px 60px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;background:#f5f6fa;padding:12px 0;border-bottom:1px solid #e9ecef">
+            <button class="btn btn-secondary" onclick="fermerEditeurDevis()"><i class="fas fa-arrow-left"></i> Retour</button>
+            <span style="flex:1;font-size:16px;font-weight:700;color:#1C2B3A">Éditeur de Devis</span>
+            <select id="ed-statut" class="form-input" style="width:140px">
+                <option value="BROUILLON">Brouillon</option>
+                <option value="SOUMIS">Soumis</option>
+                <option value="APPROUVE">Approuvé</option>
+                <option value="ENVOYE">Envoyé</option>
+                <option value="ACCEPTE">Accepté</option>
+                <option value="REFUSE">Refusé</option>
+            </select>
+            <button class="btn btn-secondary" onclick="if(devisEnCours&&devisEnCours.id)imprimerDevis(devisEnCours.id)"><i class="fas fa-print"></i> Imprimer</button>
+            <button id="btn-save-devis" class="btn btn-primary" onclick="sauvegarderDevis()"><i class="fas fa-save"></i> Sauvegarder</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:24px;margin-bottom:20px">
+            <div>
+                <div style="font-size:15px;font-weight:700;color:#1C2B3A;margin-bottom:2px">NySoa BTP</div>
+                <div style="font-size:12px;color:#888">Lot 0708 k Ambohimena Antsirabe · +261 34 99 498 49</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#1C2B3A">DEVIS</div>
+                <div style="font-size:12px;color:#888;margin-top:4px">N° <input id="ed-numero" style="width:130px;font-size:12px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1C2B3A;outline:none;text-align:right"></div>
+                <div style="font-size:12px;color:#888;margin-top:3px">Date : <input type="date" id="ed-date" style="font-size:12px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1C2B3A;outline:none"></div>
             </div>
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;background:white;border:1px solid #e9ecef;border-radius:10px;padding:14px 18px;margin-bottom:16px">
+            <div><label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Client</label><input id="ed-client" style="width:100%;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a1a1a;outline:none"></div>
+            <div><label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Lieu des travaux</label><input id="ed-lieu" style="width:100%;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a1a1a;outline:none"></div>
+            <div><label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Contact</label><input id="ed-contact" style="width:100%;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a1a1a;outline:none"></div>
+        </div>
+        <div style="background:white;border:1px solid #e9ecef;border-radius:10px;padding:12px 18px;margin-bottom:20px">
+            <label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Objet des travaux</label>
+            <input id="ed-objet" style="width:100%;font-size:13px;border:none;background:transparent;color:#1a1a1a;outline:none">
+        </div>
+        <div id="ed-lots-container"></div>
+        <button class="btn btn-secondary" onclick="edAjouterLot()" style="margin-bottom:24px"><i class="fas fa-plus"></i> Ajouter un lot</button>
+        <div style="display:flex;justify-content:flex-end">
+            <div style="width:340px;border:1px solid #e9ecef;border-radius:10px;overflow:hidden">
+                <div id="ed-sous-totaux"></div>
+                <div style="display:flex;justify-content:space-between;padding:8px 14px;font-size:13px;border-top:1px solid #e9ecef">
+                    <span style="color:#888">TVA (%)</span>
+                    <input id="ed-tva" type="number" min="0" max="100" step="0.01" value="0" style="width:60px;text-align:right;font-size:13px;border:none;border-bottom:1px solid #ddd;background:transparent;outline:none" onchange="updateTotauxEditeur()">
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 14px;font-size:13px;border-top:1px solid #e9ecef">
+                    <span style="color:#888">Total HT</span><span id="ed-total-ht" style="font-weight:600">—</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;font-size:15px;font-weight:700;background:#1C2B3A;color:white">
+                    <span>Total général</span><span id="ed-total-ttc">—</span>
+                </div>
+            </div>
+        </div>
+        <div id="ed-total-lettres" style="margin-top:12px;font-size:12px;font-style:italic;color:#888;text-align:right"></div>
     </div>
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", function() {
-          navigator.serviceWorker.register("./sw.js")
-            .then(function(r) { console.log("[SW] enregistre:", r.scope); })
-            .catch(function(e) { console.warn("[SW] erreur:", e); });
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+// ÉTAT GLOBAL DAF (séparation stricte des données)
+// ─────────────────────────────────────────────────────────────────
+let _soldeFelana    = 0;   // Solde calculé : dotations − dépenses
+let _totalDotations = 0;   // Somme dotations reçues
+let _totalDepenses  = 0;   // Somme dépenses DAF
+let _chantiersList  = [];  // Cache chantiers
+let _rptCatChart    = null;
+let _rptMonthChart  = null;
+let _felanaCatChart = null;
+
+// ─────────────────────────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────────────────────────
+function showSection(name) {
+    document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
+    const el = document.getElementById('section-' + name);
+    if (el) el.style.display = 'block';
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    event?.currentTarget?.classList.add('active');
+
+    const loaders = {
+        'dashboard':          loadDashboard,
+        'depenses':           () => { loadDepensesDAF(); loadChantiersSelects(); updateSoldeRapide(); },
+        'journal-daf':        () => { loadJournalDAF(); loadChantiersSelects(); },
+        'credits-echeances':  loadCreditsDAF,
+        'budget-felana':      () => { loadBudgetFelana(); loadFelanaData(); },
+        'suivi-chantiers':    loadSuiviChantiers,
+        'devis':              loadDevisDAF,
+        'rapports-daf':       loadRapportsDAF,
+    };
+    if (loaders[name]) loaders[name]();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────
+function notify(msg, type = 'info') {
+    const n = document.createElement('div');
+    n.className = `notif notif-${type}`;
+    const icons = { success:'check-circle', error:'exclamation-circle', info:'info-circle', warning:'exclamation-triangle' };
+    n.innerHTML = `<i class="fas fa-${icons[type]||'info-circle'}"></i> ${msg}`;
+    document.body.appendChild(n);
+    setTimeout(() => n.style.opacity = '0', 3500);
+    setTimeout(() => n.remove(), 3800);
+}
+
+function fmt(n)  { if (n === null || n === undefined) return '—'; return Number(n).toLocaleString('fr-FR') + ' Ar'; }
+function fmtM(n) { if (!n) return '0 Ar'; if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(2)+' MAr'; return Number(n).toLocaleString('fr-FR')+' Ar'; }
+function esc(s)  { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function openModal(id)  { const m=document.getElementById(id); if(m){m.style.display='flex';} }
+function closeModal(id) { const m=document.getElementById(id); if(m){m.style.display='none';} }
+
+// ─────────────────────────────────────────────────────────────────
+// CHARGEMENT DES CHANTIERS
+// ─────────────────────────────────────────────────────────────────
+async function loadChantiersSelects() {
+    if (!_chantiersList.length) {
+        const { data } = await db.from('chantiers').select('id, nom').order('nom');
+        _chantiersList = data || [];
+    }
+    const opts = _chantiersList.map(c => `<option value="${c.id}">${esc(c.nom)}</option>`).join('');
+    const selIds = ['dep-chantier-select','dep-filter-chantier','jdaf-filter-chantier','felana-filter-chantier'];
+    selIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const isFilter = id.includes('filter');
+        el.innerHTML = (isFilter ? '<option value="">Tous</option>' : '<option value="">— Sélectionner —</option>') + opts;
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CALCUL SOLDE FELANA (données autorisées DAF seulement)
+// ─────────────────────────────────────────────────────────────────
+async function calculerSoldeFelana() {
+    try {
+        // Dotations : écritures de type dotation_felana créées par le CEO POUR le DAF
+        const { data: dotations } = await db
+            .from('journal_global')
+            .select('montant')
+            .eq('type_ecriture', 'dotation_felana')
+            .eq('visible_daf', true);  // Seules les dotations marquées visibles par le DAF
+
+        // Dépenses : écritures de type depense_daf créées par le DAF
+        const { data: depenses } = await db
+            .from('journal_global')
+            .select('montant')
+            .eq('type_ecriture', 'depense_daf');
+
+        _totalDotations = (dotations||[]).reduce((s,r) => s + (r.montant||0), 0);
+        _totalDepenses  = (depenses||[]).reduce((s,r)  => s + (r.montant||0), 0);
+        _soldeFelana    = _totalDotations - _totalDepenses;
+
+        return { solde: _soldeFelana, dotations: _totalDotations, depenses: _totalDepenses };
+    } catch(e) {
+        console.error('calculerSoldeFelana:', e);
+        return { solde: 0, dotations: 0, depenses: 0 };
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// VÉRIFICATION SOLDE AVANT DÉPENSE
+// ─────────────────────────────────────────────────────────────────
+function checkSoldeAvantDepense(montantStr) {
+    const montant  = parseFloat(montantStr) || 0;
+    const warning  = document.getElementById('dep-warning-solde');
+    const warnText = document.getElementById('dep-warning-text');
+    const btnSubmit = document.getElementById('btn-submit-depense');
+
+    if (montant > 0 && montant > _soldeFelana) {
+        const depassement = montant - _soldeFelana;
+        warnText.textContent = `⚠ Cette dépense (${fmt(montant)}) dépasse votre solde disponible (${fmt(_soldeFelana)}) de ${fmt(depassement)}. Demandez une dotation au CEO.`;
+        warning.style.display = 'flex';
+        // Avertissement mais ne bloque pas (le CEO peut avoir une dotation en cours)
+        btnSubmit.style.background = 'var(--gold)';
+        btnSubmit.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Enregistrer quand même';
+    } else {
+        warning.style.display = 'none';
+        btnSubmit.style.background = 'var(--orange)';
+        btnSubmit.innerHTML = '<i class="fas fa-save"></i> Enregistrer la Dépense';
+    }
+}
+
+async function updateSoldeRapide() {
+    await calculerSoldeFelana();
+    const el = document.getElementById('dep-solde-actuel');
+    if (el) {
+        el.textContent = fmt(_soldeFelana);
+        el.style.color = _soldeFelana >= 0 ? '#a5d6a7' : '#ef9a9a';
+    }
+    const elModal = document.getElementById('dep-solde-modal');
+    if (elModal) {
+        elModal.textContent = fmt(_soldeFelana);
+        elModal.style.color = _soldeFelana >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DASHBOARD DAF
+// ─────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+    // Solde Felana
+    const { solde, dotations, depenses } = await calculerSoldeFelana();
+
+    const elSolde = document.getElementById('db-solde-felana');
+    elSolde.textContent = fmt(solde);
+    elSolde.style.color = solde >= 0 ? '#a5d6a7' : '#ff8a80';
+
+    document.getElementById('db-total-dotations').textContent = fmt(dotations);
+    document.getElementById('db-total-depenses').textContent  = fmt(depenses);
+
+    // Crédits en attente
+    try {
+        const { data: credits } = await db.from('credits_fournisseurs').select('montant,date_echeance,statut').eq('statut','EN_COURS');
+        const creditsRows = credits || [];
+        const totalCredits = creditsRows.reduce((s,c) => s+(c.montant||0), 0);
+        document.getElementById('db-credits-attente').textContent = fmt(totalCredits);
+        document.getElementById('db-credits-en-cours').textContent = fmt(totalCredits);
+
+        // Badge navigation
+        const retards = creditsRows.filter(c => new Date(c.date_echeance) < new Date());
+        const badge = document.getElementById('credits-badge');
+        badge.textContent = retards.length;
+        badge.style.display = retards.length > 0 ? 'inline' : 'none';
+
+        // Preview crédits
+        const preview = document.getElementById('db-credits-preview');
+        if (!creditsRows.length) {
+            preview.innerHTML = '<div style="text-align:center;padding:20px;color:#adb5bd;font-size:13px"><i class="fas fa-check-circle" style="color:var(--green)"></i> Aucun crédit en attente</div>';
+        } else {
+            const today_dt = new Date();
+            preview.innerHTML = creditsRows.slice(0,4).map(c => {
+                const isRetard = new Date(c.date_echeance) < today_dt;
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px">
+                    <span style="color:${isRetard?'var(--red)':'var(--dark)'}">${c.date_echeance}</span>
+                    <span style="font-weight:700;color:var(--gold)">${fmt(c.montant)}</span>
+                    ${isRetard ? '<span class="badge badge-error">Retard</span>' : '<span class="badge badge-warning">En cours</span>'}
+                </div>`;
+            }).join('');
+            if (creditsRows.length > 4) preview.innerHTML += `<div style="text-align:center;font-size:12px;color:#adb5bd;padding-top:8px">+ ${creditsRows.length-4} autres</div>`;
+        }
+    } catch(e) {}
+
+    // Dépenses ce mois
+    const moisDebut = new Date(); moisDebut.setDate(1);
+    const moisDebutStr = moisDebut.toISOString().split('T')[0];
+    try {
+        const { data: depMois } = await db.from('journal_global').select('montant')
+            .eq('type_ecriture','depense_daf').gte('date_ecriture', moisDebutStr);
+        const totalMois = (depMois||[]).reduce((s,r) => s+(r.montant||0), 0);
+        document.getElementById('db-depenses-mois').textContent    = fmtM(totalMois);
+        document.getElementById('db-depenses-mois-nb').textContent = (depMois||[]).length + ' lignes';
+    } catch(e) {}
+
+    // Dernière dotation
+    try {
+        const { data: lastDot } = await db.from('journal_global').select('montant,date_ecriture')
+            .eq('type_ecriture','dotation_felana').eq('visible_daf',true)
+            .order('date_ecriture',{ascending:false}).limit(1);
+        if (lastDot && lastDot.length) {
+            document.getElementById('db-dotation-last').textContent      = fmtM(lastDot[0].montant);
+            document.getElementById('db-dotation-last-date').textContent = lastDot[0].date_ecriture;
+        }
+    } catch(e) {}
+
+    // Chantiers actifs
+    try {
+        const { data: chDep } = await db.from('journal_global').select('chantier_id').eq('type_ecriture','depense_daf').not('chantier_id','is',null);
+        const nbCh = new Set((chDep||[]).map(r=>r.chantier_id)).size;
+        document.getElementById('db-nb-chantiers').textContent = nbCh || '—';
+    } catch(e) {}
+
+    // Dépenses récentes
+    try {
+        const { data: recentes } = await db.from('journal_global')
+            .select('*, chantiers(nom)')
+            .eq('type_ecriture','depense_daf')
+            .order('date_ecriture',{ascending:false}).limit(5);
+        const el = document.getElementById('db-depenses-recentes');
+        if (!recentes || !recentes.length) {
+            el.innerHTML = '<div style="text-align:center;padding:20px;color:#adb5bd">Aucune dépense enregistrée</div>';
+        } else {
+            el.innerHTML = `<table>
+                <thead><tr><th>Date</th><th>Chantier</th><th>Désignation</th><th>Catégorie</th><th>Montant</th></tr></thead>
+                <tbody>${recentes.map(r=>`<tr>
+                    <td style="font-weight:600">${r.date_ecriture}</td>
+                    <td>${r.chantiers?.nom ? `<span class="badge badge-info">${esc(r.chantiers.nom)}</span>` : '<em style="color:#adb5bd">—</em>'}</td>
+                    <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.designation||'—')}</td>
+                    <td><span class="badge badge-orange">${esc(r.categorie||'—')}</span></td>
+                    <td style="color:var(--red);font-weight:700">− ${fmt(r.montant)}</td>
+                </tr>`).join('')}</tbody>
+            </table>`;
+        }
+    } catch(e) {}
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DÉPENSES DAF
+// ─────────────────────────────────────────────────────────────────
+async function loadDepensesDAF() {
+    const container = document.getElementById('depenses-table-container');
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+
+    const filterChantier  = document.getElementById('dep-filter-chantier')?.value || '';
+    const filterCategorie = document.getElementById('dep-filter-categorie')?.value || '';
+    const dateFrom        = document.getElementById('dep-date-from')?.value || '';
+    const dateTo          = document.getElementById('dep-date-to')?.value || '';
+
+    try {
+        let q = db.from('journal_global')
+            .select('*, chantiers(nom)')
+            .eq('type_ecriture', 'depense_daf')
+            .order('date_ecriture', { ascending: false })
+            .limit(500);
+
+        if (filterChantier)  q = q.eq('chantier_id', filterChantier);
+        if (filterCategorie) q = q.eq('categorie', filterCategorie);
+        if (dateFrom)        q = q.gte('date_ecriture', dateFrom);
+        if (dateTo)          q = q.lte('date_ecriture', dateTo);
+
+        const { data, error } = await q;
+        if (error) throw error;
+        const rows = data || [];
+
+        // KPIs
+        const total = rows.reduce((s,r) => s+(r.montant||0), 0);
+        await calculerSoldeFelana();
+
+        document.getElementById('dep-kpi-total').textContent = fmt(total);
+        document.getElementById('dep-kpi-nb').textContent    = rows.length + ' écritures';
+        document.getElementById('dep-kpi-solde').textContent = fmt(_soldeFelana);
+        document.getElementById('dep-kpi-solde').style.color = _soldeFelana >= 0 ? 'var(--green)' : 'var(--red)';
+
+        if (!rows.length) {
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-inbox fa-2x"></i><br><br>Aucune dépense pour ce filtre</div>';
+            return;
+        }
+
+        container.innerHTML = `<table>
+            <thead>
+                <tr><th>Date</th><th>Chantier</th><th>Désignation</th><th>Catégorie</th><th>Mode</th><th>Montant</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+                ${rows.map(r => `<tr>
+                    <td style="font-weight:600">${r.date_ecriture||'—'}</td>
+                    <td>${r.chantiers?.nom ? `<span class="badge badge-info">${esc(r.chantiers.nom)}</span>` : '<em style="color:#adb5bd">—</em>'}</td>
+                    <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.designation)}">${esc(r.designation||'—')}</td>
+                    <td><span class="badge badge-orange">${esc(r.categorie||'—')}</span></td>
+                    <td>${esc(r.mode_paiement||'—')}</td>
+                    <td style="color:var(--red);font-weight:700">− ${fmt(r.montant)}</td>
+                    <td>
+                        <button class="btn-small btn-secondary" onclick="deleteDepense(${r.id})" title="Supprimer"><i class="fas fa-trash" style="color:var(--red)"></i></button>
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table>`;
+    } catch(e) {
+        container.innerHTML = `<div style="color:var(--red);padding:20px">${e.message}</div>`;
+    }
+}
+
+async function submitNouvelleDepense(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const montant = parseFloat(fd.get('montant'));
+    if (!montant || montant <= 0) { notify('Montant invalide', 'error'); return false; }
+
+    // ── RÈGLE STRICTE : blocage dur si solde insuffisant (> 5% de dépassement)
+    if (montant > _soldeFelana) {
+        const pctDep = _soldeFelana > 0 ? ((montant - _soldeFelana) / _soldeFelana * 100) : 100;
+        if (pctDep > 5) {
+            notify('🚫 SOLDE INSUFFISANT — Votre solde disponible est ' + fmt(_soldeFelana) + '. Contactez le CEO pour une dotation.', 'error');
+            return false;
+        }
+        if (!confirm('⚠ Attention : cette dépense (' + fmt(montant) + ') dépasse légèrement votre solde (' + fmt(_soldeFelana) + '). Continuer ?')) return false;
+    }
+
+    const payload = {
+        type_ecriture: 'depense_daf',
+        date_ecriture: fd.get('date_ecriture'),
+        montant,
+        designation:   fd.get('designation'),
+        chantier_id:   parseInt(fd.get('chantier_id')) || null,
+        categorie:     fd.get('categorie'),
+        mode_paiement: fd.get('mode_paiement'),
+        reference:     fd.get('reference') || null,
+        saisi_par:     'DAF',
+        visible_daf:   true,
+        debit:         montant,
+        credit:        0,
+        statut:        'VALIDE',
+    };
+
+    try {
+        const { error } = await db.from('journal_global').insert(payload);
+        if (error) throw error;
+        closeModal('modal-nouvelle-depense');
+        e.target.reset();
+        // Reset warning
+        document.getElementById('dep-warning-solde').style.display = 'none';
+        document.getElementById('btn-submit-depense').style.background = 'var(--orange)';
+        document.getElementById('btn-submit-depense').innerHTML = '<i class="fas fa-save"></i> Enregistrer la Dépense';
+
+        notify('Dépense enregistrée ✓', 'success');
+        await calculerSoldeFelana();
+        updateSoldeRapide();
+        loadDepensesDAF();
+        loadDashboard();
+    } catch(err) {
+        notify('Erreur : ' + err.message, 'error');
+    }
+    return false;
+}
+
+async function deleteDepense(id) {
+    // SÉCURITÉ : la RLS Supabase ne permet pas au DAF de supprimer des lignes du journal.
+    // On annule l'écriture (statut ANNULE) plutôt que de supprimer, et on notifie le CEO.
+    if (!confirm('Annuler cette dépense ? Elle sera marquée ANNULÉE (non effacée définitivement).')) return;
+    const { error } = await db.from('journal_global')
+        .update({ statut: 'ANNULE' })
+        .eq('id', id)
+        .eq('type_ecriture', 'depense_daf')
+        .eq('saisi_par', 'DAF');  // Guard : ne peut annuler que ses propres écritures
+    if (error) {
+        notify('Impossible d\'annuler — contactez le CEO si nécessaire. (' + error.message + ')', 'error');
+        return;
+    }
+    notify('Dépense annulée ✓ (visible en statut ANNULÉ dans le journal)', 'info');
+    await calculerSoldeFelana();
+    loadDepensesDAF();
+}
+
+async function exportDepensesExcel() {
+    const { data } = await db.from('journal_global').select('*').eq('type_ecriture','depense_daf').order('date_ecriture',{ascending:false});
+    if (!data) return;
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'DEPENSES_DAF');
+    XLSX.writeFile(wb, `NYSOA_DEPENSES_DAF_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// JOURNAL DAF (vue filtrée — sans recettes ni budgets globaux)
+// ─────────────────────────────────────────────────────────────────
+async function loadJournalDAF() {
+    const container = document.getElementById('journal-daf-container');
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+
+    const filterType     = document.getElementById('jdaf-filter-type')?.value || '';
+    const filterChantier = document.getElementById('jdaf-filter-chantier')?.value || '';
+    const dateFrom       = document.getElementById('jdaf-date-from')?.value || '';
+    const dateTo         = document.getElementById('jdaf-date-to')?.value || '';
+
+    try {
+        // RÈGLE STRICTE : le DAF ne peut voir que dotation_felana (visible_daf=true) et depense_daf
+        // JAMAIS : recette, credit_fournisseur (enregistrement), ni les notes CEO
+        let q = db.from('journal_global')
+            .select('id, date_ecriture, type_ecriture, montant, designation, chantier_id, mode_paiement, categorie, saisi_par, chantiers(nom)')
+            .in('type_ecriture', ['dotation_felana', 'depense_daf', 'paiement_credit'])
+            .order('date_ecriture', { ascending: false })
+            .limit(500);
+
+        // Pour les dotations, ne montrer que celles marquées visible_daf=true
+        if (filterType === 'dotation_felana') {
+            q = db.from('journal_global')
+                .select('id, date_ecriture, type_ecriture, montant, designation, chantier_id, mode_paiement, saisi_par, chantiers(nom)')
+                .eq('type_ecriture', 'dotation_felana')
+                .eq('visible_daf', true)
+                .order('date_ecriture', { ascending: false })
+                .limit(500);
+        } else if (filterType) {
+            q = q.eq('type_ecriture', filterType);
+        }
+
+        if (filterChantier) q = q.eq('chantier_id', filterChantier);
+        if (dateFrom)       q = q.gte('date_ecriture', dateFrom);
+        if (dateTo)         q = q.lte('date_ecriture', dateTo);
+
+        const { data, error } = await q;
+        if (error) throw error;
+
+        // Double-protection client-side : filtrer les dotations non visibles DAF
+        // (la RLS Supabase le fait déjà côté serveur — ceci est une défense en profondeur)
+        const rows = (data || []).filter(r => {
+            if (r.type_ecriture === 'dotation_felana') return r.visible_daf === true;
+            if (r.type_ecriture === 'recette_client')  return false;  // JAMAIS visible DAF
+            if (r.type_ecriture === 'credit_fournisseur') return false;  // JAMAIS visible DAF
+            return true;
         });
-      }
-    </script>
+
+        if (!rows.length) {
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-inbox fa-2x"></i><br><br>Aucune écriture</div>';
+            return;
+        }
+
+        const typeLabels = {
+            dotation_felana: { label: 'Dotation CEO',     cls: 'badge-info',    sign: '+', color: 'var(--blue)' },
+            depense_daf:     { label: 'Dépense DAF',      cls: 'badge-error',   sign: '−', color: 'var(--red)' },
+            paiement_credit: { label: 'Décaiss. Crédit',  cls: 'badge-dark',    sign: '−', color: 'var(--gold)' },
+        };
+
+        container.innerHTML = `<table>
+            <thead>
+                <tr><th>Date</th><th>Type</th><th>Chantier</th><th>Désignation</th><th>Mode</th><th>Montant</th></tr>
+            </thead>
+            <tbody>
+                ${rows.map(r => {
+                    const t = typeLabels[r.type_ecriture] || { label: r.type_ecriture, cls:'badge-dark', sign:'', color:'#636e72' };
+                    return `<tr>
+                        <td style="font-weight:600">${r.date_ecriture||'—'}</td>
+                        <td><span class="badge ${t.cls}">${t.label}</span></td>
+                        <td>${r.chantiers?.nom ? `<span class="badge badge-info">${esc(r.chantiers.nom)}</span>` : '<em style="color:#adb5bd">—</em>'}</td>
+                        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.designation)}">${esc(r.designation||'—')}</td>
+                        <td>${esc(r.mode_paiement||'—')}</td>
+                        <td style="font-weight:700;color:${t.color}">${t.sign} ${fmt(r.montant)}</td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table>`;
+    } catch(e) {
+        container.innerHTML = `<div style="color:var(--red);padding:20px">${e.message}</div>`;
+    }
+}
+
+async function exportJournalDAFExcel() {
+    const { data } = await db.from('journal_global')
+        .select('date_ecriture, type_ecriture, montant, designation, mode_paiement, categorie')
+        .in('type_ecriture', ['dotation_felana','depense_daf','paiement_credit'])
+        .order('date_ecriture', { ascending: false });
+    if (!data) return;
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'JOURNAL_DAF');
+    XLSX.writeFile(wb, `NYSOA_JOURNAL_DAF_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CRÉDITS FOURNISSEURS — EXÉCUTION PAR LE DAF
+// ─────────────────────────────────────────────────────────────────
+async function loadCreditsDAF() {
+    const container = document.getElementById('credits-daf-container');
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+    const filter = document.getElementById('cred-daf-filter')?.value || '';
+
+    try {
+        let q = db.from('credits_fournisseurs')
+            .select('*, chantiers(nom)')
+            .order('date_echeance', { ascending: true })
+            .limit(300);
+        if (filter) q = q.eq('statut', filter);
+
+        const { data, error } = await q;
+        if (error) throw error;
+        const rows = data || [];
+        const today_dt = new Date();
+        const today_str = today_dt.toISOString().split('T')[0];
+
+        const enCours  = rows.filter(r => ['AUTORISE_DAF','EN_COURS','PARTIELLEMENT_PAYE'].includes(r.statut));
+        const enRetard = rows.filter(r => ['AUTORISE_DAF','EN_COURS','PARTIELLEMENT_PAYE'].includes(r.statut) && r.date_echeance && new Date(r.date_echeance) < today_dt);
+
+        // Soldés ce mois
+        const moisDebut = new Date(); moisDebut.setDate(1);
+        const soldesMois = rows.filter(r => r.statut === 'SOLDE' && r.date_soldee >= moisDebut.toISOString().split('T')[0]);
+
+        const sumMt = arr => arr.reduce((s,r) => s+(r.montant||0), 0);
+        document.getElementById('cred-daf-en-cours').textContent = fmt(sumMt(enCours));
+        document.getElementById('cred-daf-en-retard').textContent = enRetard.length + ' crédit(s)';
+        document.getElementById('cred-daf-soldes').textContent   = fmt(sumMt(soldesMois));
+
+        if (!rows.length) {
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-check-circle fa-2x" style="color:var(--green)"></i><br><br>Aucun crédit en attente de paiement</div>';
+            return;
+        }
+
+        container.innerHTML = `<table>
+            <thead>
+                <tr><th>Fournisseur</th><th>Désignation</th><th>Chantier</th><th>Échéance</th><th>Montant</th><th>Statut</th><th>Action DAF</th></tr>
+            </thead>
+            <tbody>
+                ${rows.map(r => {
+                    const isPending = ['AUTORISE_DAF','EN_COURS','PARTIELLEMENT_PAYE'].includes(r.statut);
+                    const isRetard  = isPending && r.date_echeance && new Date(r.date_echeance) < today_dt;
+                    const statusBadge = r.statut === 'SOLDE'
+                        ? '<span class="badge badge-success">Soldé</span>'
+                        : r.statut === 'AUTORISE_DAF'
+                            ? (isRetard ? '<span class="badge badge-error">⚠ En retard</span>' : '<span class="badge badge-info">✓ Autorisé</span>')
+                            : r.statut === 'PARTIELLEMENT_PAYE'
+                                ? '<span class="badge badge-warning">Part. payé</span>'
+                                : isRetard
+                                    ? '<span class="badge badge-error">⚠ En retard</span>'
+                                    : '<span class="badge badge-warning">À payer</span>';
+                    const rowClass = isRetard ? 'credit-row-retard' : 'credit-row-ok';
+                    return `<tr class="${rowClass}">
+                        <td style="font-weight:600">${esc(r.fournisseur||'—')}</td>
+                        <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.designation)}">${esc(r.designation||'—')}</td>
+                        <td>${r.chantiers?.nom ? `<span class="badge badge-info">${esc(r.chantiers.nom)}</span>` : '<em style="color:#adb5bd">—</em>'}</td>
+                        <td style="${isRetard?'color:var(--red);font-weight:700':''}">${r.date_echeance||'—'}</td>
+                        <td style="font-weight:700;color:var(--gold)">${fmt(r.montant)}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            ${['AUTORISE_DAF','EN_COURS','PARTIELLEMENT_PAYE'].includes(r.statut)
+                                ? `<button class="btn-small btn-gold" onclick="ouvrirDecaissement(${r.id})"><i class="fas fa-money-bill-wave"></i> Décaisser</button>`
+                                : `<span style="font-size:11px;color:#adb5bd">${r.date_soldee ? 'Payé le '+r.date_soldee : '—'}</span>`
+                            }
+                        </td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table>`;
+    } catch(e) {
+        container.innerHTML = `<div style="color:var(--red);padding:20px">${e.message}</div>`;
+    }
+}
+
+async function ouvrirDecaissement(creditId) {
+    const { data, error } = await db.from('credits_fournisseurs')
+        .select('*,chantiers(nom)')
+        .eq('id', creditId)
+        .in('statut', ['AUTORISE_DAF','EN_COURS','PARTIELLEMENT_PAYE'])  // DAF ne peut décaisser que les crédits autorisés
+        .single();
+    if (error || !data) {
+        notify('Crédit non trouvé ou non autorisé pour décaissement. Contactez le CEO.', 'error');
+        return;
+    }
+
+    // Recalculer le solde en temps réel avant d'ouvrir le modal
+    await calculerSoldeFelana();
+    const montantDu = data.montant_total || data.montant || 0;
+    const soldeOk = _soldeFelana >= montantDu;
+
+    document.getElementById('decaissement-info').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div><div style="font-size:11px;color:#636e72;font-weight:600">FOURNISSEUR</div><div style="font-size:14px;font-weight:700">${esc(data.fournisseur||'—')}</div></div>
+            <div><div style="font-size:11px;color:#636e72;font-weight:600">CHANTIER</div><div style="font-size:14px">${esc(data.chantiers?.nom||'—')}</div></div>
+            <div><div style="font-size:11px;color:#636e72;font-weight:600">DÉSIGNATION</div><div style="font-size:13px">${esc(data.designation||'—')}</div></div>
+            <div><div style="font-size:11px;color:#636e72;font-weight:600">MONTANT À PAYER</div><div style="font-size:16px;font-weight:700;color:var(--gold)">${fmt(data.montant)}</div></div>
+            <div><div style="font-size:11px;color:#636e72;font-weight:600">ÉCHÉANCE</div><div style="font-size:13px;color:${new Date(data.date_echeance)<new Date()?'var(--red)':'inherit'}">${data.date_echeance}</div></div>
+            <div><div style="font-size:11px;color:#636e72;font-weight:600">VOTRE SOLDE</div><div style="font-size:14px;font-weight:700;color:${soldeOk?'var(--green)':'var(--red)'}">${fmt(_soldeFelana)}</div></div>
+        </div>
+        ${!soldeOk ? `<div style="margin-top:12px;padding:10px;background:#ffebee;border-radius:8px;font-size:12px;color:#c62828"><i class="fas fa-exclamation-triangle"></i> <strong>Solde insuffisant.</strong> Contactez le CEO pour une dotation avant d'effectuer ce paiement.</div>` : ''}
+    `;
+
+    document.getElementById('decaiss-credit-id').value = creditId;
+    document.getElementById('decaiss-date').value      = today();
+    document.getElementById('decaiss-montant').value   = data.montant;
+    openModal('modal-decaissement-credit');
+}
+
+async function submitDecaissement(e) {
+    e.preventDefault();
+    const fd           = new FormData(e.target);
+    const creditId     = parseInt(document.getElementById('decaiss-credit-id').value);
+    const montantPaye  = parseFloat(fd.get('montant_paye'));
+    const datePaiement = fd.get('date_paiement');
+
+    if (!montantPaye || montantPaye <= 0) { notify('Montant invalide', 'error'); return false; }
+
+    // ── RÈGLE STRICTE : blocage dur si solde insuffisant
+    if (montantPaye > _soldeFelana) {
+        notify('🚫 SOLDE INSUFFISANT — Vous ne pouvez pas décaisser ' + fmt(montantPaye) +
+               '. Votre solde est ' + fmt(_soldeFelana) + '. Contactez le CEO.', 'error');
+        return false;
+    }
+
+    try {
+        // ── SÉCURITÉ : re-vérifier que le crédit est toujours AUTORISE_DAF avant de décaisser
+        const { data: credit, error: errFetch } = await db.from('credits_fournisseurs')
+            .select('*')
+            .eq('id', creditId)
+            .in('statut', ['AUTORISE_DAF','EN_COURS','PARTIELLEMENT_PAYE'])
+            .single();
+        if (errFetch || !credit) {
+            notify('Erreur : ce crédit n'est plus autorisé ou a déjà été soldé.', 'error');
+            return false;
+        }
+
+        // 1. Écrire la dépense dans le journal (visible_daf=TRUE → impacte le solde DAF)
+        const { data: journalRow, error: errD } = await db.from('journal_global').insert({
+            type_ecriture: 'paiement_credit',
+            date_ecriture: datePaiement,
+            montant:       montantPaye,
+            designation:   '[Décaissement Crédit] ' + (credit.fournisseur||'') + ' — ' + (credit.designation||''),
+            chantier_id:   credit.chantier_id || null,
+            mode_paiement: fd.get('mode_paiement'),
+            reference:     fd.get('reference_paiement') || null,
+            categorie:     'DECAISSEMENT_CREDIT',
+            saisi_par:     'DAF',
+            visible_daf:   true,
+            debit:         montantPaye,
+            credit:        0,
+            statut:        'VALIDE',
+        }).select('id').single();
+        if (errD) throw errD;
+
+        // 2. Marquer le crédit SOLDE avec traçabilité complète
+        const { error: errC } = await db.from('credits_fournisseurs').update({
+            statut:                 'SOLDE',
+            date_soldee:            datePaiement,
+            reference_paiement:     fd.get('reference_paiement') || null,
+            notes_paiement_daf:     fd.get('notes') || null,
+            decaisse_par:           'DAF',
+            journal_paiement_id:    journalRow?.id || null,
+        }).eq('id', creditId)
+          .in('statut', ['AUTORISE_DAF','EN_COURS','PARTIELLEMENT_PAYE']);  // Guard contre double-submit
+        if (errC) throw errC;
+
+        closeModal('modal-decaissement-credit');
+        e.target.reset();
+        notify('Décaissement enregistré ✓ — Crédit soldé', 'success');
+        await calculerSoldeFelana();
+        updateSoldeRapide();
+        loadCreditsDAF();
+        loadDashboard();
+    } catch (err) {
+        notify('Erreur : ' + err.message, 'error');
+    }
+    return false;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// BUDGET FELANA
+// ─────────────────────────────────────────────────────────────────
+async function loadFelanaData() {
+    const { solde, dotations, depenses } = await calculerSoldeFelana();
+
+    document.getElementById('felana-solde-principal').textContent = fmt(solde);
+    document.getElementById('felana-solde-principal').style.color = solde >= 0 ? '#a5d6a7' : '#ff8a80';
+    document.getElementById('felana-total-dot').textContent = fmt(dotations);
+    document.getElementById('felana-total-dep').textContent = fmt(depenses);
+    const taux = dotations > 0 ? ((depenses/dotations)*100).toFixed(1) : '0';
+    document.getElementById('felana-taux').textContent = taux + '%';
+
+    // Dotations reçues (liste)
+    const { data: dotList } = await db.from('journal_global')
+        .select('date_ecriture, montant, designation, chantiers(nom)')
+        .eq('type_ecriture','dotation_felana')
+        .eq('visible_daf', true)
+        .order('date_ecriture', { ascending: false })
+        .limit(20);
+
+    const el = document.getElementById('felana-dotations-list');
+    if (!dotList || !dotList.length) {
+        el.innerHTML = '<div style="text-align:center;padding:20px;color:#adb5bd;font-size:13px">Aucune dotation reçue</div>';
+    } else {
+        el.innerHTML = dotList.map(d => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0">
+                <div>
+                    <div style="font-size:13px;font-weight:600;color:var(--dark)">${d.date_ecriture}</div>
+                    <div style="font-size:12px;color:#636e72;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.designation||'Dotation')}</div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-size:14px;font-weight:700;color:var(--blue)">+ ${fmt(d.montant)}</div>
+                    ${d.chantiers?.nom ? `<span class="badge badge-info" style="font-size:10px">${esc(d.chantiers.nom)}</span>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Chart catégories
+    const { data: depCats } = await db.from('journal_global')
+        .select('categorie, montant')
+        .eq('type_ecriture','depense_daf');
+
+    const cats = {};
+    (depCats||[]).forEach(r => { const c = r.categorie||'Divers'; cats[c] = (cats[c]||0) + (r.montant||0); });
+
+    const ctx = document.getElementById('felana-chart-categories');
+    if (ctx && Object.keys(cats).length > 0) {
+        if (_felanaCatChart) _felanaCatChart.destroy();
+        _felanaCatChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(cats),
+                datasets: [{ data: Object.values(cats), backgroundColor: ['#E8631A','#0066cc','#10b981','#f59e0b','#ef4444','#9b59b6','#00b894','#fdcb6e','#74b9ff','#a29bfe'] }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'right', labels: { font: { size: 11 } } } } }
+        });
+    }
+}
+
+async function loadBudgetFelana() {
+    await loadChantiersSelects();
+    const tbody = document.getElementById('felana-table-body');
+    try {
+        let q = db.from('budget_felana').select('*, chantiers(nom)').order('annee',{ascending:false}).limit(200);
+        const filterVal = document.getElementById('felana-filter-chantier')?.value || '';
+        if (filterVal) q = q.eq('chantier_id', filterVal);
+
+        const { data, error } = await q;
+        if (error) throw error;
+        const list = data || [];
+
+        tbody.innerHTML = '';
+        if (!list.length) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px">Aucune ligne budgétaire</td></tr>';
+            return;
+        }
+        const posteLabels = { materiaux:'Matériaux', main_oeuvre:"Main-d'œuvre", equipements:'Équipements', divers:'Divers' };
+        list.forEach(r => {
+            const ecart = (r.montant_prevu||0) - (r.montant_reel||0);
+            const pct   = r.montant_prevu > 0 ? Math.min(100, ((r.montant_reel||0)/r.montant_prevu)*100) : 0;
+            const color = pct > 90 ? 'var(--red)' : pct > 70 ? 'var(--gold)' : 'var(--green)';
+            const statCls = { BROUILLON:'badge-dark', SOUMIS:'badge-warning', APPROUVE:'badge-success', ACTIF:'badge-success' }[r.statut] || 'badge-dark';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${esc(r.chantiers?.nom||'—')}</td>
+                <td>${posteLabels[r.poste]||r.poste}</td>
+                <td>${r.mois}/${r.annee}</td>
+                <td>${(r.montant_prevu||0).toLocaleString()}</td>
+                <td>${(r.montant_reel||0).toLocaleString()}</td>
+                <td style="color:${ecart<0?'var(--red)':'var(--green)'};font-weight:600">${ecart.toLocaleString()}</td>
+                <td>
+                    <div style="background:#f0f0f0;border-radius:10px;height:8px;width:80px;overflow:hidden;display:inline-block">
+                        <div style="width:${pct}%;background:${color};height:100%"></div>
+                    </div>
+                    <span style="font-size:11px;margin-left:4px;color:${color};font-weight:600">${pct.toFixed(0)}%</span>
+                </td>
+                <td><span class="badge ${statCls}">${r.statut||'BROUILLON'}</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="8" style="color:var(--red);padding:16px">${e.message}</td></tr>`;
+    }
+}
+
+async function exportFelanaExcel() {
+    const { data } = await db.from('budget_felana').select('*').order('annee',{ascending:false});
+    if (!data) return;
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'BUDGET_FELANA');
+    XLSX.writeFile(wb, `NYSOA_BUDGET_FELANA_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SUIVI PAR CHANTIER (Vue DAF — sans budgets globaux ni recettes)
+// ─────────────────────────────────────────────────────────────────
+async function loadSuiviChantiers() {
+    const container = document.getElementById('chantiers-suivi-container');
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+
+    try {
+        const { data: chantiers } = await db.from('chantiers').select('id, nom, statut').eq('actif', true).order('nom');
+        if (!chantiers || !chantiers.length) {
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd">Aucun chantier actif</div>';
+            return;
+        }
+
+        // Dotations par chantier (visibles DAF)
+        const { data: dotations } = await db.from('journal_global').select('chantier_id, montant').eq('type_ecriture','dotation_felana').eq('visible_daf',true);
+        // Dépenses par chantier
+        const { data: depenses } = await db.from('journal_global').select('chantier_id, montant').eq('type_ecriture','depense_daf');
+
+        const dotByChantier = {};
+        (dotations||[]).forEach(d => { if(d.chantier_id) dotByChantier[d.chantier_id] = (dotByChantier[d.chantier_id]||0) + (d.montant||0); });
+        const depByChantier = {};
+        (depenses||[]).forEach(d => { if(d.chantier_id) depByChantier[d.chantier_id] = (depByChantier[d.chantier_id]||0) + (d.montant||0); });
+
+        container.innerHTML = chantiers.map(ch => {
+            const dot   = dotByChantier[ch.id] || 0;
+            const dep   = depByChantier[ch.id] || 0;
+            const solde = dot - dep;
+            const pct   = dot > 0 ? Math.min(100, (dep/dot)*100) : 0;
+            const color = pct > 90 ? 'var(--red)' : pct > 70 ? 'var(--gold)' : 'var(--green)';
+            return `<div class="card" style="margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+                    <div>
+                        <strong style="font-size:15px">${esc(ch.nom)}</strong>
+                        <span class="badge badge-success" style="margin-left:8px">${esc(ch.statut||'—')}</span>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-size:12px;color:#636e72">Solde disponible</div>
+                        <div style="font-size:18px;font-weight:800;color:${solde>=0?'var(--green)':'var(--red)'}">${fmt(solde)}</div>
+                    </div>
+                </div>
+                <div class="progress-wrap"><div class="progress-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:#636e72;margin-top:6px">
+                    <span>Dotations reçues : <strong style="color:var(--blue)">${fmt(dot)}</strong></span>
+                    <span>Dépenses engagées : <strong style="color:var(--red)">${fmt(dep)}</strong></span>
+                    <strong style="color:${color}">${pct.toFixed(1)}% consommé</strong>
+                </div>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        container.innerHTML = `<div style="color:var(--red);padding:20px">${e.message}</div>`;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// RAPPORTS DAF
+// ─────────────────────────────────────────────────────────────────
+async function loadRapportsDAF() {
+    try {
+        const { data: depenses } = await db.from('journal_global').select('date_ecriture, montant, categorie, chantier_id, chantiers(nom)').eq('type_ecriture','depense_daf').limit(2000);
+        const { data: dotations } = await db.from('journal_global').select('chantier_id, montant, chantiers(nom)').eq('type_ecriture','dotation_felana').eq('visible_daf',true);
+
+        if (!depenses) return;
+
+        // Chart par catégorie
+        const cats = {};
+        depenses.forEach(r => { const c=r.categorie||'Divers'; cats[c]=(cats[c]||0)+(r.montant||0); });
+        const ctx1 = document.getElementById('rpt-cat-chart');
+        if (ctx1) {
+            if (_rptCatChart) _rptCatChart.destroy();
+            _rptCatChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(cats),
+                    datasets: [{ label:'Dépenses (Ar)', data: Object.values(cats), backgroundColor: '#E8631A' }]
+                },
+                options: { responsive:true, indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true}} }
+            });
+        }
+
+        // Chart mensuel
+        const months = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
+        const byMonth = new Array(12).fill(0);
+        depenses.forEach(r => { const m=r.date_ecriture?new Date(r.date_ecriture).getMonth():-1; if(m>=0) byMonth[m]+=(r.montant||0); });
+        const ctx2 = document.getElementById('rpt-monthly-chart');
+        if (ctx2) {
+            if (_rptMonthChart) _rptMonthChart.destroy();
+            _rptMonthChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{ label:'Dépenses mensuelles (Ar)', data: byMonth, borderColor:'#0066cc', backgroundColor:'rgba(0,102,204,0.1)', fill:true, tension:0.3 }]
+                },
+                options: { responsive:true, plugins:{legend:{display:true,position:'top'}}, scales:{y:{beginAtZero:true}} }
+            });
+        }
+
+        // Synthèse par chantier
+        const depByCh = {}, dotByCh = {};
+        depenses.forEach(r => { const n=r.chantiers?.nom||'Non affecté'; depByCh[n]=(depByCh[n]||0)+(r.montant||0); });
+        (dotations||[]).forEach(r => { const n=r.chantiers?.nom||'Général'; dotByCh[n]=(dotByCh[n]||0)+(r.montant||0); });
+
+        const allChantiers = [...new Set([...Object.keys(depByCh),...Object.keys(dotByCh)])];
+        const syntheseEl = document.getElementById('rpt-synthese-container');
+        syntheseEl.innerHTML = `<table>
+            <thead><tr><th>Chantier</th><th>Dotations reçues</th><th>Dépenses DAF</th><th>Solde restant</th><th>Consommation</th></tr></thead>
+            <tbody>
+                ${allChantiers.map(nom => {
+                    const dot = dotByCh[nom]||0, dep = depByCh[nom]||0, solde = dot-dep;
+                    const pct = dot>0 ? Math.min(100,(dep/dot)*100) : 0;
+                    const color = pct>90?'var(--red)':pct>70?'var(--gold)':'var(--green)';
+                    return `<tr>
+                        <td style="font-weight:600">${esc(nom)}</td>
+                        <td style="color:var(--blue);font-weight:600">${fmt(dot)}</td>
+                        <td style="color:var(--red)">${fmt(dep)}</td>
+                        <td style="color:${solde>=0?'var(--green)':'var(--red)'};font-weight:700">${fmt(solde)}</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <div style="flex:1;background:#f0f0f0;border-radius:6px;height:8px;overflow:hidden;min-width:80px">
+                                    <div style="width:${pct.toFixed(1)}%;background:${color};height:100%"></div>
+                                </div>
+                                <span style="font-size:12px;font-weight:700;color:${color};white-space:nowrap">${pct.toFixed(1)}%</span>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table>`;
+    } catch(e) {
+        notify('Erreur rapports: ' + e.message, 'error');
+    }
+}
+
+async function exportRapportExcel() {
+    const { data: dep } = await db.from('journal_global').select('date_ecriture,montant,designation,categorie,chantier_id').eq('type_ecriture','depense_daf');
+    const { data: dot } = await db.from('journal_global').select('date_ecriture,montant,designation,chantier_id').eq('type_ecriture','dotation_felana').eq('visible_daf',true);
+    const wb = XLSX.utils.book_new();
+    if (dep) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dep), 'DEPENSES');
+    if (dot) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dot), 'DOTATIONS');
+    XLSX.writeFile(wb, `NYSOA_RAPPORT_DAF_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DEVIS (reprise du code existant)
+// ─────────────────────────────────────────────────────────────────
+async function loadDevisDAF() {
+    const tbody = document.getElementById('devis-tbody-daf');
+    if (!tbody) return;
+    try {
+        const { data, error } = await db.from('devis').select('*').order('date_devis',{ascending:false}).limit(200);
+        if (error) throw error;
+        const rows = data || [];
+
+        // Stats
+        document.getElementById('d-stat-total').textContent    = rows.length;
+        document.getElementById('d-stat-acceptes').textContent = rows.filter(r=>r.statut==='ACCEPTE').length;
+        document.getElementById('d-stat-attente').textContent  = rows.filter(r=>r.statut==='SOUMIS'||r.statut==='ENVOYE').length;
+        document.getElementById('d-stat-refuses').textContent  = rows.filter(r=>r.statut==='REFUSE').length;
+
+        tbody.innerHTML = '';
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:30px">Aucun devis</td></tr>';
+            return;
+        }
+        rows.forEach(d => {
+            const statusCls = {BROUILLON:'badge-dark',SOUMIS:'badge-warning',APPROUVE:'badge-success',ENVOYE:'badge-info',ACCEPTE:'badge-success',REFUSE:'badge-error'}[d.statut]||'badge-dark';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-family:monospace;font-size:12px">${esc(d.numero||'—')}</td>
+                <td style="font-weight:600">${esc(d.client||'—')}</td>
+                <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.objet||d.projet||'—')}</td>
+                <td style="font-weight:600">${(d.montant_ht||d.total||0).toLocaleString()} Ar</td>
+                <td>${d.date_devis||'—'}</td>
+                <td><span class="badge ${statusCls}">${d.statut||'—'}</span></td>
+                <td style="white-space:nowrap">
+                    <button class="btn-small btn-secondary" onclick="ouvrirEditeurDevis(${d.id})" style="margin-right:4px"><i class="fas fa-edit"></i></button>
+                    <button class="btn-small btn-secondary" onclick="if(typeof imprimerDevis==='function')imprimerDevis(${d.id})"><i class="fas fa-print"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="color:var(--red);padding:16px">${e.message}</td></tr>`;
+    }
+}
+
+function filtrerDevisDAF(statut) {
+    const rows = document.querySelectorAll('#devis-tbody-daf tr');
+    rows.forEach(tr => {
+        if (!statut) { tr.style.display = ''; return; }
+        const badge = tr.querySelector('.badge');
+        tr.style.display = (badge && badge.textContent === statut) ? '' : 'none';
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CHANGEMENT MOT DE PASSE
+// ─────────────────────────────────────────────────────────────────
+async function changePassword(e) {
+    e.preventDefault();
+    const oldPwd = document.getElementById('mdp-actuel').value;
+    const newPwd = document.getElementById('mdp-nouveau').value;
+    const confirm1 = document.getElementById('mdp-confirm').value;
+    const result = document.getElementById('mdp-result');
+    if (newPwd !== confirm1) { result.innerHTML = '<span style="color:var(--red)">✗ Les mots de passe ne correspondent pas</span>'; return false; }
+    if (newPwd.length < 6)   { result.innerHTML = '<span style="color:var(--red)">✗ Minimum 6 caractères</span>'; return false; }
+    result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Vérification...';
+    const { data: { session } } = await db.auth.getSession();
+    if (!session?.user?.email) { result.innerHTML = '<span style="color:var(--red)">✗ Session introuvable</span>'; return false; }
+    const { error: re } = await db.auth.signInWithPassword({ email: session.user.email, password: oldPwd });
+    if (re) { result.innerHTML = '<span style="color:var(--red)">✗ Mot de passe actuel incorrect</span>'; return false; }
+    const { error } = await db.auth.updateUser({ password: newPwd });
+    if (error) { result.innerHTML = `<span style="color:var(--red)">✗ ${error.message}</span>`; return false; }
+    result.innerHTML = '<span style="color:var(--green)">✓ Mot de passe changé avec succès !</span>';
+    setTimeout(() => closeModal('modal-changement-mdp'), 2000);
+    return false;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+    const user = await checkAuthOrRedirect('daf');
+    if (!user) return;
+
+    document.getElementById('user-name').textContent = user.nom || 'DAF';
+    document.getElementById('current-date-header').textContent =
+        new Date().toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+    // Initialiser date du formulaire dépense
+    const depDateInput = document.getElementById('dep-date-input');
+    if (depDateInput) depDateInput.value = today();
+
+    // Charger chantiers et solde
+    await loadChantiersSelects();
+    await calculerSoldeFelana();
+
+    // Dashboard par défaut
+    loadDashboard();
+});
+
+// Gestion des clics nav
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.nav-item[onclick]').forEach(item => {
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+});
+</script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function() {
+      navigator.serviceWorker.register("./sw.js")
+        .then(function(r) { console.log("[SW] enregistré:", r.scope); })
+        .catch(function(e) { console.warn("[SW] erreur:", e); });
+    });
+  }
+</script>
 </body>
 </html>
-

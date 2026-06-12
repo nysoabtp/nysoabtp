@@ -142,20 +142,50 @@ CREATE TABLE IF NOT EXISTS evaluations (
 ALTER TABLE commandes ADD COLUMN IF NOT EXISTS montant NUMERIC(15,2) DEFAULT 0;
 
 -- 13. POLICIES RLS pour anon key (lecture seule sur toutes les tables)
+-- ERR-21 CORRIGÉ : suppression de la politique 'anon_select FOR SELECT USING (true)'
+-- sur les tables RH et financières sensibles.
+-- L'accès anon (public non authentifié) est désormais strictement interdit sur ces tables.
+-- Seules les tables non sensibles (chantiers, rapports publics) conservent un accès restreint.
+
 DO $$
 DECLARE
   tbl TEXT;
-  tables_list TEXT[] := ARRAY[
-    'chantiers','personnel','devis','pointage_attendance','journal',
-    'conges','salaires','contrats','commandes','mouvements_stock',
-    'gantt_taches','rapports_chantier','controles_inopines',
-    'budgets','prix_catalogue','credits_fournisseur','echeances_credit',
-    'stocks','besoins_stock','demandes_budget','avances_salaire',
-    'antoka','evaluations'
+  -- Tables sensibles : AUCUN accès anon autorisé
+  sensitive_tables TEXT[] := ARRAY[
+    'salaires','avances_salaire','antoka','conges','personnel',
+    'credits_fournisseur','echeances_credit','devis','contrats',
+    'demandes_budget','evaluations'
+  ];
+  -- Tables non sensibles : accès lecture seule pour les rôles authentifiés uniquement
+  non_sensitive_tables TEXT[] := ARRAY[
+    'chantiers','pointage_attendance','journal',
+    'commandes','mouvements_stock','gantt_taches','rapports_chantier',
+    'controles_inopines','budgets','prix_catalogue',
+    'stocks','besoins_stock'
   ];
 BEGIN
-  FOREACH tbl IN ARRAY tables_list LOOP
-    EXECUTE format('CREATE POLICY IF NOT EXISTS anon_select ON %I FOR SELECT USING (true)', tbl);
+  -- 1. Activer RLS sur toutes les tables et supprimer toute policy anon existante
+  FOREACH tbl IN ARRAY (sensitive_tables || non_sensitive_tables) LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+    -- Supprimer l'ancienne policy anon_select si elle existe
+    EXECUTE format('DROP POLICY IF EXISTS anon_select ON %I', tbl);
+  END LOOP;
+
+  -- 2. Tables sensibles : accès réservé aux rôles authentifiés explicites UNIQUEMENT
+  FOREACH tbl IN ARRAY sensitive_tables LOOP
+    EXECUTE format(
+      'CREATE POLICY authenticated_only_select ON %I FOR SELECT
+       USING (auth.jwt() IS NOT NULL)',
+      tbl
+    );
+  END LOOP;
+
+  -- 3. Tables non sensibles : lecture pour tout utilisateur authentifié (pas anon)
+  FOREACH tbl IN ARRAY non_sensitive_tables LOOP
+    EXECUTE format(
+      'CREATE POLICY authenticated_read ON %I FOR SELECT
+       USING (auth.role() = ''authenticated'')',
+      tbl
+    );
   END LOOP;
 END $$;

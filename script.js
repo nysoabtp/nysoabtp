@@ -448,7 +448,8 @@ async function loadPointageTable() {
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px">Chargement...</td></tr>';
 
-    const { data, error } = await db.from('pointage').select('*').order('date', { ascending: false }).limit(100);
+    // ERR-15 CORRIGÉ : lecture sur pointage_attendance (données brutes réelles) et non sur la synthèse hebdomadaire 'pointage'
+    const { data, error } = await db.from('pointage_attendance').select('*').order('date', { ascending: false }).limit(100);
     if (error) { console.error(error); tbody.innerHTML = ''; return; }
 
     tbody.innerHTML = '';
@@ -472,7 +473,8 @@ async function loadPointageTable() {
 
 async function deletePointageRow(id, btn) {
     if (!confirm('Supprimer ce pointage ?')) return;
-    const { error } = await db.from('pointage').delete().eq('id', id);
+    // ERR-15 CORRIGÉ : suppression dans pointage_attendance (table des pointages bruts)
+    const { error } = await db.from('pointage_attendance').delete().eq('id', id);
     if (error) { showNotification('Erreur', 'error'); return; }
     btn.closest('tr').remove();
     showNotification('Pointage supprimé', 'success');
@@ -1659,13 +1661,25 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Navigation vers admin ───────────────────────────────────────
-function goToAdmin() {
-    const currentUser = JSON.parse(localStorage.getItem('nysoa_current_user') || 'null');
-    if (!currentUser || currentUser.role !== 'admin') {
-        showNotification('Accès réservé aux administrateurs', 'error');
-        return;
+async function goToAdmin() {
+    // ERR-16 CORRIGÉ : contrôle d'accès basé sur la session Supabase réelle,
+    // non plus sur le localStorage client falsifiable.
+    try {
+        const { data: { session }, error } = await db.auth.getSession();
+        if (!session || error) {
+            showNotification('Session expirée — reconnectez-vous', 'error');
+            window.location.href = 'login.html';
+            return;
+        }
+        const role = session.user?.user_metadata?.role || '';
+        if (role !== 'admin') {
+            showNotification('Accès réservé aux administrateurs', 'error');
+            return;
+        }
+        window.location.href = 'admin.html';
+    } catch (e) {
+        showNotification('Erreur vérification session : ' + e.message, 'error');
     }
-    window.location.href = 'admin.html';
 }
 
 // ── Helpers pour rapports ────────────────────────────────────────

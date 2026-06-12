@@ -1,0 +1,1 @@
+SELECT create_user_direct('direct.test.095850254@nysoa.mg', 'chef123', 'chef', 'AMBATOMAINTY')::text;

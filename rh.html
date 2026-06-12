@@ -843,18 +843,48 @@
         }
 
         async function approveLeave(button) {
+            // ERR-19 CORRIGÉ : le RH ne peut plus approuver directement (auto-approbation).
+            // Il crée une demande dans la table 'validations' soumise à l'Admin.
+            // L'Admin seul peut passer conges.statut à 'approuve'.
             try {
                 const row = button.closest('tr');
-                const statusCell = row.querySelector('.status');
-                statusCell.className = 'status success';
-                statusCell.textContent = 'Approuvé';
                 const employe = row.dataset.employe;
-                const debut = row.dataset.debut;
-                if (employe && debut) {
-                    const { data: conges } = await db.from('conges').select('id').eq('employe_nom', employe).eq('date_debut', debut).limit(1);
-                    if (conges && conges.length) await db.from('conges').update({ statut: 'approuve' }).eq('id', conges[0].id);
+                const debut   = row.dataset.debut;
+
+                if (!employe || !debut) {
+                    showNotification('Données de congé manquantes', 'error');
+                    return;
                 }
-                showNotification('Congé approuvé!', 'success');
+
+                // Retrouver l'ID du congé
+                const { data: conges, error: errConge } = await db
+                    .from('conges').select('id').eq('employe_nom', employe).eq('date_debut', debut).limit(1);
+                if (errConge || !conges?.length) {
+                    showNotification('Congé introuvable', 'error');
+                    return;
+                }
+                const congeId = conges[0].id;
+
+                // Créer une entrée dans validations (circuit Admin)
+                const { error: errVal } = await db.from('validations').insert({
+                    type:          'approbation_conge',
+                    entite_id:     congeId,
+                    emetteur_role: 'rh',
+                    commentaire:   `Demande d'approbation congé — ${employe} à partir du ${debut}`,
+                    statut:        'EN_ATTENTE',
+                });
+                if (errVal) throw errVal;
+
+                // Mettre le congé en statut intermédiaire 'soumis_admin' (pas encore approuvé)
+                await db.from('conges').update({ statut: 'soumis_admin' }).eq('id', congeId);
+
+                // Mise à jour visuelle UI
+                const statusCell = row.querySelector('.status');
+                if (statusCell) {
+                    statusCell.className = 'status warning';
+                    statusCell.textContent = 'En attente Admin';
+                }
+                showNotification('Demande transmise à l'Admin pour approbation ✓', 'info');
             } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
         }
 
@@ -922,15 +952,53 @@
         }
 
         async function submitFormation(e) {
+            // ERR-20 CORRIGÉ : persistance dans la table Supabase 'formations'
+            // (et non plus exclusivement dans le localStorage du navigateur).
             e.preventDefault();
             const fd = new FormData(e.target);
-            const formations = JSON.parse(localStorage.getItem('nysoa_formations') || '[]');
-            formations.unshift({ formation: fd.get('formation'), participants: fd.get('participants'), date: fd.get('date'), duree: fd.get('duree'), formateur: fd.get('formateur'), statut: 'Planifiée' });
-            localStorage.setItem('nysoa_formations', JSON.stringify(formations));
-            closeModal('modal-formation');
-            e.target.reset();
-            showNotification('Formation planifiée ✓', 'success');
-            loadFormationsLocales();
+            try {
+                const { error } = await db.from('formations').insert({
+                    formation:    fd.get('formation'),
+                    participants: fd.get('participants') || null,
+                    date:         fd.get('date')         || null,
+                    duree:        fd.get('duree')        || null,
+                    formateur:    fd.get('formateur')    || null,
+                    statut:       'Planifiée',
+                });
+                if (error) throw error;
+                closeModal('modal-formation');
+                e.target.reset();
+                showNotification('Formation planifiée ✓', 'success');
+                loadFormationsSupabase();
+            } catch(err) {
+                showNotification('Erreur enregistrement formation : ' + err.message, 'error');
+            }
+        }
+
+        async function loadFormationsSupabase() {
+            // Charge les formations depuis Supabase (remplace loadFormationsLocales pour les nouvelles entrées)
+            const tbody = document.querySelector('#formations .table tbody, #formations tbody');
+            if (!tbody) return;
+            try {
+                const { data, error } = await db.from('formations')
+                    .select('*').order('date', { ascending: false }).limit(100);
+                if (error) throw error;
+                const rows = data || [];
+                if (!rows.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#adb5bd">Aucune formation</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = rows.map(f => `<tr>
+                    <td>${esc(f.formation||'—')}</td>
+                    <td>${esc(f.participants||'—')}</td>
+                    <td>${esc(f.formateur||'—')}</td>
+                    <td>${esc(f.date||'—')}</td>
+                    <td>${esc(f.duree||'—')}</td>
+                    <td><span class="status success">${esc(f.statut||'Planifiée')}</span></td>
+                </tr>`).join('');
+            } catch(err) {
+                tbody.innerHTML = `<tr><td colspan="6" style="color:#ef4444;text-align:center;padding:20px">${err.message}</td></tr>`;
+            }
         }
 
         function loadOffresLocales() {
@@ -1016,31 +1084,84 @@
         }
 
         async function genererFichesPaie() {
+            // ERR-17 CORRIGÉ : le net_a_payer sauvegardé en base déduit CNaPS (1%),
+            //   OSTIE (0.5%), les avances (avance_1 + avance_2) et les retenues
+            //   — cohérence comptable entre l'affichage PDF et la base Supabase.
+            // ERR-18 CORRIGÉ : employés sans pointage reçoivent nb_jours = 0
+            //   (et donc net_a_payer = 0) — plus de paiement fictif de 22 jours.
             showNotification('Génération des fiches de paie...', 'info');
             try {
-                const { data: personnel } = await db.from('personnel').select('*').eq('actif', true);
-                const { data: pointages } = await db.from('pointage_attendance').select('nom_employe, date, statut');
-                if (!personnel || !personnel.length) { showNotification('Aucun employé actif', 'error'); return; }
-                const mois = new Date().getMonth() + 1;
+                const mois  = new Date().getMonth() + 1;
                 const annee = new Date().getFullYear();
-                let count = 0; let totalNet = 0;
+                const moisDebut = `${annee}-${String(mois).padStart(2,'0')}-01`;
+                const moisFin   = `${annee}-${String(mois).padStart(2,'0')}-31`;
+
+                const [
+                    { data: personnel },
+                    { data: pointages },
+                    { data: avances },
+                ] = await Promise.all([
+                    db.from('personnel').select('*').eq('actif', true),
+                    db.from('pointage_attendance')
+                        .select('nom_employe, date, statut')
+                        .gte('date', moisDebut).lte('date', moisFin),
+                    db.from('avances_salaire')
+                        .select('employe_nom, avance_1, avance_2')
+                        .eq('mois', mois).eq('annee', annee),
+                ]);
+
+                if (!personnel || !personnel.length) {
+                    showNotification('Aucun employé actif', 'error');
+                    return;
+                }
+
+                const avancesMap = {};
+                (avances || []).forEach(a => {
+                    avancesMap[a.employe_nom] = (parseFloat(a.avance_1) || 0) + (parseFloat(a.avance_2) || 0);
+                });
+
+                const TAUX_CNAPS = 0.01;   // 1%  salarié
+                const TAUX_OSTIE = 0.005;  // 0.5% salarié
+
+                let count = 0;
+                let totalNet = 0;
+
                 for (const emp of personnel) {
-                    const empJours = new Set((pointages || [])
-                        .filter(p => p.nom_employe === emp.nom && new Date(p.date).getMonth() + 1 === mois && new Date(p.date).getFullYear() === annee)
-                        .map(p => p.date));
-                    const nbJours = empJours.size || 22; // 22 jours par défaut si pas de pointage
-                    const salaire = (emp.salaire_journalier || 0) * nbJours;
-                    totalNet += salaire;
+                    // ERR-18 : seuls les jours effectivement pointés comptent — défaut 0, pas 22
+                    const joursPresents = new Set(
+                        (pointages || [])
+                            .filter(p => p.nom_employe === emp.nom)
+                            .map(p => p.date)
+                    );
+                    const nbJours = joursPresents.size; // 0 si aucun pointage ce mois
+
+                    const salaireBrut  = (emp.salaire_journalier || 0) * nbJours;
+                    const cotisationCnaps = Math.round(salaireBrut * TAUX_CNAPS);
+                    const cotisationOstie = Math.round(salaireBrut * TAUX_OSTIE);
+                    const totalAvances    = avancesMap[emp.nom] || 0;
+                    // ERR-17 : net_a_payer = brut - charges - avances
+                    const netAPayer = Math.max(0, salaireBrut - cotisationCnaps - cotisationOstie - totalAvances);
+
+                    totalNet += netAPayer;
+
                     const { error } = await db.from('salaires').insert({
-                        employe_nom: emp.nom, employe_id: emp.id,
-                        mois, annee, nb_jours: nbJours, salaire_base: emp.salaire_journalier || 0,
-                        salaire_mensuel: salaire, net_a_payer: salaire, statut: 'calcule'
+                        employe_nom:     emp.nom,
+                        employe_id:      emp.id,
+                        mois,
+                        annee,
+                        nb_jours:        nbJours,
+                        salaire_base:    emp.salaire_journalier || 0,
+                        salaire_mensuel: salaireBrut,
+                        net_a_payer:     netAPayer,   // ← valeur nette réelle, non le brut
+                        statut:          'calcule',
                     });
                     if (!error) count++;
                 }
+
                 document.getElementById('paie-stat-fiches').textContent = count;
                 document.getElementById('paie-stat-netcumul').textContent = formatAriary(totalNet);
-                document.getElementById('paie-mois-label').textContent = new Date().toLocaleString('fr-FR',{month:'long',year:'numeric'});
+                document.getElementById('paie-mois-label').textContent =
+                    new Date().toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
                 raffraichirTablePaie();
                 showNotification(`${count} fiches générées ✓`, 'success');
             } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }

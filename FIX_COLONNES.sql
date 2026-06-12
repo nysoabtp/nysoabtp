@@ -3,7 +3,15 @@
 -- Execute APRES SUPABASE_SETUP.sql (ou seul si les tables existent)
 -- ============================================================
 
--- 1. Ajouter la colonne 'date' dans journal (alias de date_ecriture)
+-- ERR-22 CORRIGÉ : le correctif précédent n'agissait que sur l'ancienne table 'journal'
+-- sans résoudre le crash admin (ERR-06) causé par l'appel à la colonne 'date' absente
+-- sur 'journal_global'. Le correctif ci-dessous s'applique sur journal_global.
+
+-- 0. S'assurer que journal_global.date_ecriture existe (colonne canonique V2)
+ALTER TABLE journal_global ADD COLUMN IF NOT EXISTS date_ecriture DATE;
+UPDATE journal_global SET date_ecriture = created_at::date WHERE date_ecriture IS NULL AND created_at IS NOT NULL;
+
+-- 1. (Conservé pour compatibilité ascendante) alias 'date' dans l'ancienne table journal
 ALTER TABLE journal ADD COLUMN IF NOT EXISTS date DATE;
 UPDATE journal SET date = date_ecriture WHERE date IS NULL AND date_ecriture IS NOT NULL;
 

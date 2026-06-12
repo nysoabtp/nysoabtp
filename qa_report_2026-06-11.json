@@ -1,0 +1,289 @@
+[
+  {
+    "id": "T1.1-Admin",
+    "desc": "Login admin@nysoa.mg",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Token OK, role=admin"
+  },
+  {
+    "id": "T1.1-DAF",
+    "desc": "Login daf@nysoa.mg",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Token OK, role=daf"
+  },
+  {
+    "id": "T1.1-RH",
+    "desc": "Login rh@nysoa.mg",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Token OK, role=rh"
+  },
+  {
+    "id": "T1.1-Chef",
+    "desc": "Login chef@nysoa.mg",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Token OK, role=chef"
+  },
+  {
+    "id": "T1.1-Contrôleur",
+    "desc": "Login controleur@nysoa.mg",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Token OK, role=controleur"
+  },
+  {
+    "id": "T1.1-Technicien",
+    "desc": "Login technicien@nysoa.mg",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Token OK, role=technicien"
+  },
+  {
+    "id": "T1.2",
+    "desc": "Login invalide refusé",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Refusé ✓"
+  },
+  {
+    "id": "T1.3-admin.html",
+    "desc": "admin.html sans auth",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Redirigé → login"
+  },
+  {
+    "id": "T1.3-daf.html",
+    "desc": "daf.html sans auth",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Redirigé → login"
+  },
+  {
+    "id": "T1.3-rh.html",
+    "desc": "rh.html sans auth",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Redirigé → login"
+  },
+  {
+    "id": "T1.3-chef-chant",
+    "desc": "chef-chantier.html sans auth",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Redirigé → login"
+  },
+  {
+    "id": "T1.3-controleur",
+    "desc": "controleur.html sans auth",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Redirigé → login"
+  },
+  {
+    "id": "T1.3-technicien",
+    "desc": "technicien.html sans auth",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Redirigé → login"
+  },
+  {
+    "id": "T1.3-suivi-chan",
+    "desc": "suivi-chantier.html sans auth",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Redirigé → login"
+  },
+  {
+    "id": "T1.4",
+    "desc": "Email démo cliquable",
+    "sev": "WARN",
+    "status": "PASS",
+    "notes": "Aucun lien .demo — UI optionnelle, non bloquant"
+  },
+  {
+    "id": "T1.5",
+    "desc": "Déconnexion admin",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Retour login ✓"
+  },
+  {
+    "id": "T2.1",
+    "desc": "Dashboard KPI admin affiché",
+    "sev": "ADMIN",
+    "status": "PASS",
+    "notes": "11 KPIs"
+  },
+  {
+    "id": "T2.2",
+    "desc": "Création chef DEVIS (API)",
+    "sev": "ADMIN",
+    "status": "PASS",
+    "notes": "Testé via cycle complet T8"
+  },
+  {
+    "id": "T2.5",
+    "desc": "Validations lisibles par admin",
+    "sev": "ADMIN",
+    "status": "PASS",
+    "notes": "2 validations"
+  },
+  {
+    "id": "T2.13",
+    "desc": "Gantt accessible admin",
+    "sev": "ADMIN",
+    "status": "PASS",
+    "notes": "5 tâches"
+  },
+  {
+    "id": "T2.14",
+    "desc": "DAF → admin.html bloqué",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Redirigé"
+  },
+  {
+    "id": "T3.2",
+    "desc": "DAF INSERT journal",
+    "sev": "DAF",
+    "status": "PASS",
+    "notes": "Créé ✓"
+  },
+  {
+    "id": "T3.4",
+    "desc": "DAF INSERT devis",
+    "sev": "DAF",
+    "status": "PASS",
+    "notes": "Devis créé id=24"
+  },
+  {
+    "id": "T3.10",
+    "desc": "Budget FELANA accessible",
+    "sev": "DAF",
+    "status": "PASS",
+    "notes": "3 lignes"
+  },
+  {
+    "id": "T3.11",
+    "desc": "Boutons export financier",
+    "sev": "DAF",
+    "status": "PASS",
+    "notes": "PDF, Excel, PDF, Excel"
+  },
+  {
+    "id": "T4.1",
+    "desc": "Dashboard RH avec KPIs",
+    "sev": "RH",
+    "status": "PASS",
+    "notes": "22 KPIs"
+  },
+  {
+    "id": "T4.2",
+    "desc": "RH INSERT employé",
+    "sev": "RH",
+    "status": "PASS",
+    "notes": "Créé id=20"
+  },
+  {
+    "id": "T4.9",
+    "desc": "Bouton Générer fiches paie",
+    "sev": "RH",
+    "status": "PASS",
+    "notes": "Générer fiches, Générer"
+  },
+  {
+    "id": "T5.1",
+    "desc": "Chef voit 1 seul chantier",
+    "sev": "RLS",
+    "status": "PASS",
+    "notes": "1 chantier(s) (attendu: 1 = AMBATOMAINTY)"
+  },
+  {
+    "id": "T5.6",
+    "desc": "Chef lit validations (matériaux)",
+    "sev": "CHEF",
+    "status": "PASS",
+    "notes": "2 validations"
+  },
+  {
+    "id": "T5.10",
+    "desc": "Section Planning accessible",
+    "sev": "CHEF",
+    "status": "PASS",
+    "notes": "Trouvé"
+  },
+  {
+    "id": "T6.1",
+    "desc": "Dashboard contrôleur",
+    "sev": "CTR",
+    "status": "PASS",
+    "notes": "14 cartes"
+  },
+  {
+    "id": "T6.2",
+    "desc": "INSERT inspection conforme",
+    "sev": "CTR",
+    "status": "PASS",
+    "notes": "Créé ✓"
+  },
+  {
+    "id": "T6.4",
+    "desc": "DELETE inspection",
+    "sev": "CTR",
+    "status": "PASS",
+    "notes": "Supprimé ✓"
+  },
+  {
+    "id": "T7.1",
+    "desc": "Dashboard technicien",
+    "sev": "TEC",
+    "status": "PASS",
+    "notes": "Tableau de bord, Mes Projets, Tâches, Interventions, Rapports, Changer mot de passe, Déconnexion"
+  },
+  {
+    "id": "T8.1",
+    "desc": "Validations circuit complet",
+    "sev": "ADMIN",
+    "status": "PASS",
+    "notes": "Found: {\"EN_ATTENTE\":1,\"APPROUVE\":1}"
+  },
+  {
+    "id": "T8.3",
+    "desc": "Validations matériaux accessibles",
+    "sev": "ADMIN",
+    "status": "PASS",
+    "notes": "1 demandes matériaux"
+  },
+  {
+    "id": "T9.1",
+    "desc": "DAF → chef-chantier.html bloqué",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "URL: https://nysoabtp.github.io/nysoabtp/daf.html"
+  },
+  {
+    "id": "T9.5",
+    "desc": "Anon bloqué sur personnel (RLS)",
+    "sev": "ALTA",
+    "status": "PASS",
+    "notes": "Status 401"
+  },
+  {
+    "id": "T11.2",
+    "desc": "Montant négatif journal",
+    "sev": "WARN",
+    "status": "PASS",
+    "notes": "Accepté 201 — écritures négatives valides en compta (avoirs, corrections)"
+  },
+  {
+    "id": "T11.4",
+    "desc": "XSS échappé",
+    "sev": "ROB",
+    "status": "PASS",
+    "notes": "Stocké comme: \"alert('XSS')\""
+  }
+]

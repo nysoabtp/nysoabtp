@@ -241,6 +241,21 @@
                 <i class="fas fa-tasks"></i><span>Avancement Gantt</span>
             </a>
             <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0">
+            <!-- ═══ FINANCES CEO EXCLUSIF ═══ -->
+            <div style="font-size:10px;color:rgba(255,255,255,0.4);padding:4px 16px;text-transform:uppercase;letter-spacing:1px">CEO · Finances</div>
+            <a class="nav-item" onclick="showSection('journal-global')" style="border-left:3px solid #f59e0b">
+                <i class="fas fa-book" style="color:#f59e0b"></i><span style="color:#fbbf24">Journal Comptable</span>
+            </a>
+            <a class="nav-item" onclick="showSection('budgets-ceo')" style="border-left:3px solid #f59e0b">
+                <i class="fas fa-coins" style="color:#f59e0b"></i><span style="color:#fbbf24">Budgets &amp; Dotations</span>
+            </a>
+            <a class="nav-item" onclick="showSection('recettes-ceo')" style="border-left:3px solid #f59e0b">
+                <i class="fas fa-hand-holding-usd" style="color:#f59e0b"></i><span style="color:#fbbf24">Recettes Clients</span>
+            </a>
+            <a class="nav-item" onclick="showSection('credits-fournisseurs')" style="border-left:3px solid #f59e0b">
+                <i class="fas fa-file-contract" style="color:#f59e0b"></i><span style="color:#fbbf24">Crédits Fournisseurs</span>
+            </a>
+            <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0">
             <a class="nav-item" href="index.html">
                 <i class="fas fa-home"></i><span>Accueil appli</span>
             </a>
@@ -864,15 +879,444 @@
     </main>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     SECTIONS FINANCIÈRES CEO — AJOUTÉES (GOUVERNANCE STRICTE)
+═══════════════════════════════════════════════════════════════ -->
+
+<!-- SECTION : JOURNAL COMPTABLE GLOBAL -->
 <script>
+// Injection dynamique des sections CEO dans le main au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    const main = document.querySelector('.main');
+    if (!main) return;
+
+    // ── Section Journal Comptable Global ─────────────────────────
+    const secJournal = document.createElement('div');
+    secJournal.id = 'section-journal-global';
+    secJournal.style.display = 'none';
+    secJournal.innerHTML = `
+        <div class="page-header">
+            <h1><i class="fas fa-book" style="color:var(--orange);margin-right:10px"></i>Journal Comptable Global</h1>
+            <p><span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700"><i class="fas fa-lock"></i> CEO EXCLUSIF</span> &nbsp; Vision complète de tous les flux financiers</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+            <div class="stat-box" style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div style="font-size:11px;font-weight:700;color:#636e72;text-transform:uppercase;margin-bottom:6px">Total Recettes</div>
+                <div style="font-size:22px;font-weight:800;color:#10b981" id="jg-stat-recettes">—</div>
+            </div>
+            <div class="stat-box" style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div style="font-size:11px;font-weight:700;color:#636e72;text-transform:uppercase;margin-bottom:6px">Total Dépenses</div>
+                <div style="font-size:22px;font-weight:800;color:#ef4444" id="jg-stat-depenses">—</div>
+            </div>
+            <div class="stat-box" style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div style="font-size:11px;font-weight:700;color:#636e72;text-transform:uppercase;margin-bottom:6px">Bénéfice Net</div>
+                <div style="font-size:22px;font-weight:800;color:#0066cc" id="jg-stat-benefice">—</div>
+            </div>
+            <div class="stat-box" style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div style="font-size:11px;font-weight:700;color:#636e72;text-transform:uppercase;margin-bottom:6px">Crédits Fournisseurs</div>
+                <div style="font-size:22px;font-weight:800;color:#f59e0b" id="jg-stat-credits">—</div>
+            </div>
+        </div>
+
+        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden">
+            <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <strong style="font-size:14px">Journal Global</strong>
+                <select id="jg-filter-type" onchange="loadJournalGlobal()" style="padding:6px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px">
+                    <option value="">Tous les types</option>
+                    <option value="recette_client">Recettes Clients</option>
+                    <option value="dotation_felana">Dotations DAF (FELANA)</option>
+                    <option value="depense_daf">Dépenses DAF</option>
+                    <option value="credit_fournisseur">Crédits Fournisseurs</option>
+                    <option value="paiement_credit">Paiements Crédits</option>
+                </select>
+                <select id="jg-filter-chantier" onchange="loadJournalGlobal()" style="padding:6px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px">
+                    <option value="">Tous les chantiers</option>
+                </select>
+                <input type="month" id="jg-filter-mois" onchange="loadJournalGlobal()" style="padding:6px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px">
+                <button class="btn btn-secondary" onclick="exportJournalGlobal()" style="margin-left:auto"><i class="fas fa-file-excel"></i> Exporter</button>
+            </div>
+            <div style="overflow-x:auto">
+                <table class="table" style="margin:0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Chantier</th>
+                            <th>Désignation</th>
+                            <th style="text-align:right">Débit</th>
+                            <th style="text-align:right">Crédit</th>
+                            <th>Mode</th>
+                            <th>Saisie par</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jg-table-body">
+                        <tr><td colspan="9" style="text-align:center;padding:40px;color:#adb5bd">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    main.appendChild(secJournal);
+
+    // ── Section Budgets & Dotations CEO ──────────────────────────
+    const secBudgets = document.createElement('div');
+    secBudgets.id = 'section-budgets-ceo';
+    secBudgets.style.display = 'none';
+    secBudgets.innerHTML = `
+        <div class="page-header">
+            <h1><i class="fas fa-coins" style="color:var(--orange);margin-right:10px"></i>Budgets &amp; Dotations</h1>
+            <p><span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700"><i class="fas fa-lock"></i> CEO EXCLUSIF</span> &nbsp; Définition des budgets globaux + injections DAF</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+            <!-- Budgets chantiers -->
+            <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden">
+                <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between">
+                    <strong>Budgets Globaux par Chantier</strong>
+                    <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="openModalCEO('modal-budget-global')">
+                        <i class="fas fa-plus"></i> Nouveau Budget
+                    </button>
+                </div>
+                <div id="budgets-list" style="padding:4px 0;max-height:420px;overflow-y:auto">
+                    <div style="text-align:center;padding:30px;color:#adb5bd">Chargement...</div>
+                </div>
+            </div>
+
+            <!-- Dotations FELANA -->
+            <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden">
+                <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between">
+                    <strong>Dotations FELANA (Injections DAF)</strong>
+                    <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;background:#f59e0b;border-color:#f59e0b" onclick="openModalCEO('modal-dotation-felana')">
+                        <i class="fas fa-paper-plane"></i> Injecter Dotation
+                    </button>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="table" style="margin:0;font-size:13px">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Chantier</th>
+                                <th>Motif</th>
+                                <th style="text-align:right">Montant</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dotations-table-body">
+                            <tr><td colspan="5" style="text-align:center;padding:30px;color:#adb5bd">Chargement...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Budget Global -->
+        <div id="modal-budget-global" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center">
+            <div style="background:white;border-radius:16px;padding:28px;width:480px;max-width:95vw">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                    <h3 style="font-size:16px;font-weight:700"><i class="fas fa-coins" style="color:#f59e0b;margin-right:8px"></i>Définir Budget Global</h3>
+                    <button onclick="closeModalCEO('modal-budget-global')" style="background:none;border:none;font-size:1.4rem;cursor:pointer">&times;</button>
+                </div>
+                <form id="form-budget-global" onsubmit="submitBudgetGlobal(event)">
+                    <input type="hidden" name="id">
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Chantier *</label>
+                        <select name="chantier_id" class="form-input" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                            <option value="">— Sélectionner un chantier —</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Budget Global (Ar) *</label>
+                        <input type="number" name="montant_global" min="0" step="any" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Description</label>
+                        <input type="text" name="description" placeholder="Ex: Budget initial chantier 2026" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px">
+                    </div>
+                    <div style="display:flex;gap:10px;margin-top:20px">
+                        <button type="button" onclick="closeModalCEO('modal-budget-global')" style="flex:1;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;background:white;cursor:pointer;font-size:14px">Annuler</button>
+                        <button type="submit" style="flex:2;padding:10px;background:#1C2B3A;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600"><i class="fas fa-save"></i> Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Dotation FELANA -->
+        <div id="modal-dotation-felana" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center">
+            <div style="background:white;border-radius:16px;padding:28px;width:480px;max-width:95vw">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                    <h3 style="font-size:16px;font-weight:700"><i class="fas fa-paper-plane" style="color:#f59e0b;margin-right:8px"></i>Injecter une Dotation DAF</h3>
+                    <button onclick="closeModalCEO('modal-dotation-felana')" style="background:none;border:none;font-size:1.4rem;cursor:pointer">&times;</button>
+                </div>
+                <div style="background:#fff8e1;border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#92400e">
+                    <i class="fas fa-info-circle"></i> Cette dotation sera visible par le DAF comme "solde disponible" dans FELANA.
+                </div>
+                <form id="form-dotation-felana" onsubmit="submitDotationFelana(event)">
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Chantier *</label>
+                        <select name="chantier_id" class="form-input" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                            <option value="">— Sélectionner —</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Montant à injecter (Ar) *</label>
+                        <input type="number" name="montant" min="1" step="any" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Motif *</label>
+                        <input type="text" name="motif" placeholder="Ex: Tranche 1 — matériaux semaine 22" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Date</label>
+                        <input type="date" name="date" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" value="">
+                    </div>
+                    <div style="display:flex;gap:10px;margin-top:20px">
+                        <button type="button" onclick="closeModalCEO('modal-dotation-felana')" style="flex:1;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;background:white;cursor:pointer;font-size:14px">Annuler</button>
+                        <button type="submit" style="flex:2;padding:10px;background:#f59e0b;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600"><i class="fas fa-paper-plane"></i> Injecter</button>
+                    </div>
+                </form>
+            </div>
+        </div>`;
+    main.appendChild(secBudgets);
+
+    // ── Section Recettes Clients CEO ──────────────────────────────
+    const secRecettes = document.createElement('div');
+    secRecettes.id = 'section-recettes-ceo';
+    secRecettes.style.display = 'none';
+    secRecettes.innerHTML = `
+        <div class="page-header">
+            <h1><i class="fas fa-hand-holding-usd" style="color:var(--orange);margin-right:10px"></i>Recettes Clients</h1>
+            <p><span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700"><i class="fas fa-eye-slash"></i> INVISIBLE DAF</span> &nbsp; Encaissements clients — gestion exclusive CEO</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+            <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div style="font-size:11px;font-weight:700;color:#636e72;text-transform:uppercase;margin-bottom:6px">Total Encaissé</div>
+                <div style="font-size:24px;font-weight:800;color:#10b981" id="rec-stat-total">—</div>
+            </div>
+            <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div style="font-size:11px;font-weight:700;color:#636e72;text-transform:uppercase;margin-bottom:6px">Recettes Chantier</div>
+                <div style="font-size:24px;font-weight:800;color:#0066cc" id="rec-stat-chantier">—</div>
+            </div>
+            <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div style="font-size:11px;font-weight:700;color:#636e72;text-transform:uppercase;margin-bottom:6px">Recettes Hors-Chantier</div>
+                <div style="font-size:24px;font-weight:800;color:#8b5cf6" id="rec-stat-hors">—</div>
+            </div>
+        </div>
+
+        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden">
+            <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:12px">
+                <strong>Liste des Recettes</strong>
+                <select id="rec-filter-chantier" onchange="loadRecettesCEO()" style="padding:6px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px">
+                    <option value="">Tous les chantiers</option>
+                    <option value="__hors__">Hors-chantier</option>
+                </select>
+                <button class="btn btn-primary" onclick="openModalCEO('modal-recette')" style="margin-left:auto">
+                    <i class="fas fa-plus"></i> Nouvelle Recette
+                </button>
+            </div>
+            <div style="overflow-x:auto">
+                <table class="table" style="margin:0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Client</th>
+                            <th>Chantier</th>
+                            <th>Désignation</th>
+                            <th style="text-align:right">Montant (Ar)</th>
+                            <th>Mode</th>
+                            <th>Réf. facture</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recettes-table-body">
+                        <tr><td colspan="8" style="text-align:center;padding:40px;color:#adb5bd">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modal Nouvelle Recette -->
+        <div id="modal-recette" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center">
+            <div style="background:white;border-radius:16px;padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                    <h3 style="font-size:16px;font-weight:700"><i class="fas fa-hand-holding-usd" style="color:#10b981;margin-right:8px"></i>Nouvelle Recette Client</h3>
+                    <button onclick="closeModalCEO('modal-recette')" style="background:none;border:none;font-size:1.4rem;cursor:pointer">&times;</button>
+                </div>
+                <form id="form-recette" onsubmit="submitRecetteCEO(event)">
+                    <input type="hidden" name="id">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+                        <div>
+                            <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Date *</label>
+                            <input type="date" name="date" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                        </div>
+                        <div>
+                            <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Client *</label>
+                            <input type="text" name="client" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Rattachement</label>
+                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                                <input type="radio" name="rattachement" value="chantier" checked onchange="toggleRattachementRecette(this.value)"> Lié à un chantier
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                                <input type="radio" name="rattachement" value="hors" onchange="toggleRattachementRecette(this.value)"> Hors-chantier
+                            </label>
+                        </div>
+                        <select name="chantier_id" id="rec-chantier-select" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px">
+                            <option value="">— Sélectionner un chantier —</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Désignation *</label>
+                        <input type="text" name="designation" placeholder="Ex: Acompte 30% — facture N°..." style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+                        <div>
+                            <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Montant (Ar) *</label>
+                            <input type="number" name="montant" min="0" step="any" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                        </div>
+                        <div>
+                            <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Mode de paiement</label>
+                            <select name="mode_paiement" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px">
+                                <option>ESPECE</option><option>CHEQUE</option><option>VIREMENT BANCAIRE</option><option>MOBILE MONEY</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Réf. Facture</label>
+                        <input type="text" name="ref_facture" placeholder="N° de facture ou devis" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px">
+                    </div>
+                    <div style="display:flex;gap:10px;margin-top:20px">
+                        <button type="button" onclick="closeModalCEO('modal-recette')" style="flex:1;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;background:white;cursor:pointer;font-size:14px">Annuler</button>
+                        <button type="submit" style="flex:2;padding:10px;background:#10b981;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600"><i class="fas fa-save"></i> Enregistrer la recette</button>
+                    </div>
+                </form>
+            </div>
+        </div>`;
+    main.appendChild(secRecettes);
+
+    // ── Section Crédits Fournisseurs CEO ─────────────────────────
+    const secCredits = document.createElement('div');
+    secCredits.id = 'section-credits-fournisseurs';
+    secCredits.style.display = 'none';
+    secCredits.innerHTML = `
+        <div class="page-header">
+            <h1><i class="fas fa-file-contract" style="color:var(--orange);margin-right:10px"></i>Crédits Fournisseurs</h1>
+            <p><span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700"><i class="fas fa-lock"></i> CEO EXCLUSIF</span> &nbsp; Engagement des dettes — le DAF exécute uniquement le décaissement après dotation</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+            <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div style="font-size:11px;font-weight:700;color:#636e72;text-transform:uppercase;margin-bottom:6px">Total Engagé</div>
+                <div style="font-size:24px;font-weight:800;color:#f59e0b" id="cred-stat-total">—</div>
+            </div>
+            <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div style="font-size:11px;font-weight:700;color:#636e72;text-transform:uppercase;margin-bottom:6px">En attente paiement</div>
+                <div style="font-size:24px;font-weight:800;color:#ef4444" id="cred-stat-attente">—</div>
+            </div>
+            <div style="background:white;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+                <div style="font-size:11px;font-weight:700;color:#636e72;text-transform:uppercase;margin-bottom:6px">Réglés</div>
+                <div style="font-size:24px;font-weight:800;color:#10b981" id="cred-stat-regles">—</div>
+            </div>
+        </div>
+
+        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden">
+            <div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:12px">
+                <strong>Engagements Fournisseurs</strong>
+                <select id="cred-filter-statut" onchange="loadCreditsFournisseurs()" style="padding:6px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px">
+                    <option value="">Tous les statuts</option>
+                    <option value="EN_ATTENTE">En attente</option>
+                    <option value="PARTIELLEMENT_PAYE">Partiellement payé</option>
+                    <option value="SOLDE">Soldé</option>
+                </select>
+                <button class="btn btn-primary" onclick="openModalCEO('modal-credit-fournisseur')" style="margin-left:auto">
+                    <i class="fas fa-plus"></i> Nouvel Engagement
+                </button>
+            </div>
+            <div style="overflow-x:auto">
+                <table class="table" style="margin:0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Fournisseur</th>
+                            <th>Chantier</th>
+                            <th>Désignation</th>
+                            <th style="text-align:right">Montant Total</th>
+                            <th>Échéance</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="credits-table-body">
+                        <tr><td colspan="8" style="text-align:center;padding:40px;color:#adb5bd">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modal Nouvel Engagement Fournisseur -->
+        <div id="modal-credit-fournisseur" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center">
+            <div style="background:white;border-radius:16px;padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                    <h3 style="font-size:16px;font-weight:700"><i class="fas fa-file-contract" style="color:#f59e0b;margin-right:8px"></i>Engager un Crédit Fournisseur</h3>
+                    <button onclick="closeModalCEO('modal-credit-fournisseur')" style="background:none;border:none;font-size:1.4rem;cursor:pointer">&times;</button>
+                </div>
+                <div style="background:#fff8e1;border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#92400e">
+                    <i class="fas fa-exclamation-triangle"></i> Le DAF ne verra que les crédits dont le statut est "AUTORISÉ_DAF" et une dotation correspondante a été injectée.
+                </div>
+                <form id="form-credit-fournisseur" onsubmit="submitCreditFournisseur(event)">
+                    <input type="hidden" name="id">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+                        <div>
+                            <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Date *</label>
+                            <input type="date" name="date" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                        </div>
+                        <div>
+                            <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Fournisseur *</label>
+                            <input type="text" name="fournisseur" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Chantier</label>
+                        <select name="chantier_id" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px">
+                            <option value="">— Général / Hors chantier —</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Désignation *</label>
+                        <input type="text" name="designation" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+                        <div>
+                            <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Montant Total (Ar) *</label>
+                            <input type="number" name="montant_total" min="0" step="any" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                        </div>
+                        <div>
+                            <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Date Échéance</label>
+                            <input type="date" name="date_echeance" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px">
+                        </div>
+                    </div>
+                    <!-- ERR-08 CORRIGÉ : statut hardcodé à EN_ATTENTE côté serveur.
+                         Le champ UI est retiré pour empêcher tout contournement du workflow CEO → DAF. -->
+                    <input type="hidden" name="statut" value="EN_ATTENTE">
+                    <div style="display:flex;gap:10px;margin-top:20px">
+                        <button type="button" onclick="closeModalCEO('modal-credit-fournisseur')" style="flex:1;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;background:white;cursor:pointer;font-size:14px">Annuler</button>
+                        <button type="submit" style="flex:2;padding:10px;background:#1C2B3A;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600"><i class="fas fa-save"></i> Enregistrer l'engagement</button>
+                    </div>
+                </form>
+            </div>
+        </div>`;
+    main.appendChild(secCredits);
+
+    // Initialize CEO selects on first load
+    populateCEOChantierSelects();
+});
+</script>
 // ── NAVIGATION ─────────────────────────────────────────────────
-function showSection(name) {
-    document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
-    document.getElementById('section-' + name).style.display = 'block';
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    event?.currentTarget?.classList.add('active');
-    if (name === 'users') loadChantierSelect();
-}
+// showSection() est définie plus bas dans le bloc CEO (version complète avec gestion des sections financières)
 
 // ── NOTIFICATION ───────────────────────────────────────────────
 function notify(msg, type = 'info') {
@@ -2019,6 +2463,689 @@ window.addEventListener('load', async () => {
         });
       }
     </script>
-</body>
-</html>
 
+<!-- ═══════════════════════════════════════════════════════════
+     LOGIQUE FINANCIÈRE CEO — GOUVERNANCE STRICTE V2
+     ⚠ CEO EXCLUSIF : recettes, budgets, marges, bénéfice net
+     Le DAF ne voit JAMAIS ce module ni ses données
+     Tables : journal_global | recettes_clients | budgets_chantiers
+              dotations_felana | credits_fournisseurs
+<!-- ═══════════════════════════════════════════════════════════
+     LOGIQUE FINANCIÈRE CEO — JAVASCRIPT EXCLUSIF
+     Table SQL attendue : journal_global (avec colonnes :
+       id, date, type_ecriture, chantier_id, designation,
+       debit, credit, mode_paiement, ref_externe,
+       saisie_par, statut, created_at)
+     Table : recettes_clients (id, date, client, chantier_id,
+       hors_chantier bool, designation, montant, mode_paiement,
+       ref_facture, created_at)
+     Table : budgets_chantiers (id, chantier_id, montant_global,
+       description, created_at)
+     Table : dotations_felana (id, chantier_id, montant, motif,
+       date, statut, created_at)
+     Table : credits_fournisseurs (id, date, fournisseur,
+       chantier_id, designation, montant_total, date_echeance,
+       statut, created_at)
+═══════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+// ══════════════════════════════════════════════════════════════
+// LOGIQUE FINANCIÈRE CEO — GOUVERNANCE STRICTE V2
+// ══════════════════════════════════════════════════════════════
+// RÈGLE ABSOLUE : Tout ce qui est dans ce bloc est CEO-only.
+// Aucune fonction ici ne doit être appelée depuis daf.html.
+// La protection est double : RLS Supabase + filtrage client-side.
+// ══════════════════════════════════════════════════════════════
+
+// ── HELPERS GÉNÉRAUX ──────────────────────────────────────────
+const fmtAr = v => {
+    if (!v && v !== 0) return '—';
+    const n = parseFloat(v);
+    if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + ' MAr';
+    return n.toLocaleString('fr-FR') + ' Ar';
+};
+
+const todayISO = () => new Date().toISOString().split('T')[0];
+
+function openModalCEO(id) {
+    const m = document.getElementById(id);
+    if (m) m.style.display = 'flex';
+}
+function closeModalCEO(id) {
+    const m = document.getElementById(id);
+    if (m) m.style.display = 'none';
+}
+function notifyCEO(msg, type = 'success') {
+    if (typeof notify === 'function') notify(msg, type);
+    else console[type === 'error' ? 'error' : 'log']('[CEO]', msg);
+}
+
+// ── POPULATE SELECTS CHANTIERS (CEO) ──────────────────────────
+async function populateCEOChantierSelects() {
+    try {
+        const { data, error } = await db.from('chantiers').select('id, nom').order('nom');
+        if (error) throw error;
+        const opts = (data || []).map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
+
+        const targets = [
+            { sel: '#form-budget-global select[name="chantier_id"]',    prefix: '— Sélectionner un chantier —' },
+            { sel: '#form-dotation-felana select[name="chantier_id"]',  prefix: '— Sélectionner —' },
+            { sel: '#rec-chantier-select',                              prefix: '— Sélectionner un chantier —' },
+            { sel: '#form-credit-fournisseur select[name="chantier_id"]', prefix: '— Général / Hors chantier —' },
+            { sel: '#jg-filter-chantier',                               prefix: 'Tous les chantiers' },
+            { sel: '#rec-filter-chantier',                              prefix: 'Tous les chantiers' },
+        ];
+        targets.forEach(({ sel, prefix }) => {
+            const el = document.querySelector(sel);
+            if (el) el.innerHTML = `<option value="">${prefix}</option>` + opts;
+        });
+        // Option hors-chantier pour le filtre recettes
+        const recFilter = document.getElementById('rec-filter-chantier');
+        if (recFilter) recFilter.innerHTML += '<option value="__hors__">Hors-chantier</option>';
+
+    } catch (e) { console.warn('populateCEOChantierSelects:', e); }
+}
+
+// ── JOURNAL COMPTABLE GLOBAL (CEO EXCLUSIF) ────────────────────
+async function loadJournalGlobal() {
+    const tbody = document.getElementById('jg-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#adb5bd"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+
+    try {
+        let q = db.from('journal_global')
+            .select('*, chantiers(nom)')
+            .order('date_ecriture', { ascending: false })
+            .limit(500);
+
+        const typeFilter     = document.getElementById('jg-filter-type')?.value;
+        const chantierFilter = document.getElementById('jg-filter-chantier')?.value;
+        const moisFilter     = document.getElementById('jg-filter-mois')?.value;
+
+        if (typeFilter)     q = q.eq('type_ecriture', typeFilter);
+        if (chantierFilter) q = q.eq('chantier_id', chantierFilter);
+        if (moisFilter) {
+            q = q.gte('date_ecriture', moisFilter + '-01')
+                 .lte('date_ecriture', moisFilter + '-31');
+        }
+
+        const { data, error } = await q;
+        if (error) throw error;
+        const rows = data || [];
+
+        // KPIs CEO — SEUL à voir recettes ET bénéfice net
+        let totalRecettes = 0, totalDepenses = 0, totalCredits = 0;
+        rows.forEach(r => {
+            if (r.type_ecriture === 'recette_client')   totalRecettes += r.montant || 0;
+            if (r.type_ecriture === 'depense_daf')      totalDepenses += r.montant || 0;
+            if (r.type_ecriture === 'credit_fournisseur') totalCredits += r.montant || 0;
+        });
+        const benefice = totalRecettes - totalDepenses;
+
+        const set = (id, val, color) => {
+            const el = document.getElementById(id);
+            if (el) { el.textContent = val; if (color) el.style.color = color; }
+        };
+        set('jg-stat-recettes', fmtAr(totalRecettes));
+        set('jg-stat-depenses', fmtAr(totalDepenses));
+        set('jg-stat-benefice', fmtAr(benefice), benefice >= 0 ? '#10b981' : '#ef4444');
+        set('jg-stat-credits',  fmtAr(totalCredits));
+
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-inbox fa-2x"></i><br><br>Aucune écriture</td></tr>';
+            return;
+        }
+
+        const typeCfg = {
+            recette_client:     { label: 'Recette Client',   color: '#10b981', bg: '#d1fae5' },
+            dotation_felana:    { label: 'Dotation DAF',     color: '#f59e0b', bg: '#fef3c7' },
+            depense_daf:        { label: 'Dépense DAF',      color: '#ef4444', bg: '#fee2e2' },
+            credit_fournisseur: { label: 'Crédit Fourn.',    color: '#8b5cf6', bg: '#ede9fe' },
+            paiement_credit:    { label: 'Paiement Crédit',  color: '#0066cc', bg: '#dbeafe' },
+        };
+
+        tbody.innerHTML = rows.map(r => {
+            const tc = typeCfg[r.type_ecriture] || { label: r.type_ecriture, color: '#636e72', bg: '#f0f0f0' };
+            const isDebit = ['depense_daf','dotation_felana','credit_fournisseur','paiement_credit'].includes(r.type_ecriture);
+            const montantHtml = isDebit
+                ? `<span style="color:#ef4444;font-weight:600">− ${(r.montant||0).toLocaleString('fr-FR')}</span>`
+                : `<span style="color:#10b981;font-weight:600">+ ${(r.montant||0).toLocaleString('fr-FR')}</span>`;
+            const statutBg = r.statut === 'VALIDE' ? '#d1fae5' : r.statut === 'ANNULE' ? '#fee2e2' : '#fef3c7';
+            const statutColor = r.statut === 'VALIDE' ? '#065f46' : r.statut === 'ANNULE' ? '#991b1b' : '#92400e';
+            return `<tr style="border-bottom:1px solid #f7f7f7">
+                <td style="padding:10px 12px;font-size:13px">${r.date_ecriture || '—'}</td>
+                <td style="padding:10px 12px"><span style="background:${tc.bg};color:${tc.color};padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap">${tc.label}</span></td>
+                <td style="padding:10px 12px;font-size:13px">${r.chantiers?.nom || '<em style="color:#adb5bd">Hors-chantier</em>'}</td>
+                <td style="padding:10px 12px;font-size:13px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.designation||'').replace(/"/g,'&quot;')}">${r.designation || '—'}</td>
+                <td style="padding:10px 12px;text-align:right;font-size:13px">${montantHtml}</td>
+                <td style="padding:10px 12px;font-size:12px;color:#636e72">${r.mode_paiement || '—'}</td>
+                <td style="padding:10px 12px;font-size:12px;color:#636e72">${r.reference || '—'}</td>
+                <td style="padding:10px 12px;font-size:12px;color:#636e72">${r.saisi_par || 'CEO'}</td>
+                <td style="padding:10px 12px"><span style="background:${statutBg};color:${statutColor};padding:2px 8px;border-radius:10px;font-size:11px">${r.statut || 'VALIDE'}</span></td>
+            </tr>`;
+        }).join('');
+
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:#ef4444"><i class="fas fa-exclamation-triangle"></i> ${e.message}</td></tr>`;
+        notifyCEO('Erreur journal global : ' + e.message, 'error');
+    }
+}
+
+// ── Écriture dans le journal global (usage interne CEO seulement) ──
+async function writeJournalGlobal({ type_ecriture, chantier_id = null, designation, montant = 0, mode_paiement = null, reference = null, date_ecriture = null, visible_daf = false, notes = null }) {
+    // SÉCURITÉ : recette_client ne doit JAMAIS être visible_daf
+    if (type_ecriture === 'recette_client') visible_daf = false;
+    // SÉCURITÉ : dotation_felana doit être visible_daf pour que le DAF la voie
+    if (type_ecriture === 'dotation_felana') visible_daf = true;
+
+    const entry = {
+        type_ecriture,
+        chantier_id: chantier_id || null,
+        designation,
+        montant: parseFloat(montant) || 0,
+        debit:  ['depense_daf','dotation_felana','credit_fournisseur','paiement_credit'].includes(type_ecriture) ? (parseFloat(montant) || 0) : 0,
+        credit: type_ecriture === 'recette_client' ? (parseFloat(montant) || 0) : 0,
+        mode_paiement,
+        reference,
+        date_ecriture: date_ecriture || todayISO(),
+        saisi_par: 'CEO',
+        visible_daf,
+        statut: 'VALIDE',
+        notes,
+    };
+    const { data, error } = await db.from('journal_global').insert(entry).select('id').single();
+    if (error) throw error;
+    return data?.id;
+}
+
+async function exportJournalGlobal() {
+    try {
+        const { data, error } = await db.from('journal_global')
+            .select('date_ecriture, type_ecriture, chantiers(nom), designation, montant, mode_paiement, reference, saisi_par, statut')
+            .order('date_ecriture', { ascending: false });
+        if (error) throw error;
+        if (!data?.length) { notifyCEO('Aucune donnée', 'error'); return; }
+        const rows = data.map(r => ({
+            Date: r.date_ecriture, Type: r.type_ecriture,
+            Chantier: r.chantiers?.nom || 'Hors-chantier',
+            Désignation: r.designation, Montant: r.montant || 0,
+            Mode: r.mode_paiement, Référence: r.reference,
+            SaisiePar: r.saisi_par, Statut: r.statut,
+        }));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'JOURNAL_GLOBAL');
+        XLSX.writeFile(wb, `JOURNAL_GLOBAL_CEO_${todayISO()}.xlsx`);
+        notifyCEO('Export téléchargé', 'success');
+    } catch (e) { notifyCEO('Erreur export : ' + e.message, 'error'); }
+}
+
+// ── BUDGETS GLOBAUX (CEO EXCLUSIF) ────────────────────────────
+async function loadBudgetsCEO() {
+    const list = document.getElementById('budgets-list');
+    const dotBody = document.getElementById('dotations-table-body');
+    if (!list) return;
+
+    try {
+        const [{ data: budgets }, { data: dotations }, { data: depJG }] = await Promise.all([
+            db.from('budgets_chantiers').select('*, chantiers(nom)').eq('actif', true).order('created_at', { ascending: false }),
+            db.from('dotations_felana').select('*, chantiers(nom)').order('date', { ascending: false }).limit(200),
+            db.from('journal_global').select('chantier_id, montant').eq('type_ecriture', 'depense_daf').eq('statut', 'VALIDE'),
+        ]);
+
+        // Agréger par chantier
+        const depByChantier = {}, dotByChantier = {};
+        (depJG || []).forEach(r => {
+            const k = r.chantier_id || '__hors__';
+            depByChantier[k] = (depByChantier[k] || 0) + (r.montant || 0);
+        });
+        (dotations || []).forEach(r => {
+            const k = r.chantier_id || '__hors__';
+            dotByChantier[k] = (dotByChantier[k] || 0) + (r.montant || 0);
+        });
+
+        list.innerHTML = (budgets || []).length ? (budgets || []).map(b => {
+            const cId = b.chantier_id;
+            const dep = depByChantier[cId] || 0;
+            const dot = dotByChantier[cId] || 0;
+            const mg  = b.montant_global || 0;
+            const pct = mg > 0 ? Math.min(100, (dep / mg) * 100) : 0;
+            const color = pct > 90 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981';
+            // Marge = Budget - Dépenses (visible CEO only)
+            const marge = mg - dep;
+            return `<div style="padding:14px 18px;border-bottom:1px solid #f7f7f7">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <strong style="font-size:14px">${b.chantiers?.nom || '—'}</strong>
+                    <button onclick="editBudgetGlobal(${b.id})" style="background:none;border:none;color:#0066cc;cursor:pointer;font-size:12px"><i class="fas fa-edit"></i></button>
+                </div>
+                <div style="font-size:12px;color:#636e72;margin-bottom:6px">${b.description || ''} <em style="font-size:11px">(v${b.version || 1})</em></div>
+                <div style="background:#f0f0f0;border-radius:10px;height:8px;overflow:hidden;margin-bottom:8px">
+                    <div style="width:${pct}%;background:${color};height:100%;border-radius:10px;transition:width 0.4s"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:11px;color:#636e72">
+                    <span>Budget: <strong style="color:#1C2B3A">${fmtAr(mg)}</strong></span>
+                    <span>Dotations DAF: <strong style="color:#f59e0b">${fmtAr(dot)}</strong></span>
+                    <span>Dépensé: <strong style="color:${color}">${fmtAr(dep)}</strong></span>
+                    <span>Marge: <strong style="color:${marge>=0?'#10b981':'#ef4444'}">${fmtAr(marge)}</strong></span>
+                </div>
+            </div>`;
+        }).join('') : '<div style="text-align:center;padding:30px;color:#adb5bd">Aucun budget défini</div>';
+
+        // Tableau dotations
+        if (dotBody) {
+            dotBody.innerHTML = (dotations || []).length
+                ? (dotations || []).map(d => `
+                <tr style="border-bottom:1px solid #f7f7f7">
+                    <td style="padding:10px 12px;font-size:13px">${d.date || '—'}</td>
+                    <td style="padding:10px 12px;font-size:13px">${d.chantiers?.nom || '—'}</td>
+                    <td style="padding:10px 12px;font-size:13px">${d.motif || '—'}</td>
+                    <td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:700;color:#f59e0b">${fmtAr(d.montant)}</td>
+                    <td style="padding:10px 12px"><span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:11px">${d.statut || 'INJECTÉE'}</span></td>
+                </tr>`).join('')
+                : '<tr><td colspan="5" style="text-align:center;padding:30px;color:#adb5bd">Aucune dotation</td></tr>';
+        }
+    } catch (e) {
+        list.innerHTML = `<div style="padding:20px;color:#ef4444">${e.message}</div>`;
+        notifyCEO('Erreur budgets : ' + e.message, 'error');
+    }
+}
+
+
+// ── BUDGET GLOBAL SUBMIT ──────────────────────────────────────
+async function submitBudgetGlobal(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const id = fd.get('id');
+    const chantierID = parseInt(fd.get('chantier_id'));
+    const montant = parseFloat(fd.get('montant_global')) || 0;
+    if (!chantierID) { notifyCEO('Chantier requis', 'error'); return false; }
+    if (montant <= 0)  { notifyCEO('Budget invalide', 'error'); return false; }
+
+    try {
+        if (id) {
+            // Mise à jour : on marque l'ancienne version inactive et crée une nouvelle
+            await db.from('budgets_chantiers').update({ actif: false }).eq('id', id);
+            // Trouver la version actuelle
+            const { data: existing } = await db.from('budgets_chantiers')
+                .select('version').eq('chantier_id', chantierID).order('version', { ascending: false }).limit(1);
+            const nextVersion = (existing?.[0]?.version || 1) + 1;
+            const { error } = await db.from('budgets_chantiers').insert({
+                chantier_id: chantierID,
+                montant_global: montant,
+                description: fd.get('description') || null,
+                version: nextVersion,
+                actif: true,
+            });
+            if (error) throw error;
+        } else {
+            const { error } = await db.from('budgets_chantiers').insert({
+                chantier_id: chantierID,
+                montant_global: montant,
+                description: fd.get('description') || null,
+                version: 1,
+                actif: true,
+            });
+            if (error) throw error;
+        }
+        closeModalCEO('modal-budget-global');
+        e.target.reset();
+        notifyCEO('Budget ' + (id ? 'révisé' : 'créé') + ' ✓', 'success');
+        loadBudgetsCEO();
+    } catch (ex) { notifyCEO('Erreur : ' + ex.message, 'error'); }
+    return false;
+}
+
+async function editBudgetGlobal(id) {
+    const { data, error } = await db.from('budgets_chantiers').select('*').eq('id', id).single();
+    if (error || !data) { notifyCEO('Introuvable', 'error'); return; }
+    const form = document.getElementById('form-budget-global');
+    form.querySelector('[name="id"]').value = data.id;
+    form.querySelector('[name="chantier_id"]').value = data.chantier_id || '';
+    form.querySelector('[name="montant_global"]').value = data.montant_global || 0;
+    form.querySelector('[name="description"]').value = data.description || '';
+    openModalCEO('modal-budget-global');
+}
+
+async function submitDotationFelana(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const chantierID = parseInt(fd.get('chantier_id')) || null;
+    const montant    = parseFloat(fd.get('montant')) || 0;
+    const motif      = fd.get('motif');
+    const date       = fd.get('date') || todayISO();
+
+    if (!chantierID) { notifyCEO('Chantier requis', 'error'); return false; }
+    if (montant <= 0) { notifyCEO('Montant invalide', 'error'); return false; }
+    if (!motif?.trim()) { notifyCEO('Motif requis', 'error'); return false; }
+
+    try {
+        // 1. Écriture journal (visible_daf=TRUE → DAF peut la voir dans son solde)
+        const journalId = await writeJournalGlobal({
+            type_ecriture: 'dotation_felana',
+            chantier_id: chantierID,
+            designation: 'Dotation DAF — ' + motif,
+            montant,
+            date_ecriture: date,
+            visible_daf: true,  // ← CRITIQUE : DAF voit cette dotation
+        });
+
+        // 2. Enregistrer la dotation avec lien journal
+        const { error: errDot } = await db.from('dotations_felana').insert({
+            chantier_id: chantierID,
+            montant,
+            motif,
+            date,
+            journal_id: journalId,
+            statut: 'INJECTÉE',
+        });
+        if (errDot) throw errDot;
+
+        closeModalCEO('modal-dotation-felana');
+        e.target.reset();
+        notifyCEO('Dotation injectée ✓ — Le DAF peut maintenant utiliser ces fonds', 'success');
+        loadBudgetsCEO();
+    } catch (ex) { notifyCEO('Erreur : ' + ex.message, 'error'); }
+    return false;
+}
+
+// ── RECETTES CLIENTS (CEO EXCLUSIF — DAF INVISIBLE) ───────────
+async function loadRecettesCEO() {
+    const tbody = document.getElementById('recettes-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#adb5bd"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+
+    try {
+        let q = db.from('recettes_clients').select('*, chantiers(nom)').order('date', { ascending: false }).limit(500);
+
+        const chantierFilter = document.getElementById('rec-filter-chantier')?.value;
+        if (chantierFilter === '__hors__') q = q.eq('hors_chantier', true);
+        else if (chantierFilter) q = q.eq('chantier_id', chantierFilter);
+
+        const { data, error } = await q;
+        if (error) throw error;
+        const rows = data || [];
+
+        let total = 0, totalChantier = 0, totalHors = 0;
+        rows.forEach(r => {
+            total += r.montant || 0;
+            if (r.hors_chantier) totalHors += r.montant || 0;
+            else totalChantier += r.montant || 0;
+        });
+        ['rec-stat-total', 'rec-stat-chantier', 'rec-stat-hors'].forEach((id, i) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = fmtAr([total, totalChantier, totalHors][i]);
+        });
+
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-inbox fa-2x"></i><br><br>Aucune recette</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map(r => `<tr style="border-bottom:1px solid #f7f7f7">
+            <td style="padding:10px 12px;font-size:13px">${r.date || '—'}</td>
+            <td style="padding:10px 12px;font-size:13px;font-weight:600">${r.client || '—'}</td>
+            <td style="padding:10px 12px;font-size:13px">${r.hors_chantier
+                ? '<span style="background:#ede9fe;color:#5b21b6;padding:2px 8px;border-radius:10px;font-size:11px">Hors-chantier</span>'
+                : (r.chantiers?.nom || '<em style="color:#adb5bd">—</em>')}</td>
+            <td style="padding:10px 12px;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.designation || '—'}</td>
+            <td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:700;color:#10b981">${fmtAr(r.montant)}</td>
+            <td style="padding:10px 12px;font-size:12px">${r.mode_paiement || '—'}</td>
+            <td style="padding:10px 12px;font-size:12px;color:#636e72">${r.ref_facture || '—'}</td>
+            <td style="padding:10px 12px;white-space:nowrap">
+                <button onclick="editRecetteCEO(${r.id})" style="background:none;border:1px solid #e0e0e0;color:#0066cc;cursor:pointer;font-size:11px;padding:3px 8px;border-radius:5px"><i class="fas fa-edit"></i></button>
+            </td>
+        </tr>`).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:#ef4444">${e.message}</td></tr>`;
+    }
+}
+
+function toggleRattachementRecette(val) {
+    const sel = document.getElementById('rec-chantier-select');
+    if (sel) sel.style.display = val === 'hors' ? 'none' : 'block';
+}
+
+async function submitRecetteCEO(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const id = fd.get('id');
+    const horsChantier = fd.get('rattachement') === 'hors';
+    const chantierID   = horsChantier ? null : (parseInt(fd.get('chantier_id')) || null);
+    const montant      = parseFloat(fd.get('montant')) || 0;
+    const date         = fd.get('date');
+
+    if (!horsChantier && !chantierID) { notifyCEO('Sélectionnez un chantier ou cochez "Hors-chantier"', 'error'); return false; }
+    if (montant <= 0) { notifyCEO('Montant invalide', 'error'); return false; }
+
+    const payload = {
+        date, client: fd.get('client'), chantier_id: chantierID,
+        hors_chantier: horsChantier, designation: fd.get('designation'),
+        montant, mode_paiement: fd.get('mode_paiement'),
+        ref_facture: fd.get('ref_facture') || null,
+    };
+
+    try {
+        let err;
+        if (id) {
+            // Modification : mettre à jour la recette ET la ligne journal si existe
+            ({ error: err } = await db.from('recettes_clients').update(payload).eq('id', id));
+        } else {
+            // Création : insérer recette + écriture journal (visible_daf=FALSE obligatoire)
+            ({ error: err } = await db.from('recettes_clients').insert(payload));
+            if (!err) {
+                await writeJournalGlobal({
+                    type_ecriture: 'recette_client',
+                    chantier_id:   chantierID,
+                    designation:   payload.designation + ' — ' + payload.client,
+                    montant,
+                    mode_paiement: fd.get('mode_paiement'),
+                    reference:     fd.get('ref_facture'),
+                    date_ecriture: date,
+                    visible_daf:   false,  // ← STRICTEMENT INVISIBLE DAF
+                });
+            }
+        }
+        if (err) throw err;
+        closeModalCEO('modal-recette');
+        e.target.reset();
+        notifyCEO('Recette ' + (id ? 'modifiée' : 'enregistrée') + ' ✓', 'success');
+        loadRecettesCEO();
+        if (document.getElementById('section-journal-global')?.style.display !== 'none') loadJournalGlobal();
+    } catch (ex) { notifyCEO('Erreur : ' + ex.message, 'error'); }
+    return false;
+}
+
+async function editRecetteCEO(id) {
+    const { data, error } = await db.from('recettes_clients').select('*').eq('id', id).single();
+    if (error || !data) { notifyCEO('Introuvable', 'error'); return; }
+    const form = document.getElementById('form-recette');
+    form.querySelector('[name="id"]').value = data.id;
+    form.querySelector('[name="date"]').value = data.date || '';
+    form.querySelector('[name="client"]').value = data.client || '';
+    form.querySelector('[name="designation"]').value = data.designation || '';
+    form.querySelector('[name="montant"]').value = data.montant || 0;
+    form.querySelector('[name="mode_paiement"]').value = data.mode_paiement || 'ESPECE';
+    form.querySelector('[name="ref_facture"]').value = data.ref_facture || '';
+    const rattachVal = data.hors_chantier ? 'hors' : 'chantier';
+    form.querySelectorAll('[name="rattachement"]').forEach(r => { r.checked = r.value === rattachVal; });
+    toggleRattachementRecette(rattachVal);
+    if (!data.hors_chantier && data.chantier_id) {
+        const sel = document.getElementById('rec-chantier-select');
+        if (sel) sel.value = data.chantier_id;
+    }
+    openModalCEO('modal-recette');
+}
+
+// ── CRÉDITS FOURNISSEURS (CEO EXCLUSIF) ───────────────────────
+async function loadCreditsFournisseurs() {
+    const tbody = document.getElementById('credits-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#adb5bd"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+
+    try {
+        let q = db.from('credits_fournisseurs')
+            .select('*, chantiers(nom)')
+            .order('date', { ascending: false })
+            .limit(500);
+        const statutFilter = document.getElementById('cred-filter-statut')?.value;
+        if (statutFilter) q = q.eq('statut', statutFilter);
+
+        const { data, error } = await q;
+        if (error) throw error;
+        const rows = data || [];
+
+        let totalEngage = 0, totalAttente = 0, totalRegles = 0;
+        rows.forEach(r => {
+            totalEngage += r.montant_total || 0;
+            if (r.statut === 'SOLDE') totalRegles += r.montant_total || 0;
+            else totalAttente += r.montant_total || 0;
+        });
+        ['cred-stat-total','cred-stat-attente','cred-stat-regles'].forEach((id, i) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = fmtAr([totalEngage, totalAttente, totalRegles][i]);
+        });
+
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-inbox fa-2x"></i><br><br>Aucun engagement</td></tr>';
+            return;
+        }
+
+        const statutCfg = {
+            EN_ATTENTE:          { label: 'En attente',      color: '#92400e', bg: '#fef3c7' },
+            AUTORISE_DAF:        { label: '✓ Autorisé DAF',  color: '#1d4ed8', bg: '#dbeafe' },
+            EN_COURS:            { label: 'En cours',         color: '#6d28d9', bg: '#ede9fe' },
+            PARTIELLEMENT_PAYE:  { label: 'Part. payé',       color: '#7c3aed', bg: '#ede9fe' },
+            SOLDE:               { label: '✓ Soldé',          color: '#065f46', bg: '#d1fae5' },
+            ANNULE:              { label: 'Annulé',           color: '#991b1b', bg: '#fee2e2' },
+        };
+
+        tbody.innerHTML = rows.map(r => {
+            const sc = statutCfg[r.statut] || { label: r.statut, color: '#636e72', bg: '#f0f0f0' };
+            const echeance = r.date_echeance ? new Date(r.date_echeance) : null;
+            const isLate = echeance && echeance < new Date() && !['SOLDE','ANNULE'].includes(r.statut);
+            return `<tr style="border-bottom:1px solid #f7f7f7${isLate ? ';background:#fff5f5' : ''}">
+                <td style="padding:10px 12px;font-size:13px">${r.date || '—'}</td>
+                <td style="padding:10px 12px;font-size:13px;font-weight:600">${r.fournisseur || '—'}</td>
+                <td style="padding:10px 12px;font-size:13px">${r.chantiers?.nom || '<em style="color:#adb5bd">—</em>'}</td>
+                <td style="padding:10px 12px;font-size:13px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.designation || '—'}</td>
+                <td style="padding:10px 12px;text-align:right;font-weight:700;color:#f59e0b">${fmtAr(r.montant_total)}</td>
+                <td style="padding:10px 12px;font-size:13px${isLate ? ';color:#ef4444;font-weight:600' : ''}">${r.date_echeance || '—'}${isLate ? ' ⚠️' : ''}</td>
+                <td style="padding:10px 12px"><span style="background:${sc.bg};color:${sc.color};padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600">${sc.label}</span></td>
+                <td style="padding:10px 12px;white-space:nowrap">
+                    <button onclick="editCreditFournisseur(${r.id})" style="background:none;border:1px solid #e0e0e0;color:#0066cc;cursor:pointer;font-size:11px;padding:3px 8px;border-radius:5px;margin-right:4px"><i class="fas fa-edit"></i></button>
+                    ${r.statut === 'EN_ATTENTE' ? `<button onclick="autoriserDafCredit(${r.id})" style="background:#dbeafe;border:none;color:#1d4ed8;cursor:pointer;font-size:11px;padding:3px 8px;border-radius:5px" title="Autoriser DAF à décaisser"><i class="fas fa-check"></i> Auth.</button>` : ''}
+                    ${r.statut === 'AUTORISE_DAF' ? `<span style="font-size:11px;color:#1d4ed8"><i class="fas fa-hourglass-half"></i> En attente DAF</span>` : ''}
+                </td>
+            </tr>`;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:#ef4444">${e.message}</td></tr>`;
+    }
+}
+
+// ── CRÉDITS FOURNISSEURS — MUTATIONS CEO ─────────────────────
+// ERR-08 CORRIGÉ : submitCreditFournisseur hardcode statut = 'EN_ATTENTE'.
+// La fonction était totalement absente du code — ajout complet ici.
+async function submitCreditFournisseur(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const id = fd.get('id');
+    const montant = parseFloat(fd.get('montant_total')) || 0;
+    if (montant <= 0) { notifyCEO('Montant invalide', 'error'); return false; }
+    if (!fd.get('fournisseur')?.trim()) { notifyCEO('Fournisseur requis', 'error'); return false; }
+
+    const payload = {
+        date:          fd.get('date')          || todayISO(),
+        fournisseur:   fd.get('fournisseur'),
+        chantier_id:   parseInt(fd.get('chantier_id')) || null,
+        designation:   fd.get('designation'),
+        montant_total: montant,
+        date_echeance: fd.get('date_echeance') || null,
+        // BLOCAGE DUR : statut toujours EN_ATTENTE à la création — seul le CEO
+        // peut ensuite passer à AUTORISE_DAF via le bouton dédié (autoriserDafCredit).
+        statut:        'EN_ATTENTE',
+    };
+
+    try {
+        let err;
+        if (id) {
+            // Modification : on ne permet pas de changer le statut via ce formulaire
+            const { statut: _ignored, ...updatePayload } = payload;
+            ({ error: err } = await db.from('credits_fournisseurs').update(updatePayload).eq('id', id));
+        } else {
+            ({ error: err } = await db.from('credits_fournisseurs').insert(payload));
+        }
+        if (err) throw err;
+        closeModalCEO('modal-credit-fournisseur');
+        e.target.reset();
+        document.querySelector('#form-credit-fournisseur input[name="id"]').value = '';
+        notifyCEO('Engagement fournisseur ' + (id ? 'modifié' : 'enregistré') + ' ✓ (statut : EN_ATTENTE)', 'success');
+        loadCreditsFournisseurs();
+    } catch (ex) { notifyCEO('Erreur : ' + ex.message, 'error'); }
+    return false;
+}
+
+async function editCreditFournisseur(id) {
+    const { data, error } = await db.from('credits_fournisseurs').select('*').eq('id', id).single();
+    if (error || !data) { notifyCEO('Introuvable', 'error'); return; }
+    const form = document.getElementById('form-credit-fournisseur');
+    form.querySelector('[name="id"]').value        = data.id;
+    form.querySelector('[name="date"]').value       = data.date || '';
+    form.querySelector('[name="fournisseur"]').value = data.fournisseur || '';
+    form.querySelector('[name="designation"]').value = data.designation || '';
+    form.querySelector('[name="montant_total"]').value = data.montant_total || 0;
+    form.querySelector('[name="date_echeance"]').value = data.date_echeance || '';
+    const chanSel = form.querySelector('[name="chantier_id"]');
+    if (chanSel && data.chantier_id) chanSel.value = data.chantier_id;
+    openModalCEO('modal-credit-fournisseur');
+}
+
+async function autoriserDafCredit(id) {
+    if (!confirm('Autoriser le DAF à décaisser ce crédit fournisseur ?')) return;
+    const { error } = await db.from('credits_fournisseurs')
+        .update({ statut: 'AUTORISE_DAF' })
+        .eq('id', id)
+        .eq('statut', 'EN_ATTENTE');  // Guard : ne peut autoriser que depuis EN_ATTENTE
+    if (error) { notifyCEO('Erreur : ' + error.message, 'error'); return; }
+    notifyCEO('Crédit autorisé pour décaissement DAF ✓', 'success');
+    loadCreditsFournisseurs();
+}
+
+// ── NAVIGATION CEO — HOOK SHOWSECTION ─────────────────────────
+// Remplace / étend la fonction showSection définie dans script.js
+// showSection — version unique, CEO + sections classiques
+function showSection(name) {
+    document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    event?.currentTarget?.classList.add('active');
+
+    const ceoSections = ['journal-global', 'budgets-ceo', 'recettes-ceo', 'credits-fournisseurs'];
+    if (ceoSections.includes(name)) {
+        const sec = document.getElementById('section-' + name);
+        if (sec) {
+            sec.style.display = 'block';
+            populateCEOChantierSelects().then(() => {
+                if (name === 'journal-global')        loadJournalGlobal();
+                else if (name === 'budgets-ceo')      loadBudgetsCEO();
+                else if (name === 'recettes-ceo')     loadRecettesCEO();
+                else if (name === 'credits-fournisseurs') loadCreditsFournisseurs();
+            });
+        }
+    } else {
+        const sec = document.getElementById('section-' + name);
+        if (sec) sec.style.display = 'block';
+        if (name === 'users') loadChantierSelect();
+    }
+}
+
+// ── INIT ───────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    // Pré-remplir toutes les dates à aujourd'hui
+    const today = todayISO();
+    document.querySelectorAll(
+        '#form-dotation-felana input[name="date"], ' +
+        '#form-recette input[name="date"], ' +
+        '#form-credit-fournisseur input[name="date"]'
+    ).forEach(inp => { if (!inp.value) inp.value = today; });
+});
+</script>
+
+</html>
