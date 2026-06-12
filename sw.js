@@ -3,7 +3,7 @@
 // Cache-first pour offline, sync en arrière-plan pour Supabase
 // ══════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'nysoa-btp-v4';
+const CACHE_NAME = 'nysoa-btp-v3';
 const DATA_CACHE = 'nysoa-data-v1';
 
 // Fichiers à mettre en cache pour fonctionnement offline

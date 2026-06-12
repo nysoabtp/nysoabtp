@@ -421,7 +421,7 @@ async function testTechnicien() {
   const ii = await sbFetch('/rest/v1/interventions', {
     method: 'POST', headers: { ...H, Prefer: 'return=representation' },
     body: JSON.stringify({ titre: 'TEST_' + Date.now(), type: 'maintenance',
-      priorite: 'Normale', description: 'Test auto', statut: 'en_cours' })
+      priorite: 'NORMALE', description: 'Test auto', statut: 'EN COURS' })
   });
   let intervenId = null;
   if (ii.status === 201 || ii.status === 200) {

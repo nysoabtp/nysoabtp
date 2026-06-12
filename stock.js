@@ -12,28 +12,6 @@
 const STOCK_KEY      = 'nysoa_stock_articles';
 const MOUVEMENT_KEY  = 'nysoa_stock_mouvements';
 
-// ── Données par défaut ─────────────────────────────────
-const DEFAULT_ARTICLES = [
-    { ref:'STK-001', nom:'Ciment Portland', categorie:'Matériaux', emplacement:'Entrepôt central', quantite:450, unite:'Sac',    prix_unitaire:6000,  seuil_alerte:100, notes:'' },
-    { ref:'STK-002', nom:'Sable de rivière', categorie:'Matériaux', emplacement:'PRJ-001',          quantite:25,  unite:'m³',    prix_unitaire:22500, seuil_alerte:30,  notes:'Résidence Les Palmiers' },
-    { ref:'STK-003', nom:'Acier HA 12 mm',   categorie:'Matériaux', emplacement:'Entrepôt A',        quantite:2500,unite:'m',     prix_unitaire:750,   seuil_alerte:500, notes:'' },
-    { ref:'STK-004', nom:'Brique creuse',     categorie:'Matériaux', emplacement:'PRJ-001',           quantite:8500,unite:'Unité', prix_unitaire:400,   seuil_alerte:2000,notes:'' },
-    { ref:'STK-005', nom:'Gravier 8/15',      categorie:'Matériaux', emplacement:'PRJ-002',           quantite:18,  unite:'m³',    prix_unitaire:30000, seuil_alerte:20,  notes:'Centre Commercial' },
-    { ref:'STK-006', nom:'Bétonnière 300L',   categorie:'Outillage', emplacement:'PRJ-001',           quantite:2,   unite:'Unité', prix_unitaire:850000,seuil_alerte:1,   notes:'' },
-    { ref:'STK-007', nom:'Niveau laser',      categorie:'Équipement',emplacement:'Entrepôt central',  quantite:3,   unite:'Unité', prix_unitaire:320000,seuil_alerte:1,   notes:'' },
-    { ref:'STK-008', nom:'Peinture blanche',  categorie:'Consommable',emplacement:'PRJ-003',          quantite:40,  unite:'Bidon', prix_unitaire:35000, seuil_alerte:10,  notes:'Bureau Ecobank' },
-];
-
-const DEFAULT_MOUVEMENTS = [
-    { id:'MVT-001', date:'10/05/2026', type:'Entrée',    article_ref:'STK-001', nom_article:'Ciment Portland',  quantite:200, emplacement_source:'',              emplacement_dest:'Entrepôt central', chantier:'',      motif:'Approvisionnement Bati Madagascar', saisi_par:'Razafy Jean' },
-    { id:'MVT-002', date:'11/05/2026', type:'Sortie',    article_ref:'STK-001', nom_article:'Ciment Portland',  quantite:50,  emplacement_source:'Entrepôt central', emplacement_dest:'PRJ-001',        chantier:'PRJ-001', motif:'Dalle rez-de-chaussée',            saisi_par:'Razafy Jean' },
-    { id:'MVT-003', date:'12/05/2026', type:'Entrée',    article_ref:'STK-005', nom_article:'Gravier 8/15',     quantite:20,  emplacement_source:'',              emplacement_dest:'PRJ-002',          chantier:'PRJ-002', motif:'Livraison fournisseur',             saisi_par:'Andriamanitra Paul' },
-    { id:'MVT-004', date:'13/05/2026', type:'Transfert', article_ref:'STK-003', nom_article:'Acier HA 12 mm',   quantite:500, emplacement_source:'Entrepôt A',    emplacement_dest:'PRJ-002',          chantier:'PRJ-002', motif:'Besoin chantier Centre Commercial', saisi_par:'Razafy Jean' },
-    { id:'MVT-005', date:'14/05/2026', type:'Sortie',    article_ref:'STK-004', nom_article:'Brique creuse',    quantite:1200,emplacement_source:'PRJ-001',       emplacement_dest:'',                 chantier:'PRJ-001', motif:'Cloisons étage 1',                 saisi_par:'Andriamanitra Paul' },
-    { id:'MVT-006', date:'15/05/2026', type:'Sortie',    article_ref:'STK-008', nom_article:'Peinture blanche', quantite:8,   emplacement_source:'PRJ-003',       emplacement_dest:'',                 chantier:'PRJ-003', motif:'Finitions bureau',                  saisi_par:'Razafy Jean' },
-    { id:'MVT-007', date:'20/05/2026', type:'Entrée',    article_ref:'STK-002', nom_article:'Sable de rivière', quantite:10,  emplacement_source:'',              emplacement_dest:'PRJ-001',          chantier:'PRJ-001', motif:'Commande CMD-002',                  saisi_par:'Rasoarimanana Marie' },
-];
-
 // ── Helpers localStorage ───────────────────────────────
 function stockLoad(key, defaultVal) {
     try {

@@ -12,8 +12,24 @@ if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_KEY === 'undefined') 
 }
 
 // ── Client Supabase ───────────────────────────────────────────
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+let _db = null;
+try {
+    const { createClient } = supabase;
+    _db = createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (e) {
+    console.warn('[NYSOA BTP] Supabase non disponible — les données ne pourront pas être chargées.');
+}
+const db = _db || {
+    from: () => chainable({ data: [], error: null }),
+    channel: () => ({ on: () => ({ subscribe: () => {} }) }),
+    realtime: { channel: () => ({ on: () => ({ subscribe: () => {} }) }) },
+    auth: { onAuthStateChange: () => ({ data: { session: null } }) }
+};
+function chainable(result) {
+    const c = typeof result?.then === 'function' ? result : Promise.resolve(result || { data: [], error: null });
+    const chain = { then: c.then.bind(c), catch: c.catch.bind(c) };
+    return new Proxy(chain, { get: (t, p) => t[p] || (() => chainable(result)) });
+}
 
 // ── Assainissement XSS ────────────────────────────────────────
 /**

@@ -849,7 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
             metier:             fd.get('poste') || fd.get('metier'),
             chantier:           fd.get('chantier') || fd.get('departement') || null,
             salaire_journalier: salaire,
-            type_salaire:       salaire >= 100000 ? 'MENSUEL' : 'JOURNALIER',
+            type_salaire:       fd.get('type_salaire') || 'JOURNALIER',
             date_embauche:      fd.get('date_embauche') || null,
             actif:              true,
         });

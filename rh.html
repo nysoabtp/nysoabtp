@@ -613,6 +613,13 @@
                             <label>Salaire (Ar)</label>
                             <input type="number" name="salaire" required>
                         </div>
+                        <div class="form-group">
+                            <label>Type salaire</label>
+                            <select name="type_salaire" class="form-input">
+                                <option value="JOURNALIER">Journalier</option>
+                                <option value="MENSUEL">Mensuel</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" onclick="closeModal('modal-employe')">Annuler</button>
@@ -870,6 +877,7 @@
                 metier: fd.get('poste'),
                 date_embauche: fd.get('date_embauche'),
                 salaire_journalier: parseFloat(fd.get('salaire')) || 0,
+                type_salaire:       fd.get('type_salaire') || 'JOURNALIER',
                 actif: true
             });
             if (error) { showNotification('Erreur: ' + error.message, 'error'); return; }
