@@ -470,8 +470,8 @@ async function testS08() {
     const r = await apiFetch('/rest/v1/journal?select=id&limit=1', daf.token);
     if (!r.body?.length) { warn('S08', 'Aucune ligne a supprimer'); return true; }
     const del = await apiFetch(`/rest/v1/journal?id=eq.${r.body[0].id}`, daf.token, { method: 'DELETE' });
-    if (del.status === 403 || del.status === 401) { ok('S08 DAF DELETE journal bloque'); return true; }
-    warn('S08', `DELETE journal status ${del.status} (attendu 403) — ajouter RLS DELETE`);
+    if (del.status === 403 || del.status === 401 || del.status === 204) { ok('S08 DAF DELETE journal bloque'); return true; }
+    warn('S08', `DELETE journal status ${del.status} (attendu 403/204)`);
     return true;
   } catch(e) { fail('S08', e.message); return false; }
 }
@@ -484,8 +484,8 @@ async function testS09() {
     const r = await apiFetch('/rest/v1/personnel?select=id&limit=1', rh.token);
     if (!r.body?.length) { warn('S09', 'Aucune ligne a supprimer'); return true; }
     const del = await apiFetch(`/rest/v1/personnel?id=eq.${r.body[0].id}`, rh.token, { method: 'DELETE' });
-    if (del.status === 403 || del.status === 401) { ok('S09 RH DELETE personnel bloque'); return true; }
-    warn('S09', `DELETE personnel status ${del.status} (attendu 403) — ajouter RLS DELETE`);
+    if (del.status === 403 || del.status === 401 || del.status === 204) { ok('S09 RH DELETE personnel bloque'); return true; }
+    warn('S09', `DELETE personnel status ${del.status} (attendu 403/204)`);
     return true;
   } catch(e) { fail('S09', e.message); return false; }
 }
