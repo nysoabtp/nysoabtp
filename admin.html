@@ -315,7 +315,7 @@
                     </div>
 
                     <div class="btn-row">
-                        <button class="btn btn-primary" id="btn-import" onclick="startImport()" disabled>
+                        <button class="btn btn-primary" id="btn-import" onclick="startImport()">
                             <i class="fas fa-upload"></i> Importer dans Supabase
                         </button>
                         <button class="btn btn-secondary" onclick="clearFiles()">
@@ -1517,8 +1517,8 @@ function parseLogistique(wb) {
 
 // ── IMPORT VERS SUPABASE ───────────────────────────────────────
 function checkImportReady() {
-    const hasData = Object.keys(parsedData).length > 0;
-    document.getElementById('btn-import').disabled = !hasData;
+    // Le bouton reste toujours actif - l'import échouera proprement si pas de données
+    // Ne plus désactiver le bouton pour éviter le blocage UI
 }
 
 async function startImport() {

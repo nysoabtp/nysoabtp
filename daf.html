@@ -312,7 +312,7 @@
         <div id="section-dashboard">
             <div class="page-header">
                 <h1><i class="fas fa-tachometer-alt" style="color:var(--orange);margin-right:10px"></i>Tableau de bord DAF</h1>
-                <p id="current-date-header">Chargement...</p>
+                <p id="current-date-header"></p>
             </div>
 
             <div class="daf-scope-banner">
@@ -326,7 +326,7 @@
             <!-- SOLDE FELANA PRINCIPAL -->
             <div class="solde-felana-widget">
                 <div class="label"><i class="fas fa-wallet" style="margin-right:6px"></i>Solde disponible — Budget Felana</div>
-                <div class="amount" id="db-solde-felana">Chargement...</div>
+                <div class="amount" id="db-solde-felana">0 Ar</div>
                 <div class="sub">= Dotations reçues − Dépenses engagées</div>
                 <div class="detail">
                     <div class="detail-item">
@@ -392,7 +392,7 @@
                         </div>
                     </div>
                     <div id="db-credits-preview">
-                        <div style="text-align:center;padding:20px;color:#adb5bd;font-size:13px">Chargement...</div>
+                        <div style="text-align:center;padding:20px;color:#adb5bd;font-size:13px"><i class="fas fa-inbox"></i> Aucune donnée</div>
                     </div>
                 </div>
             </div>
@@ -433,7 +433,7 @@
             <div style="background:linear-gradient(90deg,#1C2B3A,#0d47a1);color:white;border-radius:12px;padding:16px 24px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
                 <div>
                     <div style="font-size:11px;opacity:0.7">SOLDE DISPONIBLE</div>
-                    <div style="font-size:22px;font-weight:800" id="dep-solde-actuel">Chargement...</div>
+                    <div style="font-size:22px;font-weight:800" id="dep-solde-actuel">0 Ar</div>
                 </div>
                 <div style="margin-left:auto">
                     <button class="btn btn-primary" onclick="openModal('modal-nouvelle-depense')">
@@ -627,7 +627,7 @@
             <!-- Solde principal -->
             <div class="solde-felana-widget" style="margin-bottom:20px">
                 <div class="label">Solde Felana disponible</div>
-                <div class="amount" id="felana-solde-principal">Chargement...</div>
+                <div class="amount" id="felana-solde-principal">0 Ar</div>
                 <div class="sub">Dotations reçues − Dépenses engagées</div>
                 <div class="detail">
                     <div class="detail-item">
@@ -698,7 +698,7 @@
                             </tr>
                         </thead>
                         <tbody id="felana-table-body">
-                            <tr><td colspan="8" style="text-align:center;padding:30px;color:#adb5bd">Chargement…</td></tr>
+                            <tr><td colspan="8" style="text-align:center;padding:30px;color:#adb5bd"><i class="fas fa-inbox"></i> Aucun crédit</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -765,7 +765,7 @@
                             <tr><th>N°</th><th>Client</th><th>Objet</th><th>Total HT</th><th>Date</th><th>Statut</th><th>Actions</th></tr>
                         </thead>
                         <tbody id="devis-tbody-daf">
-                            <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:30px">Chargement…</td></tr>
+                            <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:30px"><i class="fas fa-inbox"></i> Aucun devis</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -812,7 +812,7 @@
                     <button class="btn btn-secondary btn-small" onclick="exportRapportExcel()"><i class="fas fa-file-excel"></i> Excel</button>
                 </div>
                 <div id="rpt-synthese-container" style="overflow-x:auto">
-                    <div style="text-align:center;padding:30px;color:#adb5bd">Chargement...</div>
+                    <div style="text-align:center;padding:30px;color:#adb5bd"><i class="fas fa-inbox"></i> Aucun rapport</div>
                 </div>
             </div>
         </div>
