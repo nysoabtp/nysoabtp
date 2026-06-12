@@ -51,6 +51,23 @@ function formatAriary(num) {
     if (!num && num !== 0) return '—';
     return new Intl.NumberFormat('fr-FR').format(num) + ' Ar';
 }
+
+// ── XSS Sanitization ──────────────────────────────────────────
+// Échappe tout contenu utilisateur avant insertion dans le DOM
+// Empêche les attaques XSS via les champs Supabase non validés
+function esc(str) {
+    if (str === null || str === undefined) return '';
+    const s = String(str);
+    return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Alias court pour usage intensif
+const e = esc;
 function formatDate(dateStr) {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('fr-FR');

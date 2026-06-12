@@ -4,6 +4,18 @@
 // localStorage = fallback de lecture seulement si Supabase échoue
 // ============================================================
 
+// ── XSS Sanitization (redondant avec supabase.js mais utilisé partout) ──
+function esc(str) {
+    if (str === null || str === undefined) return '';
+    const s = String(str);
+    return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Navigation
 const navItems = document.querySelectorAll('.nav-item');
 const sections = document.querySelectorAll('.section');
@@ -89,16 +101,16 @@ async function loadProjetsTable() {
         const row = document.createElement('tr');
         row.setAttribute('data-id', p.id);
         row.innerHTML = `
-            <td>${p.code || 'PRJ-' + String(i+1).padStart(3,'0')}</td>
-            <td>${p.nom}</td>
-            <td>${p.client || '—'}</td>
+            <td>${esc(p.code) || 'PRJ-' + String(i+1).padStart(3,'0')}</td>
+            <td>${esc(p.nom)}</td>
+            <td>${esc(p.client) || '—'}</td>
             <td>${p.budget ? formatAriary(p.budget) : '—'}</td>
             <td>${formatDate(p.debut)}</td>
             <td>${formatDate(p.fin)}</td>
             <td><div class="progress-bar"><div class="progress" style="width:${p.progression||0}%"></div></div></td>
-            <td><span class="status ${getStatusClass(p.statut)}">${p.statut || 'EN COURS'}</span></td>
+            <td><span class="status ${getStatusClass(p.statut)}">${esc(p.statut) || 'EN COURS'}</span></td>
             <td>
-                <button class="btn-icon" title="Voir dépenses" onclick="voirChantier('${p.nom}')"><i class="fas fa-chart-bar"></i></button>
+                <button class="btn-icon" title="Voir dépenses" onclick="voirChantier('${esc(p.nom).replace(/'/g, "\\'")}')"><i class="fas fa-chart-bar"></i></button>
                 <button class="btn-icon" title="Modifier" onclick="editRow(this)"><i class="fas fa-edit"></i></button>
                 <button class="btn-icon" title="Supprimer" onclick="deleteProjet('${p.id}',this)"><i class="fas fa-trash"></i></button>
             </td>`;
@@ -262,14 +274,14 @@ async function loadAchatsTable() {
         const total = pu * qte;
         row.innerHTML = `
             <td>CMD-${String(i+1).padStart(3,'0')}</td>
-            <td>${a.chantier || '—'}</td>
-            <td>${a.libelle || '—'}</td>
+            <td>${esc(a.chantier) || '—'}</td>
+            <td>${esc(a.libelle) || '—'}</td>
             <td class="montant">${formatAriary(pu)}</td>
             <td>${qte}</td>
             <td class="montant">${formatAriary(total)}</td>
-            <td>${a.fournisseur || '—'}</td>
+            <td>${esc(a.fournisseur) || '—'}</td>
             <td>${formatDate(a.date)}</td>
-            <td><span class="status ${getStatusClass(a.statut)}">${a.statut}</span></td>
+            <td><span class="status ${getStatusClass(a.statut)}">${esc(a.statut)}</span></td>
             <td>
                 <button class="btn-icon" title="Voir"      onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
                 <button class="btn-icon" title="Supprimer" onclick="deleteAchatRow('${a.id}',this)"><i class="fas fa-trash"></i></button>
@@ -308,12 +320,12 @@ async function loadJournalTable() {
         row.setAttribute('data-id', r.id);
         row.innerHTML = `
             <td>${formatDate(r.date)}</td>
-            <td>${r.chantier || '—'}</td>
-            <td>${r.designation}</td>
+            <td>${esc(r.chantier) || '—'}</td>
+            <td>${esc(r.designation)}</td>
             <td>${formatAriary(r.montant)}</td>
-            <td>${r.mode_paiement || '—'}</td>
-            <td><span class="status ${getStatusClass(r.categorie)}">${r.categorie || '—'}</span></td>
-            <td>${r.travaux || '—'}</td>
+            <td>${esc(r.mode_paiement) || '—'}</td>
+            <td><span class="status ${getStatusClass(r.categorie)}">${esc(r.categorie) || '—'}</span></td>
+            <td>${esc(r.travaux) || '—'}</td>
             <td>
                 <button class="btn-icon" title="Supprimer" onclick="deleteJournalRow('${r.id}',this)"><i class="fas fa-trash"></i></button>
             </td>`;
@@ -383,16 +395,16 @@ async function loadPersonnelTable() {
         const statutClass = emp.actif ? 'success' : 'error';
         row.innerHTML = `
             <td>EMP-${String(i+1).padStart(3,'0')}</td>
-            <td>${emp.nom}</td>
-            <td>${emp.metier || '—'}</td>
-            <td>${emp.chantier || '—'}</td>
+            <td>${esc(emp.nom)}</td>
+            <td>${esc(emp.metier) || '—'}</td>
+            <td>${esc(emp.chantier) || '—'}</td>
             <td>${formatDate(emp.date_embauche)}</td>
             <td>${anciennete}</td>
             <td>${typeSalaire === 'MENSUEL' ? formatAriary(emp.salaire_journalier)+'/mois' : formatAriary(emp.salaire_journalier)+'/jour'}</td>
             <td><span class="status ${statutClass}">${statut}</span></td>
             <td>
                 <button class="btn-icon" title="Voir" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                <button class="btn-icon" title="Fin de contrat" onclick="finContrat('${emp.id}','${emp.nom.replace(/'/g,"\\'")}')"><i class="fas fa-times-circle"></i></button>
+                <button class="btn-icon" title="Fin de contrat" onclick="finContrat('${emp.id}','${esc(emp.nom).replace(/'/g,"\\'")}')"><i class="fas fa-times-circle"></i></button>
             </td>`;
         tbody.appendChild(row);
     });
@@ -458,8 +470,8 @@ async function loadPointageTable() {
         row.setAttribute('data-id', p.id);
         row.innerHTML = `
             <td>${formatDate(p.date)}</td>
-            <td>${p.nom_employe}</td>
-            <td>${p.chantier || '—'}</td>
+            <td>${esc(p.nom_employe)}</td>
+            <td>${esc(p.chantier) || '—'}</td>
             <td>${p.nb_jours}</td>
             <td>${formatAriary(p.salaire_journalier)}</td>
             <td>${formatAriary(p.total_avances)}</td>
@@ -514,10 +526,14 @@ async function updateDashboardStats() {
 
         // Achats stats
         try {
-                const { data: achats } = await db.from('commandes').select('prix, quantite, statut').gte('date', `${new Date().getFullYear()}-01-01`);
-                if (achats) {
-                    const totalDep = achats.reduce((s, r) => s + ((r.prix || 0) * (r.quantite || 1)), 0);
-                const enAttente = achats.filter(r => r.statut === 'en_attente' || r.statut === 'attente').length;
+            const { data: achats } = await db.from('commandes').select('prix, quantite, statut').gte('date', `${new Date().getFullYear()}-01-01`);
+            if (achats) {
+                const totalDep = achats.reduce((s, r) => s + ((r.prix || 0) * (r.quantite || 1)), 0);
+                // CORRIGÉ Bug #6: statut Supabase utilise majuscules (EN_ATTENTE, EN_COURS, etc.)
+                const enAttente = achats.filter(r => {
+                    const s = (r.statut || '').toUpperCase();
+                    return s === 'EN_ATTENTE' || s === 'ATTENTE';
+                }).length;
                 if (document.getElementById('achat-stat-commandes')) document.getElementById('achat-stat-commandes').textContent = achats.length;
                 if (document.getElementById('achat-stat-depenses')) document.getElementById('achat-stat-depenses').textContent = formatAriary(totalDep);
                 if (document.getElementById('achat-stat-attente')) document.getElementById('achat-stat-attente').textContent = enAttente;
@@ -1323,10 +1339,17 @@ async function calculateSalaries() {
     if (bodyJ) bodyJ.innerHTML = '';
     if (bodyM) bodyM.innerHTML = '';
 
+    // CORRIGÉ Bug #2: gérer le cas où pointages est vide ou null
+    const pts = pointages || [];
+    if (!pts.length) {
+        showNotification('Aucun pointage trouvé', 'info');
+        return;
+    }
+
     // Grouper par employé
     const byEmp = {};
-    pointages.forEach(p => {
-        if (!byEmp[p.nom_employe]) byEmp[p.nom_employe] = { jours: 0, salaire_j: p.salaire_journalier, avances: 0, a_payer: 0 };
+    pts.forEach(p => {
+        if (!byEmp[p.nom_employe]) byEmp[p.nom_employe] = { jours: 0, salaire_j: p.salaire_journalier || 0, avances: 0, a_payer: 0 };
         byEmp[p.nom_employe].jours    += p.nb_jours || 0;
         byEmp[p.nom_employe].avances  += p.total_avances || 0;
         byEmp[p.nom_employe].a_payer  += p.a_payer || 0;
@@ -1348,7 +1371,7 @@ async function calculateSalaries() {
         const tr = document.createElement('tr');
         if (isMensuel && bodyM) {
             tr.innerHTML = `
-                <td>${nom}</td>
+                <td>${esc(nom)}</td>
                 <td>${data.jours}</td>
                 <td>${formatAriary(emp.salaire_journalier || 0)}</td>
                 <td>${formatAriary(total)}</td>
@@ -1358,7 +1381,7 @@ async function calculateSalaries() {
             bodyM.appendChild(tr);
         } else if (bodyJ) {
             tr.innerHTML = `
-                <td>${nom}</td>
+                <td>${esc(nom)}</td>
                 <td>${data.jours}</td>
                 <td>${formatAriary(data.salaire_j)}</td>
                 <td>${formatAriary(total)}</td>
@@ -1771,19 +1794,34 @@ async function downloadReport(btn) {
         // ── MASSE SALARIALE (avant effectif, avant bilan) ──
         } else if (n.includes('masse salariale')) {
             const { data: personnel } = await db.from('personnel').select('nom,metier,chantier,salaire_journalier').eq('actif', true);
-            const { data: salaires } = await db.from('salaires').select('employe,montant,mois,annee').order('mois', { ascending: false }).limit(200);
+            const { data: salariesData } = await db.from('salaires').select('employe,montant,mois,annee').order('mois', { ascending: false }).limit(200);
             const emp = personnel || [];
-            const moisCharge = (mois && annee) ? (salaires||[]).filter(s => s.mois === String(mois).padStart(2,'0') && s.annee === annee) : (salaires||[]);
-            let totalMasse = 0;
-            rows = emp.map(e => {
-                const s = (moisCharge||[]).filter(s => s.employe === e.nom);
-                const total = s.reduce((sum, s) => sum + (s.montant||0), 0);
-                totalMasse += total;
-                return { Nom: e.nom, Métier: e.metier, Chantier: e.chantier, Journalier: (e.salaire_journalier||0).toLocaleString('fr-FR'), Total_Mois: total.toLocaleString('fr-FR') };
-            });
-            rows.push({ Nom: '', Métier: '', Chantier: 'MASSE SALARIALE TOTALE', Journalier: '', Total_Mois: totalMasse.toLocaleString('fr-FR') });
-            if (!rows.length) { showNotification('Aucune donnée salariale', 'warning'); return; }
-            headers = ['Nom', 'Métier', 'Chantier', 'Journalier (Ar)', 'Total Mois (Ar)'];
+            // Filtrer par mois/année si spécifiés dans le nom du rapport
+            let moisCharge = salariesData || [];
+            if (mois && annee) {
+                const moisStr = String(mois).padStart(2, '0');
+                moisCharge = (salariesData || []).filter(s => 
+                    String(s.mois || '').padStart(2, '0') === moisStr && s.annee === annee
+                );
+            }
+            // CORRIGÉ Bug #9: gestion des données vides sans crash silencieux
+            if (!emp.length) {
+                showNotification('Aucun employé actif trouvé', 'warning');
+                headers = ['Nom', 'Métier', 'Chantier', 'Journalier (Ar)', 'Total Mois (Ar)'];
+                rows = [{ Nom: '—', Métier: '—', Chantier: '—', Journalier: '—', Total_Mois: '0' }];
+            } else {
+                let totalMasse = 0;
+                rows = emp.map(e => {
+                    const empSalaires = (moisCharge || []).filter(s => s.employe === e.nom);
+                    const total = empSalaires.reduce((sum, s) => sum + (s.montant || 0), 0);
+                    totalMasse += total;
+                    return { Nom: esc(e.nom), Métier: esc(e.metier), Chantier: esc(e.chantier), Journalier: (e.salaire_journalier || 0).toLocaleString('fr-FR'), Total_Mois: total.toLocaleString('fr-FR') };
+                });
+                if (rows.length > 0) {
+                    rows.push({ Nom: '', Métier: '', Chantier: 'MASSE SALARIALE TOTALE', Journalier: '', Total_Mois: totalMasse.toLocaleString('fr-FR') });
+                }
+                headers = ['Nom', 'Métier', 'Chantier', 'Journalier (Ar)', 'Total Mois (Ar)'];
+            }
 
         // ── CONGÉS / ABSENCES (avant bilan) ──
         } else if (n.includes('congé') || n.includes('absence') || n.includes('solde congés')) {

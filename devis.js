@@ -6,6 +6,19 @@
 //               xlsx.full.min.js (pour export Excel)
 // ============================================================
 
+// ── XSS Sanitization ──────────────────────────────────────────
+// Échappe tout contenu utilisateur avant insertion dans le DOM
+function esc(str) {
+    if (str === null || str === undefined) return '';
+    const s = String(str);
+    return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // ── ÉTAT GLOBAL ───────────────────────────────────────────────
 let devisListe     = [];    // liste des devis pour le tableau
 let devisEnCours   = null;  // { id?, numero, date, client, lieu, contact, objet, tva, statut, lots[] }
@@ -69,13 +82,13 @@ async function loadDevisTable() {
         const statutCls = { ACCEPTE: 'success', REFUSE: 'danger', ENVOYE: 'warning', SOUMIS: 'warning', APPROUVE: 'success', BROUILLON: '' }[d.statut] || '';
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${d.numero || '—'}</td>
-            <td>${d.client || '—'}</td>
-            <td>${d.objet ? d.objet.substring(0, 40) + (d.objet.length > 40 ? '…' : '') : '—'}</td>
+            <td>${esc(d.numero) || '—'}</td>
+            <td>${esc(d.client) || '—'}</td>
+            <td>${esc(d.objet ? d.objet.substring(0, 40) + (d.objet.length > 40 ? '…' : '') : '—')}</td>
             <td style="font-weight:600">${fmtAr(d.total)}</td>
             <td>${d.date ? new Date(d.date).toLocaleDateString('fr-FR') : '—'}</td>
             <td>30 jours</td>
-            <td><span class="status ${statutCls}">${d.statut || 'BROUILLON'}</span></td>
+            <td><span class="status ${statutCls}">${esc(d.statut) || 'BROUILLON'}</span></td>
             <td>
                 <button class="btn-icon" title="Éditer" onclick="ouvrirEditeurDevis(${d.id})"><i class="fas fa-edit"></i></button>
                 <button class="btn-icon" title="Imprimer" onclick="imprimerDevis(${d.id})"><i class="fas fa-print"></i></button>
@@ -390,11 +403,18 @@ async function imprimerDevis(id) {
     ]);
     if (!dv) { showNotification('Devis introuvable', 'error'); return; }
 
+    // CORRIGÉ Bug #7: schema utilise devis_lot_id pas lot_id, et pas de colonne total
     const lotsAvecLignes = (lots || []).map(lot => ({
-        ...lot, lignes: (lignes || []).filter(l => l.lot_id === lot.id),
+        ...lot, 
+        lignes: (lignes || []).filter(l => l.devis_lot_id === lot.id),
     }));
+    // Calculer total: quantite * prix_unitaire (pas de colonne 'total' dans devis_lignes)
     const total = lotsAvecLignes.reduce((s, lot) =>
-        s + lot.lignes.reduce((ss, l) => ss + (l.total || 0), 0), 0);
+        s + lot.lignes.reduce((ss, l) => {
+            const qte = parseFloat(l.quantite) || 0;
+            const pu = parseFloat(l.prix_unitaire) || 0;
+            return ss + (qte * pu);
+        }, 0), 0);
     const tva = (dv.tva || 0) / 100;
     const ttc = total * (1 + tva);
 
@@ -437,30 +457,35 @@ async function imprimerDevis(id) {
   </div>
 </div>
 <div class="client-block">
-  <strong>Client</strong><p>${dv.client}</p>
-  ${dv.lieu ? `<strong>Lieu des travaux</strong><p>${dv.lieu}</p>` : ''}
+  <strong>Client</strong><p>${esc(dv.client)}</p>
+  ${dv.lieu ? `<strong>Lieu des travaux</strong><p>${esc(dv.lieu)}</p>` : ''}
 </div>
-<div class="objet">Objet : ${dv.objet || '—'}</div>
+<div class="objet">Objet : ${esc(dv.objet) || '—'}</div>
 <table style="margin-bottom:4px">
   <thead><tr><th style="width:36px">#</th><th>Désignation</th><th style="width:50px;text-align:center">Unité</th>
     <th style="width:60px;text-align:right">Qté</th><th style="width:100px;text-align:right">P.U. (Ar)</th>
     <th style="width:110px;text-align:right">Total (Ar)</th></tr></thead>
 </table>
 ${lotsAvecLignes.map(lot => {
-    const st = lot.lignes.reduce((s, l) => s + (l.total || 0), 0);
+    const st = lot.lignes.reduce((s, l) => s + ((parseFloat(l.quantite) || 0) * (parseFloat(l.prix_unitaire) || 0)), 0);
     return `<div class="lot">
-      <div class="lot-header">Lot ${lot.num} — ${lot.titre}</div>
+      <div class="lot-header">Lot ${esc(lot.num)} — ${esc(lot.titre)}</div>
       <table><tbody>
-      ${lot.lignes.map(l => `<tr>
-        <td style="color:#888;font-size:11px">${l.ref || ''}</td>
-        <td>${l.designation}</td>
-        <td class="qt">${l.unite || ''}</td>
-        <td class="qt">${(parseFloat(l.quantite) || 0).toLocaleString('fr-FR')}</td>
-        <td class="pu">${(parseFloat(l.prix_unit) || 0).toLocaleString('fr-FR')}</td>
-        <td class="tot">${Math.round(l.total || 0).toLocaleString('fr-FR')}</td>
-      </tr>`).join('')}
+      ${lot.lignes.map(l => {
+        const qte = parseFloat(l.quantite) || 0;
+        const pu = parseFloat(l.prix_unitaire) || 0;
+        const lineTotal = qte * pu;
+        return `<tr>
+        <td style="color:#888;font-size:11px">${esc(l.ref) || ''}</td>
+        <td>${esc(l.designation)}</td>
+        <td class="qt">${esc(l.unite) || ''}</td>
+        <td class="qt">${qte.toLocaleString('fr-FR')}</td>
+        <td class="pu">${pu.toLocaleString('fr-FR')}</td>
+        <td class="tot">${Math.round(lineTotal).toLocaleString('fr-FR')}</td>
+      </tr>`;
+      }).join('')}
       </tbody></table>
-      <div class="sous-total">Sous-total Lot ${lot.num} : ${Math.round(st).toLocaleString('fr-FR')} Ar</div>
+      <div class="sous-total">Sous-total Lot ${esc(lot.num)} : ${Math.round(st).toLocaleString('fr-FR')} Ar</div>
     </div>`;
 }).join('')}
 <div class="totaux">

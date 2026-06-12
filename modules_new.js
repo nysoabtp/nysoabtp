@@ -2,6 +2,18 @@
 // NYSOA BTP — modules_new.js (avec fallback localStorage)
 // ══════════════════════════════════════════════════════════════
 
+// ── XSS Sanitization ──────────────────────────────────────────
+function esc(str) {
+    if (str === null || str === undefined) return '';
+    const s = String(str);
+    return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Helpers localStorage
 const LS = {
     get(k) { try { return JSON.parse(localStorage.getItem('nysoa_' + k) || '[]') } catch { return [] } },
@@ -119,8 +131,8 @@ async function loadAntoka() {
             const pct = r.montant_depart ? Math.round((r.montant_paye||0)/r.montant_depart*100) : 0;
             const color = pct===100 ? 'var(--green)' : pct>50 ? 'var(--orange)' : 'var(--red)';
             return `<tr>
-                <td style="font-weight:600">${r.employe||'—'}</td>
-                <td>${r.chantier||'—'}</td>
+                <td style="font-weight:600">${esc(r.employe)||'—'}</td>
+                <td>${esc(r.chantier)||'—'}</td>
                 <td style="font-family:monospace">${fmt(r.montant_depart)}</td>
                 <td style="color:var(--green);font-family:monospace">${fmt(r.montant_paye)}</td>
                 <td style="color:${r.reste>0?'var(--red)':'var(--green)'};font-weight:600;font-family:monospace">${fmt(r.reste)}</td>
@@ -139,7 +151,7 @@ async function loadAntoka() {
                     </div>
                 </td>
                 <td>
-                    <button class="btn-icon" title="Ajouter paiement" onclick="openAntokaPayment(${r.id},'${(r.employe||'').replace(/'/g,"\\'")}',${r.reste||0})"><i class="fas fa-plus"></i></button>
+                    <button class="btn-icon" title="Ajouter paiement" onclick="openAntokaPayment(${r.id},'${esc(r.employe||'').replace(/'/g,"\\'")}',${r.reste||0})"><i class="fas fa-plus"></i></button>
                     <button class="btn-icon" title="Supprimer" onclick="deleteAntoka(${r.id})" style="color:var(--red)"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>`;
@@ -230,7 +242,7 @@ async function loadCredits() {
             const totalPayé = (r.montant1||0)+(r.montant2||0)+(r.montant3||0);
             const resteTotal = (r.montant_total||0) - totalPayé;
             return `<tr>
-                <td style="font-weight:600">${r.fournisseur}</td>
+                <td style="font-weight:600">${esc(r.fournisseur)}</td>
                 <td style="font-family:monospace">${fmt(r.montant_total)}</td>
                 <td style="color:var(--green);font-family:monospace">${fmt(totalPayé)}</td>
                 <td style="color:${resteTotal>0?'var(--red)':'var(--green)'};font-weight:600;font-family:monospace">${fmt(resteTotal)}</td>
@@ -341,7 +353,7 @@ async function loadCaisse() {
             const sign  = type === 'entree' ? '+' : '-';
             return `<tr>
             <td>${fmtDate(r.date)}</td>
-            <td>${r.designation||'—'}</td>
+            <td>${esc(r.designation)||'—'}</td>
             <td style="color:${color};font-family:monospace">${sign}${fmt(r.montant)}</td>
             <td style="font-family:monospace;font-weight:600">${fmt(r.solde_fin)}</td>
             <td><button class="btn-icon" onclick="deleteCaisse(${r.id})" style="color:var(--red)"><i class="fas fa-trash"></i></button></td>
@@ -413,12 +425,12 @@ async function loadCatalogue() {
         document.getElementById('catalogue-count') && (document.getElementById('catalogue-count').textContent = rows.length + ' articles');
         if (!rows.length) { el.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px">Aucun article trouvé</td></tr>'; return; }
         el.innerHTML = rows.map(r => `<tr>
-            <td style="font-weight:500">${r.designation||'—'}</td>
+            <td style="font-weight:500">${esc(r.designation)||'—'}</td>
             <td style="font-family:monospace;color:var(--blue);font-weight:600">${fmt(r.prix_unitaire)}</td>
-            <td>${r.unite||'—'}</td>
-            <td><span style="background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:600">${r.fournisseur||'—'}</span></td>
+            <td>${esc(r.unite)||'—'}</td>
+            <td><span style="background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:600">${esc(r.fournisseur)||'—'}</span></td>
             <td>
-                <button class="btn-icon" title="Utiliser dans commande" onclick="usePrix('${(r.designation||'').replace(/'/g,"\\'")}',${r.prix_unitaire||0})"><i class="fas fa-cart-plus"></i></button>
+                <button class="btn-icon" title="Utiliser dans commande" onclick="usePrix('${esc(r.designation||'').replace(/'/g,"\\'")}',${r.prix_unitaire||0})"><i class="fas fa-cart-plus"></i></button>
                 <button class="btn-icon" title="Supprimer" onclick="deletePrix(${r.id})" style="color:var(--red)"><i class="fas fa-trash"></i></button>
             </td>
         </tr>`).join('');
@@ -477,12 +489,12 @@ async function loadContrats() {
             const statusColor = r.statut==='EN COURS' ? 'var(--green)' : r.statut==='TERMINE' ? 'var(--blue)' : 'var(--orange)';
             const statusBg    = r.statut==='EN COURS' ? 'var(--green-bg)' : r.statut==='TERMINE' ? 'var(--blue-bg)' : 'var(--orange-bg)';
             return `<tr>
-                <td style="font-weight:600">${r.designation||'—'}</td>
-                <td>${r.prestataire||'—'}</td>
-                <td>${r.chantier||'—'}</td>
-                <td style="font-family:monospace">${r.prix_convenu||'—'}</td>
+                <td style="font-weight:600">${esc(r.designation)||'—'}</td>
+                <td>${esc(r.prestataire)||'—'}</td>
+                <td>${esc(r.chantier)||'—'}</td>
+                <td style="font-family:monospace">${esc(r.prix_convenu)||'—'}</td>
                 <td>${fmtDate(r.date_debut)}</td>
-                <td><span style="background:${statusBg};color:${statusColor};padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600">${r.statut}</span></td>
+                <td><span style="background:${statusBg};color:${statusColor};padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600">${esc(r.statut)}</span></td>
                 <td>
                     <button class="btn-icon" title="Terminer" onclick="cloturerContrat(${r.id})"><i class="fas fa-check"></i></button>
                     <button class="btn-icon" title="Supprimer" onclick="deleteContrat(${r.id})" style="color:var(--red)"><i class="fas fa-trash"></i></button>
