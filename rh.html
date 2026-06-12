@@ -106,8 +106,8 @@
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="stat-info">
-                            <h3 id="stat-total-employes">156</h3>
-                            <p>Total employés</p>
+                            <h3 id="stat-total-employes">—</h3>
+                             <p>Total employés</p>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -115,8 +115,8 @@
                             <i class="fas fa-user-plus"></i>
                         </div>
                         <div class="stat-info">
-                            <h3 id="stat-nouvelles-embauches">8</h3>
-                            <p>Nouvelles embauches</p>
+                            <h3 id="stat-nouvelles-embauches">—</h3>
+                             <p>Nouvelles embauches</p>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -124,8 +124,8 @@
                             <i class="fas fa-calendar-check"></i>
                         </div>
                         <div class="stat-info">
-                            <h3 id="stat-conges-cours">12</h3>
-                            <p>Congés en cours</p>
+                            <h3 id="stat-conges-cours">—</h3>
+                             <p>Congés en cours</p>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -133,7 +133,7 @@
                             <i class="fas fa-graduation-cap"></i>
                         </div>
                         <div class="stat-info">
-                            <h3 id="stat-formations">5</h3>
+                            <h3 id="stat-formations">—</h3>
                             <p>Formations planifiées</p>
                         </div>
                     </div>
@@ -175,33 +175,11 @@
                         <div class="card-body">
                             <div class="activity-timeline">
                                 <div class="activity-item">
-                                    <div class="activity-icon success">
-                                        <i class="fas fa-user-plus"></i>
+                                    <div class="activity-icon">
+                                        <i class="fas fa-info-circle"></i>
                                     </div>
                                     <div class="activity-content">
-                                        <p class="activity-title">Rakoto Jean - Maçon</p>
-                                        <p class="activity-time">Aujourd'hui, 09:00</p>
-                                        <p class="activity-status">Chantier Résidence Palmiers</p>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon success">
-                                        <i class="fas fa-user-plus"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="activity-title">Rasoarimanana Paul - Électricien</p>
-                                        <p class="activity-time">Hier, 14:30</p>
-                                        <p class="activity-status">Chantier Centre Commercial</p>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon success">
-                                        <i class="fas fa-user-plus"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="activity-title">Andriamanitra Pierre - Plombier</p>
-                                        <p class="activity-time">12/05/2026</p>
-                                        <p class="activity-status">Chantier Bureau Ecobank</p>
+                                        <p class="activity-title" style="color:#999">Aucune embauche récente</p>
                                     </div>
                                 </div>
                             </div>
@@ -215,23 +193,11 @@
                         <div class="card-body">
                             <div class="activity-timeline">
                                 <div class="activity-item">
-                                    <div class="activity-icon warning">
-                                        <i class="fas fa-calendar-check"></i>
+                                    <div class="activity-icon">
+                                        <i class="fas fa-info-circle"></i>
                                     </div>
                                     <div class="activity-content">
-                                        <p class="activity-title">Rakoto Jean - 5 jours</p>
-                                        <p class="activity-time">15/05/2026 - 19/05/2026</p>
-                                        <p class="activity-status">En attente</p>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon success">
-                                        <i class="fas fa-calendar-check"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="activity-title">Rasoarimanana Paul - 3 jours</p>
-                                        <p class="activity-time">20/05/2026 - 22/05/2026</p>
-                                        <p class="activity-status">Approuvé</p>
+                                        <p class="activity-title" style="color:#999">Aucune demande de congé</p>
                                     </div>
                                 </div>
                             </div>
@@ -315,7 +281,7 @@
                             <i class="fas fa-file-alt"></i>
                         </div>
                         <div class="stat-info">
-                            <h3 id="recrut-stat-candidatures">42</h3>
+                            <h3 id="recrut-stat-candidatures">—</h3>
                             <p>Candidatures</p>
                         </div>
                     </div>
@@ -413,29 +379,8 @@
                                 </tr>
                             </thead>
                             <tbody id="conges-table-body">
-                                <tr data-employe="Rakoto Jean" data-debut="2026-05-15" data-fin="2026-05-19">
-                                    <td>Rakoto Jean</td>
-                                    <td>Congé annuel</td>
-                                    <td>15/05/2026</td>
-                                    <td>19/05/2026</td>
-                                    <td>5</td>
-                                    <td><span class="status warning">En attente</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                        <button class="btn-icon" onclick="approveLeave(this)"><i class="fas fa-check"></i></button>
-                                        <button class="btn-icon" onclick="rejectLeave(this)"><i class="fas fa-times"></i></button>
-                                    </td>
-                                </tr>
                                 <tr>
-                                    <td>Rasoarimanana Paul</td>
-                                    <td>Congé maladie</td>
-                                    <td>20/05/2026</td>
-                                    <td>22/05/2026</td>
-                                    <td>3</td>
-                                    <td><span class="status success">Approuvé</span></td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewRow(this)"><i class="fas fa-eye"></i></button>
-                                    </td>
+                                    <td colspan="7" style="text-align:center;padding:24px;color:#999">Aucune demande de congé</td>
                                 </tr>
                             </tbody>
                         </table>
