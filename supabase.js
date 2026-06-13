@@ -210,29 +210,75 @@ async function initSupabase() {
 
 document.addEventListener('DOMContentLoaded', initSupabase);
 
-// ── Temps réel ────────────────────────────────────────────────
-db.channel('nysoa-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'journal_global' },
-        () => { if (typeof loadJournalTable === 'function') loadJournalTable(); })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'commandes' },
-        () => { if (typeof loadAchatsTable === 'function') loadAchatsTable(); })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'pointage' },
-        () => { if (typeof loadPointageTable === 'function') loadPointageTable(); })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'pointage_attendance' },
-        () => { if (typeof loadPointageTable === 'function') loadPointageTable(); })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'personnel' },
-        () => { document.querySelectorAll('[data-reload="personnel"]').forEach(el => {
-            if (typeof el.onclick === 'function') el.onclick();
-        }); })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'chantiers' },
-        () => { if (typeof loadChefData === 'function') loadChefData(); })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'materiels' },
-        () => { if (typeof loadStockTable === 'function') loadStockTable(); })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'devis' },
-        () => { if (typeof loadDevisTable === 'function') loadDevisTable(); if (typeof loadDevisDAF === 'function') loadDevisDAF(); })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'validations' },
-        () => { if (typeof loadValidationCount === 'function') loadValidationCount(); })
-    .subscribe();
+// ── Temps réel — avec guard offline + retry backoff ───────────
+// Évite le flood ERR_INTERNET_DISCONNECTED qui gèle le thread principal.
+(function initRealtime() {
+    // Ne pas tenter si hors ligne au démarrage
+    if (!navigator.onLine) {
+        console.info('[Realtime] Hors ligne au démarrage — abonnement différé.');
+        window.addEventListener('online', initRealtime, { once: true });
+        return;
+    }
+
+    let _retryDelay = 2000;   // délai initial : 2 s
+    const _maxDelay  = 30000; // plafond : 30 s
+    let   _channel   = null;
+
+    function _subscribe() {
+        if (!navigator.onLine) {
+            console.info('[Realtime] Offline — retry dans', _retryDelay / 1000, 's');
+            setTimeout(_subscribe, _retryDelay);
+            _retryDelay = Math.min(_retryDelay * 2, _maxDelay);
+            return;
+        }
+
+        // Nettoyer l'ancien canal si existant
+        if (_channel) {
+            try { db.removeChannel(_channel); } catch (_) { /* ignore */ }
+        }
+
+        _channel = db.channel('nysoa-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'journal_global' },
+                () => { if (typeof loadJournalTable === 'function') loadJournalTable(); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'commandes' },
+                () => { if (typeof loadAchatsTable === 'function') loadAchatsTable(); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pointage' },
+                () => { if (typeof loadPointageTable === 'function') loadPointageTable(); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pointage_attendance' },
+                () => { if (typeof loadPointageTable === 'function') loadPointageTable(); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'personnel' },
+                () => { document.querySelectorAll('[data-reload="personnel"]').forEach(el => {
+                    if (typeof el.onclick === 'function') el.onclick();
+                }); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'chantiers' },
+                () => { if (typeof loadChefData === 'function') loadChefData(); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'materiels' },
+                () => { if (typeof loadStockTable === 'function') loadStockTable(); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'devis' },
+                () => { if (typeof loadDevisTable === 'function') loadDevisTable();
+                        if (typeof loadDevisDAF === 'function') loadDevisDAF(); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'validations' },
+                () => { if (typeof loadValidationCount === 'function') loadValidationCount(); })
+            .subscribe(function (status, err) {
+                if (status === 'SUBSCRIBED') {
+                    _retryDelay = 2000; // reset backoff après succès
+                    console.info('[Realtime] Connecté ✓');
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    console.warn('[Realtime]', status, err || '', '— retry dans', _retryDelay / 1000, 's');
+                    setTimeout(_subscribe, _retryDelay);
+                    _retryDelay = Math.min(_retryDelay * 2, _maxDelay);
+                } else if (status === 'CLOSED') {
+                    console.info('[Realtime] Canal fermé.');
+                }
+            });
+    }
+
+    // Relancer proprement quand la connexion revient
+    window.addEventListener('online',  () => { _retryDelay = 2000; _subscribe(); });
+    window.addEventListener('offline', () => { console.info('[Realtime] Connexion perdue — en attente...'); });
+
+    _subscribe();
+})();
 
 // ══════════════════════════════════════════════════════════════
 // FONCTIONS CRUD FORMULAIRES (ajout depuis modals)
