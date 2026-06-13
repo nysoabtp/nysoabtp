@@ -66,3 +66,4 @@ node test_manual.js
 ## Licence
 
 Propriétaire — NySoa BTP 
+# Force rebuild Sat Jun 13 11:37:02 UTC 2026
