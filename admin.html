@@ -1795,7 +1795,7 @@ async function loadChantierSelect() {
     try {
         const { data } = await db.from('chantiers').select('nom').eq('actif', true).order('nom');
         const sel = document.getElementById('cu-chantier');
-        sel.innerHTML = '<option value="">-- Choisir --</option>' + (data||[]).map(c => `<option value="${c.nom}">${c.nom}</option>`).join('');
+        sel.innerHTML = '<option value="">-- Choisir --</option>' + (data||[]).map(c => `<option value="${esc(c.nom)}">${esc(c.nom)}</option>`).join('');
     } catch(e) { console.warn('loadChantierSelect:', e); }
 }
 

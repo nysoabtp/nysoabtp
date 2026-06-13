@@ -874,7 +874,7 @@
             if (!tasks.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888">Aucune tâche planifiée</td></tr>'; return; }
             tasks.forEach(t => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${t.tache||'—'}</td><td>${t.chantier||'—'}</td><td>${t.date||'—'}</td><td>${t.equipe||'—'}</td><td><span class="status warning">${t.priorite||'—'}</span></td><td><span class="status info">${t.statut||'Planifié'}</span></td>`;
+                tr.innerHTML = `<td>${esc(t.tache||'—')}</td><td>${esc(t.chantier||'—')}</td><td>${esc(t.date||'—')}</td><td>${esc(t.equipe||'—')}</td><td><span class="status warning">${esc(t.priorite||'—')}</span></td><td><span class="status info">${esc(t.statut||'Planifié')}</span></td>`;
                 tbody.appendChild(tr);
             });
         }
