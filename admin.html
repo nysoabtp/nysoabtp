@@ -2474,6 +2474,8 @@ window.addEventListener('load', async () => {
         const user = await checkAuthOrRedirect('admin', { redirectOnFail: false });
         if (user) {
             document.getElementById('user-name').textContent = user.nom || user.email || 'Admin';
+            // Charger les données après auth réussie
+            if (typeof initSupabase === 'function') await initSupabase();
         } else {
             // Session non valide ou Supabase inaccessible - reste sur la page en mode lecture seule
             console.warn('[admin] Auth non validée - mode lecture seule');

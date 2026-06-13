@@ -209,7 +209,8 @@ async function initSupabase() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', initSupabase);
+// NOTE: initSupabase() is called by each page's window.load handler AFTER checkAuthOrRedirect() resolves
+// This ensures auth is verified before loading data - see BUG-1 fix
 
 // ── Temps réel — avec guard offline + retry backoff ───────────
 // Évite le flood ERR_INTERNET_DISCONNECTED qui gèle le thread principal.

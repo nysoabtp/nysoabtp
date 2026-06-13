@@ -2103,6 +2103,8 @@ window.addEventListener('load', async () => {
         // Initialiser date du formulaire dépense
         const depDateInput = document.getElementById('dep-date-input');
         if (depDateInput) depDateInput.value = today();
+        // Charger les données via initSupabase (appelé explicitement après auth)
+        if (typeof initSupabase === 'function') await initSupabase();
         // Charger chantiers et solde
         await loadChantiersSelects();
         await calculerSoldeFelana();
