@@ -296,12 +296,9 @@ async function addJournalEntry(entry) {
         chantier_id:   entry.chantier_id   || null,
         designation:   entry.designation,
         montant,
-        debit:         entry.debit  !== undefined ? parseFloat(entry.debit)  : montant,
-        credit:        entry.credit !== undefined ? parseFloat(entry.credit) : 0,
         mode_paiement: entry.mode_paiement || null,
-        reference:     entry.reference     || null,
-        saisi_par:     entry.saisi_par     || 'SYSTEME',
         visible_daf:   entry.visible_daf   !== undefined ? entry.visible_daf : true,
+        saisie_par:    entry.saisie_par    || 'SYSTEME',
         statut:        'VALIDE',
     });
     if (error) return handleError(error, 'addJournalEntry');
@@ -390,8 +387,8 @@ async function exportJournalToExcel() {
         const ws = XLSX.utils.json_to_sheet((data || []).map(r => ({
             'Date': r.date_ecriture, 'Type': r.type_ecriture, 'Chantier ID': r.chantier_id,
             'Désignation': r.designation, 'Montant (Ar)': r.montant,
-            'Débit': r.debit, 'Crédit': r.credit, 'Mode paiement': r.mode_paiement,
-            'Référence': r.reference, 'Saisi par': r.saisi_par, 'Statut': r.statut,
+            'Mode paiement': r.mode_paiement, 'Visible DAF': r.visible_daf,
+            'Saisi par': r.saisie_par, 'Statut': r.statut,
         })));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Journal 2026');
