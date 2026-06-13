@@ -1405,7 +1405,8 @@ async function submitNouvelleDepense(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
     const montant = parseFloat(fd.get('montant'));
-    if (!montant || montant <= 0) { notify('Montant invalide', 'error'); return false; }
+    // V-003 FIX: Add isNaN check to prevent NaN values
+    if (!montant || isNaN(montant) || montant <= 0) { notify('Montant invalide', 'error'); return false; }
 
     // ── RÈGLE STRICTE : blocage dur si solde insuffisant (> 5% de dépassement)
     if (montant > _soldeFelana) {
@@ -1693,7 +1694,7 @@ async function submitDecaissement(e) {
     const montantPaye  = parseFloat(fd.get('montant_paye'));
     const datePaiement = fd.get('date_paiement');
 
-    if (!montantPaye || montantPaye <= 0) { notify('Montant invalide', 'error'); return false; }
+    if (!montantPaye || isNaN(montantPaye) || montantPaye <= 0) { notify('Montant invalide', 'error'); return false; }
 
     // ── RÈGLE STRICTE : blocage dur si solde insuffisant
     if (montantPaye > _soldeFelana) {
@@ -1711,6 +1712,13 @@ async function submitDecaissement(e) {
             .single();
         if (errFetch || !credit) {
             notify('Erreur : ce credit n est plus autorise ou a deja ete solde.', 'error');
+            return false;
+        }
+        
+        // V-002 FIX: Vérifier que le montant ne dépasse pas le crédit restant
+        const creditRestant = credit.reste1 || credit.montant_total || 0;
+        if (creditRestant > 0 && montantPaye > creditRestant) {
+            notify(`Montant dépasse le crédit restant: ${fmt(creditRestant)} Ar`, 'error');
             return false;
         }
 
