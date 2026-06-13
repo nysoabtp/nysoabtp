@@ -2094,25 +2094,21 @@ async function changePassword(e) {
 // INIT
 // ─────────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
-    // Mode lecture seule si non connecté à Supabase
-    const user = await checkAuthOrRedirect('daf', { redirectOnFail: false });
-    if (user) {
-        document.getElementById('user-name').textContent = user.nom || user.email || 'DAF';
-        document.getElementById('current-date-header').textContent =
-            new Date().toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-        // Initialiser date du formulaire dépense
-        const depDateInput = document.getElementById('dep-date-input');
-        if (depDateInput) depDateInput.value = today();
-        // Charger les données via initSupabase (appelé explicitement après auth)
-        if (typeof initSupabase === 'function') await initSupabase();
-        // Charger chantiers et solde
-        await loadChantiersSelects();
-        await calculerSoldeFelana();
-        // Dashboard par défaut
-        loadDashboard();
-    } else {
-        console.warn('[daf] Auth non validée - mode lecture seule');
-    }
+    const user = await checkAuthOrRedirect('daf');
+    if (!user) return;
+
+    document.getElementById('user-name').textContent = user.nom || 'DAF';
+
+    const depDateInput = document.getElementById('dep-date-input');
+    if (depDateInput) depDateInput.value = today();
+
+    // Initialize Supabase data first (required for loadChantiersSelects, calculerSoldeFelana, loadDashboard)
+    if (typeof initSupabase === 'function') await initSupabase();
+
+    // Then load DAF-specific data
+    await loadChantiersSelects();
+    await calculerSoldeFelana();
+    loadDashboard();
 });
 
 // Gestion des clics nav

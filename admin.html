@@ -2469,46 +2469,36 @@ window.addEventListener('beforeunload', () => {
 });
 
 window.addEventListener('load', async () => {
-    // Vérif accès admin via session Supabase - mode lecture seule si non connecté
-    try {
-        const user = await checkAuthOrRedirect('admin', { redirectOnFail: false });
-        if (user) {
-            document.getElementById('user-name').textContent = user.nom || user.email || 'Admin';
-            // Charger les données après auth réussie
-            if (typeof initSupabase === 'function') await initSupabase();
-        } else {
-            // Session non valide ou Supabase inaccessible - reste sur la page en mode lecture seule
-            console.warn('[admin] Auth non validée - mode lecture seule');
-        }
-    } catch(e) {
-        console.warn('[admin] Auth check failed:', e.message, '- mode lecture seule');
+    const user = await checkAuthOrRedirect('admin');
+    if (!user) return;
+
+    document.getElementById('user-name').textContent = user.nom || user.email || 'Admin';
+
+    // Initialize Supabase data first (required for loadUsers, loadValidationCount)
+    if (typeof initSupabase === 'function') await initSupabase();
+
+    // Load admin-specific data
+    loadUsers();
+    loadValidationCount();
+
+    // Charger config Supabase sauvegardée
+    const url = localStorage.getItem('sb_url');
+    const key = localStorage.getItem('sb_key');
+    if (url) document.getElementById('sb-url').value = url;
+    if (key) document.getElementById('sb-key').value = key;
+
+    // Historique sauvegardes
+    const hist = JSON.parse(localStorage.getItem('backup_history') || '[]');
+    if (hist.length > 0) {
+        document.getElementById('backup-history').innerHTML = hist.map(h => `
+            <div class="backup-item">
+                <i class="fas fa-file-excel"></i>
+                <div class="bname"><strong>${h.fname}</strong></div>
+                <div class="bdate">${h.date}</div>
+            </div>`).join('');
     }
-
-    try {
-        // Charger config Supabase sauvegardée
-        const url = localStorage.getItem('sb_url');
-        const key = localStorage.getItem('sb_key');
-        if (url) document.getElementById('sb-url').value = url;
-        if (key) document.getElementById('sb-key').value = key;
-
-        // Historique sauvegardes
-        const hist = JSON.parse(localStorage.getItem('backup_history') || '[]');
-        if (hist.length > 0) {
-            document.getElementById('backup-history').innerHTML = hist.map(h => `
-                <div class="backup-item">
-                    <i class="fas fa-file-excel"></i>
-                    <div class="bname"><strong>${h.fname}</strong></div>
-                    <div class="bdate">${h.date}</div>
-                </div>`).join('');
-        }
-        const lastBackup = localStorage.getItem('last_backup');
-        if (lastBackup) document.getElementById('last-backup-full').textContent = 'Dernière sauvegarde : ' + lastBackup;
-
-        loadUsers();
-        loadValidationCount();
-    } catch(e) {
-        console.warn('[admin] Load error:', e.message);
-    }
+    const lastBackup = localStorage.getItem('last_backup');
+    if (lastBackup) document.getElementById('last-backup-full').textContent = 'Dernière sauvegarde : ' + lastBackup;
 
     // Charger les sections suivi au premier affichage
     document.querySelectorAll('.nav-item').forEach(item => {
