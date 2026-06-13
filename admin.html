@@ -1319,10 +1319,8 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>`;
     main.appendChild(secCredits);
 
-    // Initialize CEO selects on first load (deferred: function defined in later script block)
-    window.addEventListener('load', () => {
-        if (typeof populateCEOChantierSelects === 'function') populateCEOChantierSelects();
-    });
+    // CEO selects are populated by showSection() → populateCEOChantierSelects()
+    // DO NOT add a separate 'load' listener here — it would cause double loadRecettesCEO() calls
 });
 </script>
 <script>
@@ -2607,11 +2605,21 @@ async function populateCEOChantierSelects() {
         ];
         targets.forEach(({ sel, prefix }) => {
             const el = document.querySelector(sel);
-            if (el) el.innerHTML = `<option value="">${prefix}</option>` + opts;
+            if (!el) return;
+            // Neutraliser onchange pendant la mise à jour pour éviter les appels parasites
+            const savedOC = el.onchange;
+            el.onchange = null;
+            el.innerHTML = `<option value="">${prefix}</option>` + opts;
+            el.onchange = savedOC;
         });
-        // Option hors-chantier pour le filtre recettes
+        // Option hors-chantier pour le filtre recettes (sans déclencher onchange)
         const recFilter = document.getElementById('rec-filter-chantier');
-        if (recFilter) recFilter.innerHTML += '<option value="__hors__">Hors-chantier</option>';
+        if (recFilter) {
+            const savedOC = recFilter.onchange;
+            recFilter.onchange = null;
+            recFilter.innerHTML += '<option value="__hors__">Hors-chantier</option>';
+            recFilter.onchange = savedOC;
+        }
 
     } catch (e) { console.warn('populateCEOChantierSelects:', e); }
 }
