@@ -6,9 +6,9 @@
 |----|----------|--------|--------|
 | BLK-01 | config.js absent | ✅ OK | Déjà déployé |
 | SEC-01 | Mots de passe en clair | ✅ OK | Déjà supprimé |
-| SEC-02 | Auth localStorage | ✅ OK | checkAuthOrRedirect corrigé |
+| SEC-02 | Auth localStorage | ✅ OK | checkAuthOrRedirect() utilise db.auth.getSession() |
 | SEC-03 | XSS innerHTML | 🟡 Partiel | chef-chantier.html:877 corrigé, admin.html:1798 corrigé |
-| DATA-01 | Technicien localStorage | ✅ OK | loadInterventions utilise Supabase |
+| DATA-01 | Technicien interventions | ✅ OK | loadInterventions() & submitNouvelleIntervention() utilisent Supabase |
 | DATA-04 | Pointage → pointage_attendance | ✅ OK | Déjà corrigé |
 | ERR-01 | Empty catch blocks | ✅ OK | Gestion d'erreur ajoutée |
 | CODE-02 | Doublon id="budget" | ✅ OK | Non reproduit |
@@ -32,6 +32,14 @@ sel.innerHTML = '<option value="">-- Choisir --</option>' + data.map(c => `<opti
 // Après (sécurisé)
 sel.innerHTML = '<option value="">-- Choisir --</option>' + data.map(c => `<option value="${esc(c.nom)}">${esc(c.nom)}</option>`).join('');
 ```
+
+## Vérification des points critiques (13/06/2026 - suite)
+
+### SEC-02 - Sécurité Session (pointage.html, suivi-chantier.html)
+✅ **CONFIRMÉ SÉCURISÉ** - Les deux pages utilisent `checkAuthOrRedirect()` qui vérifie la session Supabase via `db.auth.getSession()`. Le localStorage n'est utilisé que comme cache pour l'affichage UI, pas pour l'authentification.
+
+### DATA-01 - Données Technicien (technicien.html)
+✅ **CONFIRMÉ MIGRÉ** - `loadInterventions()` (ligne 448) lit depuis Supabase `interventions` table. `submitNouvelleIntervention()` (ligne 593) écrit directement dans Supabase. Aucune utilisation de localStorage pour les interventions.
 
 ## Problèmes restants (priorité moindre)
 
