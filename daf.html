@@ -18,9 +18,7 @@
     <script src="supabase.js"></script>
     <script src="script.js"></script>
     <script src="enhancements.js"></script>
-    <script src="stock.js"></script>
     <script src="devis.js"></script>
-    <script src="modules_new.js"></script>
     <style>
         :root {
             --dark:   #1C2B3A;
@@ -1054,6 +1052,31 @@
 </div>
 
 <script>
+// ── NAVIGATION — définie ici pour être disponible avant tout clic ──
+// Ce bloc isolé survit à toute SyntaxError dans le script principal.
+function showSection(name) {
+    document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
+    const el = document.getElementById('section-' + name);
+    if (el) { el.style.display = 'block'; }
+    else { console.warn('[daf] Section introuvable: section-' + name); }
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if (event && event.currentTarget) event.currentTarget.classList.add('active');
+    const loaders = {
+        'dashboard':         function() { if(typeof loadDashboard==='function') loadDashboard(); },
+        'depenses':          function() { if(typeof loadDepensesDAF==='function') loadDepensesDAF(); if(typeof loadChantiersSelects==='function') loadChantiersSelects(); if(typeof updateSoldeRapide==='function') updateSoldeRapide(); },
+        'journal-daf':       function() { if(typeof loadJournalDAF==='function') loadJournalDAF(); if(typeof loadChantiersSelects==='function') loadChantiersSelects(); },
+        'credits-echeances': function() { if(typeof loadCreditsDAF==='function') loadCreditsDAF(); },
+        'budget-felana':     function() { if(typeof loadBudgetFelana==='function') loadBudgetFelana(); if(typeof loadFelanaData==='function') loadFelanaData(); },
+        'suivi-chantiers':   function() { if(typeof loadSuiviChantiers==='function') loadSuiviChantiers(); },
+        'devis':             function() { if(typeof loadDevisDAF==='function') loadDevisDAF(); },
+        'rapports-daf':      function() { if(typeof loadRapportsDAF==='function') loadRapportsDAF(); },
+    };
+    if (loaders[name]) { try { loaders[name](); } catch(e) { console.error('[daf] Erreur section', name, e); } }
+}
+function openModal(id)  { var m = document.getElementById(id); if (m) m.style.display = 'flex'; }
+function closeModal(id) { var m = document.getElementById(id); if (m) m.style.display = 'none'; }
+</script>
+<script>
 // ─────────────────────────────────────────────────────────────────
 // ÉTAT GLOBAL DAF (séparation stricte des données)
 // ─────────────────────────────────────────────────────────────────
@@ -1713,7 +1736,7 @@ async function submitDecaissement(e) {
             .in('statut', ['AUTORISE_DAF','EN_COURS','PARTIELLEMENT_PAYE'])
             .single();
         if (errFetch || !credit) {
-            notify('Erreur : ce crédit n'est plus autorisé ou a déjà été soldé.', 'error');
+            notify("Erreur : ce crédit n'est plus autorisé ou a déjà été soldé.", 'error');
             return false;
         }
 

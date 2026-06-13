@@ -16,8 +16,6 @@
     <script src="supabase.js"></script>
     <script src="script.js"></script>
     <script src="enhancements.js"></script>
-    <script src="stock.js"></script>
-    <script src="devis.js"></script>
     <script src="import-excel.js"></script>
     <script src="modules_new.js"></script>
     <style>
@@ -1311,13 +1309,62 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>`;
     main.appendChild(secCredits);
 
-    // Initialize CEO selects on first load
-    populateCEOChantierSelects();
+    // Initialize CEO selects on first load (deferred: function defined in later script block)
+    window.addEventListener('load', () => {
+        if (typeof populateCEOChantierSelects === 'function') populateCEOChantierSelects();
+    });
 });
 </script>
 <script>
-// ── NAVIGATION ─────────────────────────────────────────────────
-// showSection() est définie plus bas dans le bloc CEO (version complète avec gestion des sections financières)
+// ── NAVIGATION CEO — SHOWSECTION ───────────────────────────────
+// Définie ici (script 2) pour être disponible dès le premier clic.
+// Les fonctions CEO (loadJournalGlobal, etc.) sont définies plus bas
+// dans le script CEO et seront disponibles au runtime via leur hoisting.
+function showSection(name) {
+    // Masquer toutes les sections
+    document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
+    // Mise à jour navigation
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if (event?.currentTarget) event.currentTarget.classList.add('active');
+
+    const ceoSections = ['journal-global', 'budgets-ceo', 'recettes-ceo', 'credits-fournisseurs'];
+
+    const sec = document.getElementById('section-' + name);
+    if (!sec) {
+        console.warn('[admin] Section introuvable: section-' + name);
+        return;
+    }
+    sec.style.display = 'block';
+
+    if (ceoSections.includes(name)) {
+        if (typeof populateCEOChantierSelects === 'function') {
+            populateCEOChantierSelects().then(() => {
+                try {
+                    if (name === 'journal-global')           loadJournalGlobal();
+                    else if (name === 'budgets-ceo')         loadBudgetsCEO();
+                    else if (name === 'recettes-ceo')        loadRecettesCEO();
+                    else if (name === 'credits-fournisseurs') loadCreditsFournisseurs();
+                } catch(e) { console.error('[admin] Erreur section CEO:', name, e); }
+            }).catch(e => console.error('[admin] populateCEOChantierSelects error:', e));
+        }
+    } else {
+        const loaders = {
+            'import':      () => { if(typeof loadImportStatus==='function') loadImportStatus(); },
+            'backup':      () => { if(typeof loadBackupStatus==='function') loadBackupStatus(); if(typeof loadBackupList==='function') loadBackupList(); },
+            'supabase':    () => { if(typeof testConnection==='function') testConnection(); },
+            'users':       () => { if(typeof loadChantierSelect==='function') loadChantierSelect(); if(typeof loadUsers==='function') loadUsers(); },
+            'rapports':    () => { if(typeof loadRapports==='function') loadRapports(); },
+            'controles':   () => { if(typeof loadControles==='function') loadControles(); },
+            'validations': () => { if(typeof loadValidations==='function') loadValidations('EN_ATTENTE'); },
+            'gantt':       () => { if(typeof loadGantt==='function') loadGantt(); },
+        };
+        if (loaders[name]) {
+            try { loaders[name](); } catch(e) { console.error('[admin] Erreur section:', name, e); }
+        }
+    }
+}
+
+// ── HELPERS NAVIGATION ─────────────────────────────────────────
 
 // ── NOTIFICATION ───────────────────────────────────────────────
 function notify(msg, type = 'info') {
@@ -3110,53 +3157,6 @@ async function autoriserDafCredit(id) {
     loadCreditsFournisseurs();
 }
 
-// ── NAVIGATION CEO — HOOK SHOWSECTION ─────────────────────────
-// Remplace / étend la fonction showSection définie dans script.js
-// showSection — version unique, CEO + sections classiques
-function showSection(name) {
-    // Masquer toutes les sections
-    document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
-    // Mise à jour navigation
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    if (event?.currentTarget) event.currentTarget.classList.add('active');
-
-    const ceoSections = ['journal-global', 'budgets-ceo', 'recettes-ceo', 'credits-fournisseurs'];
-    const allSections = ['import', 'backup', 'supabase', 'users', 'rapports', 'controles', 'validations', 'gantt', ...ceoSections];
-    
-    const sec = document.getElementById('section-' + name);
-    if (!sec) {
-        console.warn('[admin] Section introuvable: section-' + name);
-        return;
-    }
-    sec.style.display = 'block';
-
-    // Charger les données de la section (avec gestion d'erreurs)
-    if (ceoSections.includes(name)) {
-        populateCEOChantierSelects().then(() => {
-            try {
-                if (name === 'journal-global')        loadJournalGlobal();
-                else if (name === 'budgets-ceo')      loadBudgetsCEO();
-                else if (name === 'recettes-ceo')     loadRecettesCEO();
-                else if (name === 'credits-fournisseurs') loadCreditsFournisseurs();
-            } catch(e) { console.error('[admin] Erreur chargement section CEO:', name, e); }
-        }).catch(e => console.error('[admin] populateCEOChantierSelects error:', e));
-    } else {
-        // Sections classiques admin
-        const loaders = {
-            'import':   loadImportStatus,
-            'backup':   () => { loadBackupStatus(); loadBackupList(); },
-            'supabase': testConnection,
-            'users':    () => { loadChantierSelect(); loadUsers(); },
-            'rapports': loadRapports,
-            'controles': loadControles,
-            'validations': () => loadValidations('EN_ATTENTE'),
-            'gantt':    loadGantt,
-        };
-        if (loaders[name]) {
-            try { loaders[name](); } catch(e) { console.error('[admin] Erreur chargement section:', name, e); }
-        }
-    }
-}
 
 // ── INIT ───────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
