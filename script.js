@@ -311,30 +311,74 @@ async function loadJournalTable() {
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px">Chargement...</td></tr>';
 
-    const { data, error } = await db.from('journal').select('*').order('date', { ascending: false, nullsFirst: false }).limit(200);
+    // Admin voit journal_global (toutes écritures CEO + DAF)
+    // Autres rôles voient journal standard
+    const { data: { session } } = await db.auth.getSession();
+    const role = session?.user?.user_metadata?.role || '';
+    const isAdmin = role === 'admin';
+
+    let data, error;
+    if (isAdmin) {
+        ({ data, error } = await db.from('journal_global')
+            .select('*, chantiers(nom)')
+            .order('date_ecriture', { ascending: false })
+            .limit(500));
+    } else {
+        ({ data, error } = await db.from('journal')
+            .select('*')
+            .order('date', { ascending: false, nullsFirst: false })
+            .limit(200));
+    }
     if (error) { console.error(error); tbody.innerHTML = ''; return; }
 
+    const typeCfg = {
+        recette_client:     { label: 'Recette Client',  color: '#065f46', bg: '#d1fae5' },
+        dotation_felana:    { label: 'Dotation DAF',    color: '#92400e', bg: '#fef3c7' },
+        depense_daf:        { label: 'Dépense DAF',     color: '#991b1b', bg: '#fee2e2' },
+        credit_fournisseur: { label: 'Crédit Fourn.',   color: '#5b21b6', bg: '#ede9fe' },
+        paiement_credit:    { label: 'Paiement Crédit', color: '#1e40af', bg: '#dbeafe' },
+    };
+
     tbody.innerHTML = '';
-    data.forEach((r, i) => {
+    (data || []).forEach(r => {
         const row = document.createElement('tr');
         row.setAttribute('data-id', r.id);
-        row.innerHTML = `
-            <td>${formatDate(r.date)}</td>
-            <td>${esc(r.chantier) || '—'}</td>
-            <td>${esc(r.designation)}</td>
-            <td>${formatAriary(r.montant)}</td>
-            <td>${esc(r.mode_paiement) || '—'}</td>
-            <td><span class="status ${getStatusClass(r.categorie)}">${esc(r.categorie) || '—'}</span></td>
-            <td>${esc(r.travaux) || '—'}</td>
-            <td>
-                <button class="btn-icon" title="Supprimer" onclick="deleteJournalRow('${r.id}',this)"><i class="fas fa-trash"></i></button>
-            </td>`;
+        if (isAdmin) {
+            const tc = typeCfg[r.type_ecriture] || { label: r.type_ecriture || '—', color: '#374151', bg: '#f3f4f6' };
+            const chantierNom = r.chantiers?.nom || r.chantier_id ? (r.chantiers?.nom || 'Hors-chantier') : 'Hors-chantier';
+            const isDebit = ['depense_daf','dotation_felana','credit_fournisseur','paiement_credit'].includes(r.type_ecriture);
+            row.innerHTML = `
+                <td>${formatDate(r.date_ecriture)}</td>
+                <td>${esc(chantierNom)}</td>
+                <td>${esc(r.designation) || '—'}</td>
+                <td style="font-weight:600;color:${isDebit?'#dc2626':'#059669'}">${isDebit?'− ':'+ '}${formatAriary(r.montant)}</td>
+                <td>${esc(r.mode_paiement) || '—'}</td>
+                <td><span style="background:${tc.bg};color:${tc.color};padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600">${tc.label}</span></td>
+                <td>${esc(r.saisi_par) || 'CEO'}</td>
+                <td><span style="font-size:12px;color:#6b7280">${r.statut || 'VALIDE'}</span></td>`;
+        } else {
+            row.innerHTML = `
+                <td>${formatDate(r.date)}</td>
+                <td>${esc(r.chantier) || '—'}</td>
+                <td>${esc(r.designation)}</td>
+                <td>${formatAriary(r.montant)}</td>
+                <td>${esc(r.mode_paiement) || '—'}</td>
+                <td><span class="status ${getStatusClass(r.categorie)}">${esc(r.categorie) || '—'}</span></td>
+                <td>${esc(r.travaux) || '—'}</td>
+                <td><button class="btn-icon" title="Supprimer" onclick="deleteJournalRow('${r.id}',this)"><i class="fas fa-trash"></i></button></td>`;
+        }
         tbody.appendChild(row);
     });
 
-    // Mettre à jour les stats journal
-    const recettes = data.filter(r => r.categorie === 'RECETTE').reduce((s,r) => s+(r.montant||0), 0);
-    const depenses = data.filter(r => r.categorie !== 'RECETTE').reduce((s,r) => s+(r.montant||0), 0);
+    // Stats
+    let recettes = 0, depenses = 0;
+    if (isAdmin) {
+        recettes = (data||[]).filter(r => r.type_ecriture === 'recette_client').reduce((s,r) => s+(r.montant||0), 0);
+        depenses = (data||[]).filter(r => ['depense_daf','credit_fournisseur','paiement_credit'].includes(r.type_ecriture)).reduce((s,r) => s+(r.montant||0), 0);
+    } else {
+        recettes = (data||[]).filter(r => r.categorie === 'RECETTE').reduce((s,r) => s+(r.montant||0), 0);
+        depenses = (data||[]).filter(r => r.categorie !== 'RECETTE').reduce((s,r) => s+(r.montant||0), 0);
+    }
     const benefice = recettes - depenses;
     const elRec = document.getElementById('journal-stat-recettes');
     const elDep = document.getElementById('journal-stat-depenses');
