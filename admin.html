@@ -2480,6 +2480,8 @@ window.addEventListener('load', async () => {
     // Load admin-specific data
     loadUsers();
     loadValidationCount();
+    if (typeof initSupabase === 'function') await initSupabase();
+    showSection('journal');
 
     // Charger config Supabase sauvegardée
     const url = localStorage.getItem('sb_url');
