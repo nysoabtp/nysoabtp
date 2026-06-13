@@ -1054,13 +1054,14 @@
 <script>
 // ── NAVIGATION — définie ici pour être disponible avant tout clic ──
 // Direct assignment to window at declaration to prevent overwriting
-window.showSection = function showSection(name) {
+window.showSection = function showSection(name, evt) {
     document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
     const el = document.getElementById('section-' + name);
     if (el) { el.style.display = 'block'; }
     else { console.warn('[daf] Section introuvable: section-' + name); }
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    if (event && event.currentTarget) event.currentTarget.classList.add('active');
+    const currentTarget = evt?.currentTarget || (window.event?.currentTarget);
+    if (currentTarget) currentTarget.classList.add('active');
     const loaders = {
         'dashboard':         function() { if(typeof loadDashboard==='function') loadDashboard(); },
         'depenses':          function() { if(typeof loadDepensesDAF==='function') loadDepensesDAF(); if(typeof loadChantiersSelects==='function') loadChantiersSelects(); if(typeof updateSoldeRapide==='function') updateSoldeRapide(); },
