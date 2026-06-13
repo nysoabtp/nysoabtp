@@ -969,7 +969,7 @@
                 </div>
                 <div class="modal-footer" style="padding:0;border:none;margin-top:4px">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('modal-decaissement-credit')">Annuler</button>
-                    <button type="submit" class="btn btn-gold"><i class="fas fa-money-bill-wave"></i> Confirmer le Décaissement</button>
+                    <button type="submit" class="btn btn-gold" id="btn-submit-decaissement"><i class="fas fa-money-bill-wave"></i> Confirmer le décaissement</button>
                 </div>
             </form>
         </div>
@@ -1687,69 +1687,87 @@ async function ouvrirDecaissement(creditId) {
     openModal('modal-decaissement-credit');
 }
 
+// ── V-001 FIX : verrou applicatif anti-double-clic ───────────────
+let _isDecaissing = false;
+
 async function submitDecaissement(e) {
     e.preventDefault();
+
+    // ── VERROU APPLICATIF (couche 1) : double-clic / re-soumission rapide
+    if (_isDecaissing) {
+        notify('⏳ Décaissement déjà en cours, veuillez patienter…', 'warning');
+        return false;
+    }
+    _isDecaissing = true;
+
+    // Désactiver le bouton submit visuellement
+    const btnSubmit = e.target.querySelector('button[type="submit"]');
+    if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = '⏳ Traitement…'; }
+
     const fd           = new FormData(e.target);
     const creditId     = parseInt(document.getElementById('decaiss-credit-id').value);
     const montantPaye  = parseFloat(fd.get('montant_paye'));
     const datePaiement = fd.get('date_paiement');
 
-    if (!montantPaye || isNaN(montantPaye) || montantPaye <= 0) { notify('Montant invalide', 'error'); return false; }
-
-    // ── RÈGLE STRICTE : blocage dur si solde insuffisant
-    if (montantPaye > _soldeFelana) {
-        notify('🚫 SOLDE INSUFFISANT — Vous ne pouvez pas décaisser ' + fmt(montantPaye) +
-               '. Votre solde est ' + fmt(_soldeFelana) + '. Contactez le CEO.', 'error');
-        return false;
-    }
-
     try {
-        // ── SÉCURITÉ : re-vérifier que le crédit est toujours AUTORISE_DAF avant de décaisser
+        if (!montantPaye || isNaN(montantPaye) || montantPaye <= 0) {
+            notify('Montant invalide', 'error');
+            return false;
+        }
+
+        // ── RÈGLE STRICTE : blocage dur si solde insuffisant
+        if (montantPaye > _soldeFelana) {
+            notify('🚫 SOLDE INSUFFISANT — Vous ne pouvez pas décaisser ' + fmt(montantPaye) +
+                   '. Votre solde est ' + fmt(_soldeFelana) + '. Contactez le CEO.', 'error');
+            return false;
+        }
+
+        // ── V-002 : re-vérifier crédit + montant restant avant d'envoyer à la RPC
         const { data: credit, error: errFetch } = await db.from('credits_fournisseurs')
-            .select('*')
+            .select('id, statut, reste1, montant_total, fournisseur, designation, chantier_id')
             .eq('id', creditId)
-            .in('statut', ['AUTORISE_DAF','EN_COURS','PARTIELLEMENT_PAYE'])
+            .in('statut', ['AUTORISE_DAF', 'EN_COURS', 'PARTIELLEMENT_PAYE'])
             .single();
         if (errFetch || !credit) {
-            notify('Erreur : ce credit n est plus autorise ou a deja ete solde.', 'error');
+            notify('Erreur : ce crédit n\'est plus autorisé ou a déjà été soldé.', 'error');
             return false;
         }
-        
-        // V-002 FIX: Vérifier que le montant ne dépasse pas le crédit restant
         const creditRestant = credit.reste1 || credit.montant_total || 0;
         if (creditRestant > 0 && montantPaye > creditRestant) {
-            notify(`Montant dépasse le crédit restant: ${fmt(creditRestant)} Ar`, 'error');
+            notify(`Montant dépasse le crédit restant : ${fmt(creditRestant)} Ar`, 'error');
             return false;
         }
 
-        // 1. Écrire la dépense dans le journal (visible_daf=TRUE → impacte le solde DAF)
-        const { data: journalRow, error: errD } = await db.from('journal_global').insert({
-            type_ecriture: 'paiement_credit',
-            date_ecriture: datePaiement,
-            montant:       montantPaye,
-            designation:   '[Decaissement Credit] ' + (credit.fournisseur||'') + ' - ' + (credit.designation||''),
-            chantier_id:   credit.chantier_id || null,
-            mode_paiement: fd.get('mode_paiement'),
-            reference:     fd.get('reference_paiement') || null,
-            categorie:     'DECAISSEMENT_CREDIT',
-            saisi_par:     'DAF',
-            visible_daf:   true,
-            statut:        'VALIDE',
-        }).select('id').single();
-        if (errD) throw errD;
+        // ── V-001 FIX : appel RPC atomique (verrou PostgreSQL, couche 2)
+        // La fonction decaisser_credit() exécute en une seule transaction :
+        //   a) UPDATE conditionnel (pose verrou decaisse_le si NULL)
+        //   b) INSERT journal_global
+        //   c) UPDATE credits_fournisseurs → SOLDE
+        // Si une autre requête parallèle a déjà posé le verrou → retourne ALREADY_PROCESSING
+        const { data: rpcResult, error: rpcError } = await db.rpc('decaisser_credit', {
+            p_credit_id:     creditId,
+            p_montant:       montantPaye,
+            p_date_paiement: datePaiement,
+            p_mode_paiement: fd.get('mode_paiement'),
+            p_reference:     fd.get('reference_paiement') || null,
+            p_notes:         fd.get('notes') || null,
+            p_chantier_id:   credit.chantier_id || null,
+            p_fournisseur:   credit.fournisseur || null,
+            p_designation:   credit.designation || null,
+        });
 
-        // 2. Marquer le crédit SOLDE avec traçabilité complète
-        const { error: errC } = await db.from('credits_fournisseurs').update({
-            statut:                 'SOLDE',
-            date_soldee:            datePaiement,
-            reference_paiement:     fd.get('reference_paiement') || null,
-            notes_paiement_daf:     fd.get('notes') || null,
-            decaisse_par:           'DAF',
-            journal_paiement_id:    journalRow?.id || null,
-        }).eq('id', creditId)
-          .in('statut', ['AUTORISE_DAF','EN_COURS','PARTIELLEMENT_PAYE']);  // Guard contre double-submit
-        if (errC) throw errC;
+        if (rpcError) throw rpcError;
 
+        if (!rpcResult?.success) {
+            if (rpcResult?.error === 'ALREADY_PROCESSING') {
+                notify('⚠️ Ce crédit est déjà en cours de décaissement. Opération annulée.', 'warning');
+            } else {
+                notify('Erreur : ' + (rpcResult?.message || 'Décaissement échoué'), 'error');
+            }
+            return false;
+        }
+
+        // ── Succès
         closeModal('modal-decaissement-credit');
         e.target.reset();
         notify('Décaissement enregistré ✓ — Crédit soldé', 'success');
@@ -1757,8 +1775,13 @@ async function submitDecaissement(e) {
         updateSoldeRapide();
         loadCreditsDAF();
         loadDashboard();
+
     } catch (err) {
-        notify('Erreur : ' + err.message, 'error');
+        notify('Erreur technique : ' + err.message, 'error');
+    } finally {
+        // ── Toujours libérer le verrou applicatif et réactiver le bouton
+        _isDecaissing = false;
+        if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = '✔ Confirmer le décaissement'; }
     }
     return false;
 }
