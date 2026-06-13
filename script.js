@@ -1018,6 +1018,7 @@ navItems.forEach(item => {
     item.addEventListener('click', e => {
         const href = item.getAttribute('href');
         if (href && href !== '#') return; // laisser naviguer les liens externes
+        if (item.getAttribute('onclick')) return; // laisser showSection() s'exécuter (admin.html)
         e.preventDefault();
         const sectionId = item.getAttribute('data-section');
         // BUG-19 FIX: mémoriser si cette section était déjà active avant le clic
