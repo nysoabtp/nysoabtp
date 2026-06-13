@@ -1051,10 +1051,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <form id="form-dotation-felana" onsubmit="submitDotationFelana(event)">
                     <div style="margin-bottom:14px">
-                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Chantier *</label>
-                        <select name="chantier_id" class="form-input" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px" required>
+                        <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Chantier</label>
+                        <div style="display:flex;gap:8px;margin-bottom:8px">
+                            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+                                <input type="radio" name="dot_rattach" value="chantier" checked onchange="toggleDotChantierField(this)"> Par chantier
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+                                <input type="radio" name="dot_rattach" value="hors" onchange="toggleDotChantierField(this)"> Hors chantier
+                            </label>
+                        </div>
+                        <div id="dot-chantier-wrap">
+                        <select name="chantier_id" class="form-input" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px">
                             <option value="">— Sélectionner —</option>
                         </select>
+                        </div>
                     </div>
                     <div style="margin-bottom:14px">
                         <label style="font-size:13px;font-weight:600;color:#636e72;display:block;margin-bottom:4px">Montant à injecter (Ar) *</label>
@@ -2852,6 +2862,15 @@ async function submitBudgetGlobal(e) {
     return false;
 }
 
+
+function toggleDotChantierField(radio) {
+    const wrap = document.getElementById('dot-chantier-wrap');
+    if (!wrap) return;
+    wrap.style.display = radio.value === 'hors' ? 'none' : 'block';
+    const sel = wrap.querySelector('select[name="chantier_id"]');
+    if (sel) sel.value = '';
+}
+
 async function editBudgetGlobal(id) {
     const { data, error } = await db.from('budgets_chantiers').select('*').eq('id', id).single();
     if (error || !data) { notifyCEO('Introuvable', 'error'); return; }
@@ -2866,12 +2885,13 @@ async function editBudgetGlobal(id) {
 async function submitDotationFelana(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const chantierID = parseInt(fd.get('chantier_id')) || null;
-    const montant    = parseFloat(fd.get('montant')) || 0;
-    const motif      = fd.get('motif');
-    const date       = fd.get('date') || todayISO();
+    const horsChantier = fd.get('dot_rattach') === 'hors';
+    const chantierID   = horsChantier ? null : (parseInt(fd.get('chantier_id')) || null);
+    const montant      = parseFloat(fd.get('montant')) || 0;
+    const motif        = fd.get('motif');
+    const date         = fd.get('date') || todayISO();
 
-    if (!chantierID) { notifyCEO('Chantier requis', 'error'); return false; }
+    if (!horsChantier && !chantierID) { notifyCEO('Sélectionner un chantier ou choisir Hors chantier', 'error'); return false; }
     if (montant <= 0) { notifyCEO('Montant invalide', 'error'); return false; }
     if (!motif?.trim()) { notifyCEO('Motif requis', 'error'); return false; }
 
@@ -2888,7 +2908,8 @@ async function submitDotationFelana(e) {
 
         // 2. Enregistrer la dotation avec lien journal
         const { error: errDot } = await db.from('dotations_felana').insert({
-            chantier_id: chantierID,
+            chantier_id:   chantierID,
+            hors_chantier: horsChantier,
             montant,
             motif,
             date,
@@ -2899,6 +2920,7 @@ async function submitDotationFelana(e) {
 
         closeModalCEO('modal-dotation-felana');
         e.target.reset();
+        document.getElementById('dot-chantier-wrap').style.display = 'block';
         notifyCEO('Dotation injectée ✓ — Le DAF peut maintenant utiliser ces fonds', 'success');
         loadBudgetsCEO();
     } catch (ex) { notifyCEO('Erreur : ' + ex.message, 'error'); }
