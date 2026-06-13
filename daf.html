@@ -1720,15 +1720,13 @@ async function submitDecaissement(e) {
             type_ecriture: 'paiement_credit',
             date_ecriture: datePaiement,
             montant:       montantPaye,
-            designation:   '[Décaissement Crédit] ' + (credit.fournisseur||'') + ' — ' + (credit.designation||''),
+            designation:   '[Decaissement Credit] ' + (credit.fournisseur||'') + ' - ' + (credit.designation||''),
             chantier_id:   credit.chantier_id || null,
             mode_paiement: fd.get('mode_paiement'),
             reference:     fd.get('reference_paiement') || null,
             categorie:     'DECAISSEMENT_CREDIT',
             saisi_par:     'DAF',
             visible_daf:   true,
-            debit:         montantPaye,
-            credit:        0,
             statut:        'VALIDE',
         }).select('id').single();
         if (errD) throw errD;
