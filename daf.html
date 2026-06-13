@@ -1711,7 +1711,7 @@ async function submitDecaissement(e) {
             .in('statut', ['AUTORISE_DAF','EN_COURS','PARTIELLEMENT_PAYE'])
             .single();
         if (errFetch || !credit) {
-            notify("Erreur : ce crédit n'est plus autorisé ou a déjà été soldé.", 'error');
+            notify('Erreur : ce credit n est plus autorise ou a deja ete solde.', 'error');
             return false;
         }
 
