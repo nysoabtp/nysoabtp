@@ -2701,8 +2701,6 @@ async function writeJournalGlobal({ type_ecriture, chantier_id = null, designati
         chantier_id: chantier_id || null,
         designation,
         montant: parseFloat(montant) || 0,
-        debit:  ['depense_daf','dotation_felana','credit_fournisseur','paiement_credit'].includes(type_ecriture) ? (parseFloat(montant) || 0) : 0,
-        credit: type_ecriture === 'recette_client' ? (parseFloat(montant) || 0) : 0,
         mode_paiement,
         reference,
         date_ecriture: date_ecriture || todayISO(),
