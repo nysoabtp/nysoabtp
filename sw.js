@@ -4,7 +4,7 @@
 // CORRIGÉ Bug #10: NE JAMAIS CACHER config.js (contient les clés API)
 // ══════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'nysoa-btp-v4';
+const CACHE_NAME = 'nysoa-btp-v5';
 const DATA_CACHE = 'nysoa-data-v1';
 
 // Fichiers à mettre en cache pour fonctionnement offline
