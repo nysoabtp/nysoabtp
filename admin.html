@@ -1316,11 +1316,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
+console.log('[DEBUG] Second script block starting...');
 // ── NAVIGATION CEO — SHOWSECTION ───────────────────────────────
-// Définie ici (script 2) pour être disponible dès le premier clic.
-// Les fonctions CEO (loadJournalGlobal, etc.) sont définies plus bas
-// dans le script CEO et seront disponibles au runtime via leur hoisting.
-function showSection(name) {
+// Direct assignment to window at declaration to prevent overwriting
+window.showSection = function showSection(name) {
+    console.log('[DEBUG] showSection called with:', name);
     // Masquer toutes les sections
     document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
     // Mise à jour navigation
@@ -1362,14 +1362,11 @@ function showSection(name) {
             try { loaders[name](); } catch(e) { console.error('[admin] Erreur section:', name, e); }
         }
     }
-}
-// Exposer explicitement au scope global pour les onclick HTML
-window.showSection = showSection;
-
-// ── HELPERS NAVIGATION ─────────────────────────────────────────
+};
+console.log('[DEBUG] window.showSection defined directly at declaration');
 
 // ── NOTIFICATION ───────────────────────────────────────────────
-function notify(msg, type = 'info') {
+window.notify = function notify(msg, type = 'info') {
     const n = document.createElement('div');
     n.className = `notif notif-${type}`;
     const icons = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
@@ -1377,17 +1374,24 @@ function notify(msg, type = 'info') {
     document.body.appendChild(n);
     setTimeout(() => n.style.opacity = '0', 3000);
     setTimeout(() => n.remove(), 3300);
-}
+};
+console.log('[DEBUG] window.notify defined');
 
 // ── LOG ────────────────────────────────────────────────────────
-const logBox = document.getElementById('log-box');
-function log(msg, type = '') {
-    logBox.innerHTML += `<div class="${type}">${new Date().toLocaleTimeString()} — ${msg}</div>`;
-    logBox.scrollTop = logBox.scrollHeight;
-}
-function toggleLog() {
-    logBox.style.display = logBox.style.display === 'block' ? 'none' : 'block';
-}
+window.log = function log(msg, type = '') {
+    const logBox = document.getElementById('log-box');
+    if (logBox) {
+        logBox.innerHTML += `<div class="${type}">${new Date().toLocaleTimeString()} — ${msg}</div>`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+};
+console.log('[DEBUG] window.log defined');
+
+window.toggleLog = function() {
+    const logBox = document.getElementById('log-box');
+    if (logBox) logBox.style.display = logBox.style.display === 'block' ? 'none' : 'block';
+};
+console.log('[DEBUG] window.toggleLog defined');
 
 // ── DRAG & DROP ────────────────────────────────────────────────
 function dragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
@@ -2465,32 +2469,44 @@ window.addEventListener('beforeunload', () => {
 });
 
 window.addEventListener('load', async () => {
-    // Vérif accès admin via session Supabase réelle
-    const user = await checkAuthOrRedirect('admin');
-    if (!user) return;
-    document.getElementById('user-name').textContent = user.nom || 'Admin';
-
-    // Charger config Supabase sauvegardée
-    const url = localStorage.getItem('sb_url');
-    const key = localStorage.getItem('sb_key');
-    if (url) document.getElementById('sb-url').value = url;
-    if (key) document.getElementById('sb-key').value = key;
-
-    // Historique sauvegardes
-    const hist = JSON.parse(localStorage.getItem('backup_history') || '[]');
-    if (hist.length > 0) {
-        document.getElementById('backup-history').innerHTML = hist.map(h => `
-            <div class="backup-item">
-                <i class="fas fa-file-excel"></i>
-                <div class="bname"><strong>${h.fname}</strong></div>
-                <div class="bdate">${h.date}</div>
-            </div>`).join('');
+    // Vérif accès admin via session Supabase - mode lecture seule si non connecté
+    try {
+        const user = await checkAuthOrRedirect('admin', { redirectOnFail: false });
+        if (user) {
+            document.getElementById('user-name').textContent = user.nom || user.email || 'Admin';
+        } else {
+            // Session non valide ou Supabase inaccessible - reste sur la page en mode lecture seule
+            console.warn('[admin] Auth non validée - mode lecture seule');
+        }
+    } catch(e) {
+        console.warn('[admin] Auth check failed:', e.message, '- mode lecture seule');
     }
-    const lastBackup = localStorage.getItem('last_backup');
-    if (lastBackup) document.getElementById('last-backup-full').textContent = 'Dernière sauvegarde : ' + lastBackup;
 
-    loadUsers();
-    loadValidationCount();
+    try {
+        // Charger config Supabase sauvegardée
+        const url = localStorage.getItem('sb_url');
+        const key = localStorage.getItem('sb_key');
+        if (url) document.getElementById('sb-url').value = url;
+        if (key) document.getElementById('sb-key').value = key;
+
+        // Historique sauvegardes
+        const hist = JSON.parse(localStorage.getItem('backup_history') || '[]');
+        if (hist.length > 0) {
+            document.getElementById('backup-history').innerHTML = hist.map(h => `
+                <div class="backup-item">
+                    <i class="fas fa-file-excel"></i>
+                    <div class="bname"><strong>${h.fname}</strong></div>
+                    <div class="bdate">${h.date}</div>
+                </div>`).join('');
+        }
+        const lastBackup = localStorage.getItem('last_backup');
+        if (lastBackup) document.getElementById('last-backup-full').textContent = 'Dernière sauvegarde : ' + lastBackup;
+
+        loadUsers();
+        loadValidationCount();
+    } catch(e) {
+        console.warn('[admin] Load error:', e.message);
+    }
 
     // Charger les sections suivi au premier affichage
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -2557,14 +2573,14 @@ const fmtArM = v => {
 
 const todayISO = () => new Date().toISOString().split('T')[0];
 
-function openModalCEO(id) {
+window.openModalCEO = function(id) {
     const m = document.getElementById(id);
     if (m) m.style.display = 'flex';
-}
-function closeModalCEO(id) {
+};
+window.closeModalCEO = function(id) {
     const m = document.getElementById(id);
     if (m) m.style.display = 'none';
-}
+};
 function notifyCEO(msg, type = 'success') {
     if (typeof notify === 'function') notify(msg, type);
     else console[type === 'error' ? 'error' : 'log']('[CEO]', msg);

@@ -1053,8 +1053,8 @@
 
 <script>
 // ── NAVIGATION — définie ici pour être disponible avant tout clic ──
-// Ce bloc isolé survit à toute SyntaxError dans le script principal.
-function showSection(name) {
+// Direct assignment to window at declaration to prevent overwriting
+window.showSection = function showSection(name) {
     document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
     const el = document.getElementById('section-' + name);
     if (el) { el.style.display = 'block'; }
@@ -1072,13 +1072,19 @@ function showSection(name) {
         'rapports-daf':      function() { if(typeof loadRapportsDAF==='function') loadRapportsDAF(); },
     };
     if (loaders[name]) { try { loaders[name](); } catch(e) { console.error('[daf] Erreur section', name, e); } }
-}
-function openModal(id)  { var m = document.getElementById(id); if (m) m.style.display = 'flex'; }
-function closeModal(id) { var m = document.getElementById(id); if (m) m.style.display = 'none'; }
-// Exposer explicitement au scope global
-window.showSection = showSection;
-window.openModal = openModal;
-window.closeModal = closeModal;
+};
+window.openModal = function(id)  { var m = document.getElementById(id); if (m) m.style.display = 'flex'; };
+window.closeModal = function(id) { var m = document.getElementById(id); if (m) m.style.display = 'none'; };
+window.notify = function(msg, type = 'info') {
+    const n = document.createElement('div');
+    n.className = `notif notif-${type}`;
+    const icons = { success:'check-circle', error:'exclamation-circle', info:'info-circle', warning:'exclamation-triangle' };
+    n.innerHTML = `<i class="fas fa-${icons[type]||'info-circle'}"></i> ${msg}`;
+    document.body.appendChild(n);
+    setTimeout(() => n.style.opacity = '0', 3500);
+    setTimeout(() => n.remove(), 3800);
+};
+console.log('[DEBUG DAF] window.showSection, openModal, closeModal, notify defined');
 </script>
 <script>
 // ─────────────────────────────────────────────────────────────────
@@ -1094,50 +1100,13 @@ let _felanaCatChart = null;
 
 // ─────────────────────────────────────────────────────────────────
 // NAVIGATION
+// NOTE: showSection already defined globally in first script block
 // ─────────────────────────────────────────────────────────────────
-function showSection(name) {
-    // Masquer toutes les sections
-    document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
-    // Afficher la section demandée (si elle existe)
-    const el = document.getElementById('section-' + name);
-    if (el) {
-        el.style.display = 'block';
-    } else {
-        console.warn('[daf] Section introuvable: section-' + name);
-        // Ne pas blocker, la section peut ne pas exister encore
-    }
-    // Mise à jour navigation
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    if (event?.currentTarget) event.currentTarget.classList.add('active');
-    // Charger les données de la section (avec gestion d'erreurs)
-    const loaders = {
-        'dashboard':          loadDashboard,
-        'depenses':           () => { loadDepensesDAF(); loadChantiersSelects(); updateSoldeRapide(); },
-        'journal-daf':        () => { loadJournalDAF(); loadChantiersSelects(); },
-        'credits-echeances':  loadCreditsDAF,
-        'budget-felana':      () => { loadBudgetFelana(); loadFelanaData(); },
-        'suivi-chantiers':    loadSuiviChantiers,
-        'devis':              loadDevisDAF,
-        'rapports-daf':       loadRapportsDAF,
-    };
-    if (loaders[name]) {
-        try { loaders[name](); } catch(e) { console.error('[daf] Erreur chargement section', name, e); }
-    }
-}
 
 // ─────────────────────────────────────────────────────────────────
 // HELPERS
+// NOTE: notify already defined globally in first script block
 // ─────────────────────────────────────────────────────────────────
-function notify(msg, type = 'info') {
-    const n = document.createElement('div');
-    n.className = `notif notif-${type}`;
-    const icons = { success:'check-circle', error:'exclamation-circle', info:'info-circle', warning:'exclamation-triangle' };
-    n.innerHTML = `<i class="fas fa-${icons[type]||'info-circle'}"></i> ${msg}`;
-    document.body.appendChild(n);
-    setTimeout(() => n.style.opacity = '0', 3500);
-    setTimeout(() => n.remove(), 3800);
-}
-
 function fmt(n)  { if (n === null || n === undefined) return '—'; return Number(n).toLocaleString('fr-FR') + ' Ar'; }
 function fmtM(n) { if (!n) return '0 Ar'; if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(2)+' MAr'; return Number(n).toLocaleString('fr-FR')+' Ar'; }
 function esc(s)  { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -2125,23 +2094,23 @@ async function changePassword(e) {
 // INIT
 // ─────────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
-    const user = await checkAuthOrRedirect('daf');
-    if (!user) return;
-
-    document.getElementById('user-name').textContent = user.nom || 'DAF';
-    document.getElementById('current-date-header').textContent =
-        new Date().toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-
-    // Initialiser date du formulaire dépense
-    const depDateInput = document.getElementById('dep-date-input');
-    if (depDateInput) depDateInput.value = today();
-
-    // Charger chantiers et solde
-    await loadChantiersSelects();
-    await calculerSoldeFelana();
-
-    // Dashboard par défaut
-    loadDashboard();
+    // Mode lecture seule si non connecté à Supabase
+    const user = await checkAuthOrRedirect('daf', { redirectOnFail: false });
+    if (user) {
+        document.getElementById('user-name').textContent = user.nom || user.email || 'DAF';
+        document.getElementById('current-date-header').textContent =
+            new Date().toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+        // Initialiser date du formulaire dépense
+        const depDateInput = document.getElementById('dep-date-input');
+        if (depDateInput) depDateInput.value = today();
+        // Charger chantiers et solde
+        await loadChantiersSelects();
+        await calculerSoldeFelana();
+        // Dashboard par défaut
+        loadDashboard();
+    } else {
+        console.warn('[daf] Auth non validée - mode lecture seule');
+    }
 });
 
 // Gestion des clics nav

@@ -79,7 +79,8 @@ function handleError(err, context) {
  * @param {string|null} expectedRole  ex: 'daf', 'chef', 'admin' — null = tout rôle accepté
  * @returns {object|null}  user { email, role } ou null (+ redirection déjà lancée)
  */
-async function checkAuthOrRedirect(expectedRole = null) {
+async function checkAuthOrRedirect(expectedRole = null, options = {}) {
+    const { redirectOnFail = true } = options;
     const ROLE_MAP = {
         admin: 'admin', daf: 'daf', chef: 'chef-chantier',
         rh: 'rh', controleur: 'controleur', technicien: 'technicien'
@@ -88,10 +89,10 @@ async function checkAuthOrRedirect(expectedRole = null) {
     try {
         const { data: { session }, error } = await db.auth.getSession();
 
-        // Session absente ou expirée → redirection immédiate (pas de fallback localStorage)
+        // Session absente ou expirée
         if (!session || error) {
             localStorage.removeItem('nysoa_current_user');
-            window.location.href = 'login.html';
+            if (redirectOnFail) window.location.href = 'login.html';
             return null;
         }
 
@@ -103,7 +104,7 @@ async function checkAuthOrRedirect(expectedRole = null) {
 
         // Rediriger si le rôle ne correspond pas à la page
         if (expectedRole && user.role !== expectedRole) {
-            window.location.href = (ROLE_MAP[user.role] || 'index') + '.html';
+            if (redirectOnFail) window.location.href = (ROLE_MAP[user.role] || 'index') + '.html';
             return null;
         }
 
@@ -112,7 +113,7 @@ async function checkAuthOrRedirect(expectedRole = null) {
     } catch (e) {
         console.error('[Auth] getSession error:', e.message);
         localStorage.removeItem('nysoa_current_user');
-        window.location.href = 'login.html';
+        if (redirectOnFail) window.location.href = 'login.html';
         return null;
     }
 }
