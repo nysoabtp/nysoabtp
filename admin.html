@@ -1363,6 +1363,8 @@ function showSection(name) {
         }
     }
 }
+// Exposer explicitement au scope global pour les onclick HTML
+window.showSection = showSection;
 
 // ── HELPERS NAVIGATION ─────────────────────────────────────────
 

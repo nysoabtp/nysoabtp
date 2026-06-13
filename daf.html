@@ -1075,6 +1075,10 @@ function showSection(name) {
 }
 function openModal(id)  { var m = document.getElementById(id); if (m) m.style.display = 'flex'; }
 function closeModal(id) { var m = document.getElementById(id); if (m) m.style.display = 'none'; }
+// Exposer explicitement au scope global
+window.showSection = showSection;
+window.openModal = openModal;
+window.closeModal = closeModal;
 </script>
 <script>
 // ─────────────────────────────────────────────────────────────────
