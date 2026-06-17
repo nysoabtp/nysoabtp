@@ -1047,7 +1047,14 @@
                 const mois  = new Date().getMonth() + 1;
                 const annee = new Date().getFullYear();
                 const moisDebut = `${annee}-${String(mois).padStart(2,'0')}-01`;
-                const moisFin   = `${annee}-${String(mois).padStart(2,'0')}-31`;
+                // BUGFIX : '-31' était codé en dur et invalide pour les mois de
+                // moins de 31 jours (ex: "2026-06-31" n'existe pas → PostgreSQL
+                // rejette la requête, pointages reste vide, nbJours=0 pour tous,
+                // et l'erreur n'était visible qu'en console, pas à l'écran).
+                // new Date(annee, mois, 0) donne le DERNIER jour du mois "mois"
+                // (0 = jour avant le 1er du mois suivant).
+                const dernierJourDuMois = new Date(annee, mois, 0).getDate();
+                const moisFin = `${annee}-${String(mois).padStart(2,'0')}-${String(dernierJourDuMois).padStart(2,'0')}`;
 
                 const [
                     { data: personnel },
@@ -1081,12 +1088,15 @@
 
                 for (const emp of personnel) {
                     // ERR-18 : seuls les jours effectivement pointés comptent — défaut 0, pas 22
+                    // BUGFIX : on ne comptait pas le statut — un jour "absent" était
+                    // payé comme un jour travaillé tant qu'une ligne de pointage
+                    // existait pour cette date. On ne garde que statut === 'present'.
                     const joursPresents = new Set(
                         (pointages || [])
-                            .filter(p => p.nom_employe === emp.nom)
+                            .filter(p => p.nom_employe === emp.nom && p.statut === 'present')
                             .map(p => p.date)
                     );
-                    const nbJours = joursPresents.size; // 0 si aucun pointage ce mois
+                    const nbJours = joursPresents.size; // 0 si aucun pointage "present" ce mois
 
                     const salaireBrut  = (emp.salaire_journalier || 0) * nbJours;
                     const cotisationCnaps = Math.round(salaireBrut * TAUX_CNAPS);

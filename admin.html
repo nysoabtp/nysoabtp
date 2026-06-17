@@ -2643,8 +2643,14 @@ async function loadJournalGlobal() {
         if (typeFilter)     q = q.eq('type_ecriture', typeFilter);
         if (chantierFilter) q = q.eq('chantier_id', chantierFilter);
         if (moisFilter) {
+            // BUGFIX : '-31' codé en dur plantait pour les mois de moins de
+            // 31 jours (ex: juin, avril → "2026-06-31" invalide pour Postgres).
+            // moisFilter est au format "AAAA-MM" (input type="month").
+            const [filtreAnnee, filtreMois] = moisFilter.split('-').map(Number);
+            const dernierJour = new Date(filtreAnnee, filtreMois, 0).getDate();
+            const finMois = `${moisFilter}-${String(dernierJour).padStart(2,'0')}`;
             q = q.gte('date_ecriture', moisFilter + '-01')
-                 .lte('date_ecriture', moisFilter + '-31');
+                 .lte('date_ecriture', finMois);
         }
 
         const { data, error } = await q;
