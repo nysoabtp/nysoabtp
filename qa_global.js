@@ -124,36 +124,43 @@ async function testConsoleErrors() {
     };
 
     for (const [role, acct] of Object.entries(ACCOUNTS)) {
-        const { browser, page, errors } = await newSession();
-        await login(page, acct.email, acct.password);
-        await waitForLoad(page);
-        const initialErrors = [...errors];
+        try {
+            const { browser, page, errors } = await newSession();
+            await login(page, acct.email, acct.password);
+            await waitForLoad(page);
+            const initialErrors = [...errors];
 
-        for (const section of (sections[role] || [])) {
-            errors.length = 0;
-            try {
-                await page.evaluate((s) => {
-                    if (typeof showSection === 'function') showSection(s);
-                }, section);
-                await page.waitForTimeout(1500);
-            } catch (e) {
-                errors.push('Navigation error: ' + e.message.substring(0, 80));
-            }
+            for (const section of (sections[role] || [])) {
+                errors.length = 0;
+                try {
+                    await page.evaluate((s) => {
+                        if (typeof showSection === 'function') showSection(s);
+                    }, section);
+                    await page.waitForTimeout(1500);
+                } catch (e) {
+                    errors.push('Navigation error: ' + e.message.substring(0, 80));
+                }
 
-            if (errors.length > 0) {
-                for (const err of errors) {
-                    test(`CONSOLE-${role.toUpperCase()}-${section.toUpperCase()}`,
-                        `${role}/${section} errors`, false, 'CRIT', err);
+                if (errors.length > 0) {
+                    for (const err of errors) {
+                        test(`CONSOLE-${role.toUpperCase()}-${section.toUpperCase()}`,
+                            `${role}/${section} errors`, false, 'CRIT', err);
+                    }
                 }
             }
-        }
 
-        if (initialErrors.length === 0 && errors.length === 0) {
-            test(`CONSOLE-${role.toUpperCase()}`, `${role} page no errors`, true, 'HIGH',
-                'All sections clean');
-        }
+            if (initialErrors.length === 0 && errors.length === 0) {
+                test(`CONSOLE-${role.toUpperCase()}`, `${role} page no errors`, true, 'HIGH',
+                    'All sections clean');
+            }
 
-        await browser.close();
+            await browser.close();
+        } catch (e) {
+            // Catch PAR RÔLE : toute exception devient un test ÉCHOUÉ visible,
+            // jamais une absence silencieuse (surtout pour le dernier rôle de la boucle)
+            test(`CONSOLE-${role.toUpperCase()}-FATAL`, `${role} page crashed during test`, false, 'CRIT',
+                e.message.substring(0, 120));
+        }
     }
 }
 
@@ -280,15 +287,27 @@ async function testKPIs() {
         };
     });
 
+    // PROBLEM A: Suppression de la comparaison DOM fake.
+    // calculerSoldeFelana() ne touche JAMAIS au DOM — elle calcule et retourne {solde,dotations,depenses}.
+    // Le DOM #felana-solde-principal n'est mis à jour que par loadFelanaData() → showSection('budget-felana').
+    // Option (2) choisie : tester UNIQUEMENT le calcul DB, sans prétendre comparer au DOM.
+    // DOM ne bouge pas sans showSection('budget-felana') → cualquier comparación DOM serait illusoria.
     const tolerance = 1;
-    const parsedDom = parseInt(String(dafKPIs.domAfterCalc).replace(/[^\d]/g, ''), 10) || 0;
-    const budgetMatch = Math.abs(parsedDom - dafKPIs.calculatedSolde) <= tolerance;
+    const hasRealBudget = dafKPIs.calculatedSolde > 0;
 
-    test('KPI-DAF-BUDGET', 'DAF budget calculated (DB correct)', true, 'HIGH',
+    // Vérifie que dotations, depenses et solde sont tous >= 0 (cohérence interne)
+    const dotationsValid = dafKPIs.totalDot >= 0;
+    const depensesValid = dafKPIs.totalDep >= 0;
+    const calculCoherent = Math.abs(dafKPIs.totalDot - dafKPIs.totalDep - dafKPIs.calculatedSolde) < tolerance;
+
+    const budgetPass = hasRealBudget && dotationsValid && depensesValid && calculCoherent;
+
+    test('KPI-DAF-BUDGET-CALC', 'DAF budget DB coherent (strict)', budgetPass, 'HIGH',
         `Dot=${dafKPIs.totalDot}, Dep=${dafKPIs.totalDep}, Solde=${dafKPIs.calculatedSolde}, ` +
-        `DOM after calculerSoldeFelana()=${dafKPIs.domAfterCalc}, Match=${budgetMatch}`);
-    // Note: le test passe si le CALCUL DB est > 0 (solde réel). Le DOM peut être 0 au chargement.
-    test('KPI-DAF-BUDGET-VALID', 'DAF solde > 0 (real budget exists)', dafKPIs.calculatedSolde > 0, 'HIGH',
+        `hasBudget=${hasRealBudget}, coherent=${calculCoherent}`);
+
+    // Second test: le solde est bien positif (condition métier : pas de budget négatif)
+    test('KPI-DAF-BUDGET-POSITIVE', 'DAF solde > 0 (real budget exists)', hasRealBudget, 'HIGH',
         `Solde=${dafKPIs.calculatedSolde}`);
 
     await b2.close();
@@ -311,6 +330,8 @@ async function testWorkflows() {
     try {
         // CREATE: Insérer un congé de test
         // Colonnes requises: employe_nom, date_debut, date_fin, duree, statut
+        // PROBLEM B: .select('id').single() est OBLIGATOIRE — sans ça Supabase-js v2
+        // retourne data=null sur insert → id toujours undefined → le reste du cycle ne s'exécute jamais.
         const created = await rhPage.evaluate(async (m) => {
             const r = await db.from('conges').insert({
                 employe_nom: 'TEST-' + m,
@@ -318,8 +339,8 @@ async function testWorkflows() {
                 date_fin: new Date(Date.now() + 864e5 * 3).toISOString().split('T')[0],
                 duree: 3,
                 statut: 'en_attente'
-            });
-            return { success: !r.error, id: r.data?.[0]?.id, error: r.error?.message };
+            }).select('id').single();
+            return { success: !r.error && !!r.data, id: r.data?.id, error: r.error?.message };
         }, markerConges);
 
         test('WF-RH-CONGES-CREATE', 'RH crée un congé de test', created.success, 'HIGH',
@@ -344,12 +365,26 @@ async function testWorkflows() {
             test('WF-RH-CONGES-VERIFY', 'Congé vérifié en base', verified.ok, 'HIGH',
                 `statut=${verified.statut}`);
 
-            // DELETE: Nettoyer
-            await rhPage.evaluate(async (id) => {
-                await db.from('conges').delete().eq('id', id);
+            // CLEANUP: Soft-delete via UPDATE (DELETE blocked by RLS on conges table)
+            // RLS requires user_id match — UPDATE to statut='rejete' works, DELETE returns 204 but row persists.
+            const cleanupResult = await rhPage.evaluate(async (id) => {
+                const before = await db.from('conges').select('id, statut').eq('id', id).single();
+                await db.from('conges').update({ statut: 'rejete' }).eq('id', id);
+                const after = await db.from('conges').select('id, statut').eq('id', id).single();
+                return {
+                    existed: !!before.data,
+                    beforeStatut: before.data?.statut,
+                    afterStatut: after.data?.statut,
+                    cleaned: before.data?.statut !== 'rejete' && after.data?.statut === 'rejete'
+                };
             }, created.id);
 
-            test('WF-RH-CONGES-CLEANUP', 'Congé supprimé (cleanup)', true, 'MED', '');
+            test('WF-RH-CONGES-CLEANUP', 'Congé nettoyé (soft-delete)', cleanupResult.cleaned, 'MED',
+                `before=${cleanupResult.beforeStatut}, after=${cleanupResult.afterStatut}, cleaned=${cleanupResult.cleaned}`);
+        } else {
+            test('WF-RH-CONGES-APPROVE', 'Skipped (no ID returned)', false, 'HIGH', 'INSERT failed');
+            test('WF-RH-CONGES-VERIFY', 'Skipped (no ID returned)', false, 'HIGH', 'INSERT failed');
+            test('WF-RH-CONGES-CLEANUP', 'Skipped (no ID returned)', false, 'MED', 'INSERT failed');
         }
     } catch (e) {
         test('WF-RH-CONGES', 'RH workflow congé', false, 'HIGH', e.message.substring(0, 80));
@@ -406,12 +441,24 @@ async function testWorkflows() {
             test('WF-DAF-DEPENSE-VERIFY', 'Solde Felana mis à jour', soldeUpdated, 'HIGH',
                 `Initial=${initialSolde}, New=${newSolde}, Diff=${initialSolde - newSolde}, Expected=${depenseMontant}`);
 
-            // DELETE: Nettoyer
-            await dafPage.evaluate(async (id) => {
-                await db.from('journal_global').delete().eq('id', id);
+            // CLEANUP: Soft-delete via UPDATE (DELETE blocked by RLS on journal_global)
+            const dafCleanup = await dafPage.evaluate(async (id) => {
+                const before = await db.from('journal_global').select('id, statut').eq('id', id).single();
+                await db.from('journal_global').update({ statut: 'rejete' }).eq('id', id);
+                const after = await db.from('journal_global').select('id, statut').eq('id', id).single();
+                return {
+                    existed: !!before.data,
+                    beforeStatut: before.data?.statut,
+                    afterStatut: after.data?.statut,
+                    cleaned: before.data?.statut !== 'rejete' && after.data?.statut === 'rejete'
+                };
             }, created.id);
 
-            test('WF-DAF-DEPENSE-CLEANUP', 'Dépense supprimée (cleanup)', true, 'MED', '');
+            test('WF-DAF-DEPENSE-CLEANUP', 'Dépense nettoyée (soft-delete)', dafCleanup.cleaned, 'MED',
+                `before=${dafCleanup.beforeStatut}, after=${dafCleanup.afterStatut}, cleaned=${dafCleanup.cleaned}`);
+        } else {
+            test('WF-DAF-DEPENSE-VERIFY', 'Skipped (no ID)', false, 'HIGH', 'INSERT failed');
+            test('WF-DAF-DEPENSE-CLEANUP', 'Skipped (no ID)', false, 'MED', 'INSERT failed');
         }
     } catch (e) {
         test('WF-DAF-DEPENSE', 'DAF workflow dépense', false, 'HIGH', e.message.substring(0, 80));
@@ -451,15 +498,28 @@ async function testWorkflows() {
             test('WF-CHEF-VALIDATION-VERIFY', 'Validation visible en base', verified.found, 'HIGH',
                 `statut=${verified.statut}`);
 
-            // DELETE: Nettoyer
-            await chefPage.evaluate(async (id) => {
-                await db.from('validations').delete().eq('id', id);
+            // CLEANUP: Soft-delete via UPDATE (RLS may block DELETE)
+            const chefCleanup = await chefPage.evaluate(async (id) => {
+                const before = await db.from('validations').select('id, statut').eq('id', id).single();
+                await db.from('validations').update({ statut: 'rejete' }).eq('id', id);
+                const after = await db.from('validations').select('id, statut').eq('id', id).single();
+                return {
+                    existed: !!before.data,
+                    beforeStatut: before.data?.statut,
+                    afterStatut: after.data?.statut,
+                    cleaned: before.data?.statut !== 'rejete' && after.data?.statut === 'rejete'
+                };
             }, created.id);
+
+            test('WF-CHEF-VALIDATION-CLEANUP', 'Validation Chef nettoyée (soft-delete)', chefCleanup.cleaned, 'MED',
+                `before=${chefCleanup.beforeStatut}, after=${chefCleanup.afterStatut}, cleaned=${chefCleanup.cleaned}`);
+        } else {
+            test('WF-CHEF-VALIDATION-VERIFY', 'Skipped (no ID)', false, 'HIGH', 'INSERT failed');
+            test('WF-CHEF-VALIDATION-CLEANUP', 'Skipped (no ID)', false, 'MED', 'INSERT failed');
         }
     } catch (e) {
         test('WF-CHEF', 'Chef workflow validation', false, 'HIGH', e.message.substring(0, 80));
     }
-    await chefBrowser.close();
 
     // ── Admin: Validation ──
     const markerAdmin = `QA-ADM-${Date.now()}`;
@@ -506,10 +566,25 @@ async function testWorkflows() {
             test('WF-ADMIN-VERIFY', 'Validation approuvée en base', verified.ok, 'HIGH',
                 `statut=${verified.statut}`);
 
-            // DELETE
-            await adminPage.evaluate(async (id) => {
-                await db.from('validations').delete().eq('id', id);
+            // CLEANUP: Soft-delete via UPDATE (RLS may block DELETE)
+            const adminCleanup = await adminPage.evaluate(async (id) => {
+                const before = await db.from('validations').select('id, statut').eq('id', id).single();
+                await db.from('validations').update({ statut: 'rejete' }).eq('id', id);
+                const after = await db.from('validations').select('id, statut').eq('id', id).single();
+                return {
+                    existed: !!before.data,
+                    beforeStatut: before.data?.statut,
+                    afterStatut: after.data?.statut,
+                    cleaned: before.data?.statut !== 'rejete' && after.data?.statut === 'rejete'
+                };
             }, created.id);
+
+            test('WF-ADMIN-CLEANUP', 'Validation Admin nettoyée (soft-delete)', adminCleanup.cleaned, 'MED',
+                `before=${adminCleanup.beforeStatut}, after=${adminCleanup.afterStatut}, cleaned=${adminCleanup.cleaned}`);
+        } else {
+            test('WF-ADMIN-APPROVE', 'Skipped (no ID)', false, 'HIGH', 'INSERT failed');
+            test('WF-ADMIN-VERIFY', 'Skipped (no ID)', false, 'HIGH', 'INSERT failed');
+            test('WF-ADMIN-CLEANUP', 'Skipped (no ID)', false, 'MED', 'INSERT failed');
         }
     } catch (e) {
         test('WF-ADMIN', 'Admin workflow validation', false, 'HIGH', e.message.substring(0, 80));
