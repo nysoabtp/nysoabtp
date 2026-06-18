@@ -13,15 +13,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
-    <script src="supabase.js"></script>
-    <script>
-    window.addEventListener('load', async function() {
-        const user = await checkAuthOrRedirect('rh');
-        if (!user) { document.body.style.display = 'none'; return; }
-        document.body.style.display = '';
-    });
-    </script>
-    <script src="script.js"></script>
     <link rel="manifest" href="manifest.json">
 </head>
 <body style="display:none">
@@ -639,6 +630,8 @@
         </div>
     </div>
 
+    <script src="supabase.js"></script>
+    <script src="script.js"></script>
     <script src="enhancements.js"></script>
     <script src="stock.js"></script>
     <script src="import-excel.js"></script>
@@ -668,11 +661,18 @@
         });
 
         async function loadRHData() {
-            try {
-                const { data: personnel } = await db.from('personnel').select('nom, chantier, metier, date_embauche, salaire_journalier, actif').eq('actif', true);
-                const { data: conges } = await db.from('conges').select('id, statut');
-                const { data: pointages } = await db.from('pointage_attendance').select('nom_employe, date').gte('date', new Date(Date.now() - 30*864e5).toISOString().split('T')[0]);
+            // Requêtes indépendantes — une erreur n'en bloque pas une autre
+            const [
+                { data: personnel },
+                { data: conges },
+                { data: pointages }
+            ] = await Promise.all([
+                db.from('personnel').select('nom, chantier, metier, date_embauche, salaire_journalier, actif').eq('actif', true).catch(() => ({ data: null })),
+                db.from('conges').select('id, statut').catch(() => ({ data: null })),
+                db.from('pointage_attendance').select('nom_employe, date').gte('date', new Date(Date.now() - 30*864e5).toISOString().split('T')[0]).catch(() => ({ data: null }))
+            ]);
 
+            try {
                 if (personnel) {
                     document.getElementById('stat-total-employes').textContent = personnel.length;
                     const recent = personnel.filter(p => p.date_embauche && new Date(p.date_embauche) > new Date(Date.now() - 90*864e5));
