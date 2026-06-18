@@ -15,7 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
     <link rel="manifest" href="manifest.json">
 </head>
-<body>
+<body style="display:none">
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -549,23 +549,14 @@
         async function initChefScope() {
             const user = await checkAuthOrRedirect('chef');
             if (!user) return;
-            // Try stored, then user_metadata, then first chantier from DB
-            if (!chefChantier && user.user_metadata?.chantier) {
+            document.body.style.display = '';
+            // Source de vérité : user_metadata.chantier (session Supabase)
+            if (user.user_metadata?.chantier) {
                 chefChantier = user.user_metadata.chantier;
                 localStorage.setItem('chef_chantier', chefChantier);
-            }
-            if (!chefChantier) {
-                try {
-                    const { data: chs } = await db.from('chantiers').select('nom').eq('actif', true).limit(1).maybeSingle();
-                    if (chs) {
-                        chefChantier = chs.nom;
-                        localStorage.setItem('chef_chantier', chefChantier);
-                    }
-                } catch (e) {
-                    console.warn('Failed to load chantiers, using fallback:', e.message);
-                    chefChantier = 'AMBATOMAINTY'; // fallback
-                    localStorage.setItem('chef_chantier', chefChantier);
-                }
+            } else {
+                chefChantier = localStorage.getItem('chef_chantier') || '';
+                console.warn('[Chef] chantier non défini dans user_metadata');
             }
             if (chefChantier) {
                 document.getElementById('chef-chantier-name').textContent = ' — ' + chefChantier;
