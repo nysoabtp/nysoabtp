@@ -231,7 +231,7 @@
         #editeur-devis-overlay { display:none; position:fixed; inset:0; z-index:2000; background:#f5f6fa; overflow-y:auto; }
     </style>
 </head>
-<body>
+<body style="display:none">
 <div class="app">
 
     <!-- ── SIDEBAR ── -->
@@ -2126,6 +2126,7 @@ async function changePassword(e) {
 window.addEventListener('load', async () => {
     const user = await checkAuthOrRedirect('daf');
     if (!user) return;
+    document.body.style.display = '';
 
     document.getElementById('user-name').textContent = user.nom || 'DAF';
 

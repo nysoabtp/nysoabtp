@@ -254,7 +254,7 @@
     </style>
     <link rel="manifest" href="manifest.json">
 </head>
-<body>
+<body style="display:none">
 <div class="app-container">
 
     <!-- SIDEBAR -->
@@ -700,6 +700,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 async function loadUser() {
     const u = await checkAuthOrRedirect();
     if (!u) return;  // redirection déjà lancée
+    document.body.style.display = '';
     document.getElementById('sidebar-username').textContent = u.user_metadata?.nom || u.email || 'Utilisateur';
     document.getElementById('sidebar-role').textContent = u.role || '';
     if (u.role === 'controleur' || u.role === 'admin') {

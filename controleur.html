@@ -15,7 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
     <link rel="manifest" href="manifest.json">
 </head>
-<body>
+<body style="display:none">
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -458,6 +458,7 @@
         window.addEventListener('load', async function() {
             const user = await checkAuthOrRedirect('controleur');
             if (!user) return;
+            document.body.style.display = '';
             await loadChantiers();
             await loadInspections();
             await loadControleurData();

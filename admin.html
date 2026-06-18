@@ -201,7 +201,7 @@
         .divider { border: none; border-top: 1px solid #f0f0f0; margin: 24px 0; }
     </style>
 </head>
-<body>
+<body style="display:none">
 <div class="app">
 
     <!-- ── SIDEBAR ── -->
@@ -2480,6 +2480,7 @@ window.addEventListener('beforeunload', () => {
 window.addEventListener('load', async () => {
     const user = await checkAuthOrRedirect('admin');
     if (!user) return;
+    document.body.style.display = '';
 
     document.getElementById('user-name').textContent = user.nom || user.email || 'Admin';
 

@@ -357,7 +357,7 @@
     <script src="modules_new.js"></script>
     <link rel="manifest" href="manifest.json">
 </head>
-<body>
+<body style="display:none">
     <div class="container">
         <div class="header">
             <div class="logo">
@@ -625,6 +625,7 @@
         (async function initAuth() {
             currentUser = await checkAuthOrRedirect();
             if (!currentUser) return;  // redirection déjà lancée
+            document.body.style.display = '';
             // Initialiser la page après confirmation de session valide
             initPointage();
         })();
