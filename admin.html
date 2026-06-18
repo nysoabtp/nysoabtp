@@ -3104,10 +3104,12 @@ async function loadCreditsFournisseurs() {
             return;
         }
 
+        // NOTE: EN_COURS was removed from this config on 2026-06-18 after SQL verification:
+        // SELECT statut, COUNT(*) FROM credits_fournisseurs GROUP BY statut;
+        // Result: EN_ATTENTE=2, AUTORISE_DAF=7, SOLDE=9 — EN_COURS=0 (never used, code mort)
         const statutCfg = {
             EN_ATTENTE:          { label: 'En attente',      color: '#92400e', bg: '#fef3c7' },
             AUTORISE_DAF:        { label: '✓ Autorisé DAF',  color: '#1d4ed8', bg: '#dbeafe' },
-            EN_COURS:            { label: 'En cours',         color: '#6d28d9', bg: '#ede9fe' },
             PARTIELLEMENT_PAYE:  { label: 'Part. payé',       color: '#7c3aed', bg: '#ede9fe' },
             SOLDE:               { label: '✓ Soldé',          color: '#065f46', bg: '#d1fae5' },
             ANNULE:              { label: 'Annulé',           color: '#991b1b', bg: '#fee2e2' },
