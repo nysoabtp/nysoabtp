@@ -403,16 +403,16 @@ async function imprimerDevis(id) {
     ]);
     if (!dv) { showNotification('Devis introuvable', 'error'); return; }
 
-    // CORRIGÉ Bug #7: schema utilise devis_lot_id pas lot_id, et pas de colonne total
+    // CORRIGÉ Bug #7: schema utilise lot_id, et pas de colonne total
     const lotsAvecLignes = (lots || []).map(lot => ({
         ...lot, 
-        lignes: (lignes || []).filter(l => l.devis_lot_id === lot.id),
+        lignes: (lignes || []).filter(l => l.lot_id === lot.id),
     }));
-    // Calculer total: quantite * prix_unitaire (pas de colonne 'total' dans devis_lignes)
+    // Calculer total: quantite * prix_unit (pas de colonne 'total' dans devis_lignes)
     const total = lotsAvecLignes.reduce((s, lot) =>
         s + lot.lignes.reduce((ss, l) => {
             const qte = parseFloat(l.quantite) || 0;
-            const pu = parseFloat(l.prix_unitaire) || 0;
+            const pu = parseFloat(l.prix_unit) || 0;
             return ss + (qte * pu);
         }, 0), 0);
     const tva = (dv.tva || 0) / 100;
@@ -467,13 +467,13 @@ async function imprimerDevis(id) {
     <th style="width:110px;text-align:right">Total (Ar)</th></tr></thead>
 </table>
 ${lotsAvecLignes.map(lot => {
-    const st = lot.lignes.reduce((s, l) => s + ((parseFloat(l.quantite) || 0) * (parseFloat(l.prix_unitaire) || 0)), 0);
+    const st = lot.lignes.reduce((s, l) => s + ((parseFloat(l.quantite) || 0) * (parseFloat(l.prix_unit) || 0)), 0);
     return `<div class="lot">
       <div class="lot-header">Lot ${esc(lot.num)} — ${esc(lot.titre)}</div>
       <table><tbody>
       ${lot.lignes.map(l => {
         const qte = parseFloat(l.quantite) || 0;
-        const pu = parseFloat(l.prix_unitaire) || 0;
+        const pu = parseFloat(l.prix_unit) || 0;
         const lineTotal = qte * pu;
         return `<tr>
         <td style="color:#888;font-size:11px">${esc(l.ref) || ''}</td>
