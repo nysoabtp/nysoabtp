@@ -661,16 +661,15 @@
         });
 
         async function loadRHData() {
-            // Requêtes indépendantes — une erreur n'en bloque pas une autre
-            const [
-                { data: personnel },
-                { data: conges },
-                { data: pointages }
-            ] = await Promise.all([
-                db.from('personnel').select('nom, chantier, metier, date_embauche, salaire_journalier, actif').eq('actif', true).catch(() => ({ data: null })),
-                db.from('conges').select('id, statut').catch(() => ({ data: null })),
-                db.from('pointage_attendance').select('nom_employe, date').gte('date', new Date(Date.now() - 30*864e5).toISOString().split('T')[0]).catch(() => ({ data: null }))
+            // Requêtes indépendantes avec gestion explicite des erreurs Supabase
+            const [r1, r2, r3] = await Promise.all([
+                db.from('personnel').select('nom, chantier, metier, date_embauche, salaire_journalier, actif').eq('actif', true),
+                db.from('conges').select('id, statut'),
+                db.from('pointage_attendance').select('nom_employe, date').gte('date', new Date(Date.now() - 30*864e5).toISOString().split('T')[0])
             ]);
+            const personnel = r1.error ? (console.warn('RH personnel:', r1.error.message), null) : r1.data;
+            const conges    = r2.error ? (console.warn('RH conges:', r2.error.message), null) : r2.data;
+            const pointages = r3.error ? (console.warn('RH pointage:', r3.error.message), null) : r3.data;
 
             try {
                 if (personnel) {
