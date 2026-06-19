@@ -51,6 +51,10 @@
                     <i class="fas fa-user-plus"></i>
                     <span>Recrutement</span>
                 </a>
+                <a href="#" class="nav-item" data-section="conges-equipe">
+                    <i class="fas fa-calendar-day"></i>
+                    <span>Congés équipe</span>
+                </a>
                 <a href="#" class="nav-item" data-section="rapports">
                     <i class="fas fa-file-alt"></i>
                     <span>Rapports</span>
@@ -303,6 +307,35 @@
                                 </tr>
                             </thead>
                             <tbody id="personnel-table-body">
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Congés Équipe Section (lecture seule, filtrée par chantier) -->
+            <section id="conges-equipe" class="section">
+                <div class="section-header">
+                    <h2>Congés de mon équipe</h2>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Demandes de congé — ouvriers de ce chantier</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table" id="conges-equipe-table">
+                            <thead>
+                                <tr>
+                                    <th>Employé</th>
+                                    <th>Début</th>
+                                    <th>Fin</th>
+                                    <th>Durée</th>
+                                    <th>Motif</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody id="conges-equipe-table-body">
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -584,13 +617,15 @@
             await loadDemandesValides();
             await loadRecrutements();
             await loadRapports();
+            await loadCongesEquipe();
         }
 
         // ═══ SECTION TITLES ═══
         Object.assign(sectionTitles, {
             'dashboard': 'Tableau de bord', 'chantiers': 'Mes Chantiers', 'equipe': 'Mon Équipe',
             'pointage': 'Pointage', 'planning': 'Planning', 'materiaux': 'Matériaux',
-            'recrutement': 'Recrutement', 'rapports': 'Rapports Chantier'
+            'recrutement': 'Recrutement', 'rapports': 'Rapports Chantier',
+            'conges-equipe': 'Congés de mon équipe'
         });
 
         // ═══ DASHBOARD ═══
@@ -683,6 +718,51 @@
             } catch (e) {
                 console.error('loadPersonnelTable error:', e);
                 tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--red);padding:24px">Erreur de chargement (RLS?). Vérifiez les policies Supabase.</td></tr>';
+            }
+        }
+
+        // ═══ CONGÉS ÉQUIPE (lecture seule, filtré par chantier du chef) ═══
+        async function loadCongesEquipe() {
+            const tbody = document.getElementById('conges-equipe-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:24px">Chargement...</td></tr>';
+            try {
+                // 1. Récupérer les noms des ouvriers actifs de ce chantier
+                let qPers = db.from('personnel').select('nom').eq('actif', true);
+                if (chefChantier) qPers = qPers.eq('chantier', chefChantier);
+                const { data: personnel, error: errPers } = await qPers;
+                if (errPers) throw errPers;
+
+                const noms = (personnel || []).map(p => p.nom).filter(Boolean);
+                if (!noms.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:24px">Aucun ouvrier dans ce chantier</td></tr>';
+                    return;
+                }
+
+                // 2. Récupérer les congés des seuls ouvriers de l'équipe (scope strict par chantier)
+                const { data: conges, error: errConges } = await db.from('conges')
+                    .select('*').in('employe_nom', noms).order('date_debut', { ascending: false }).limit(100);
+                if (errConges) throw errConges;
+
+                if (!conges || !conges.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:24px">Aucune demande de congé pour cette équipe</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = conges.map(c => {
+                    const statusClass = c.statut === 'approuve' ? 'success' : c.statut === 'rejete' || c.statut === 'refuse' ? 'error' : 'warning';
+                    return `<tr>
+                        <td>${esc(c.employe_nom || '—')}</td>
+                        <td>${esc(c.date_debut || '—')}</td>
+                        <td>${esc(c.date_fin || '—')}</td>
+                        <td>${esc(String(c.duree || '—'))} j</td>
+                        <td>${esc(c.motif || '—')}</td>
+                        <td><span class="status ${statusClass}">${esc(c.statut || 'en_attente')}</span></td>
+                    </tr>`;
+                }).join('');
+            } catch (e) {
+                console.error('loadCongesEquipe error:', e);
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:24px">Erreur de chargement : ${esc(e.message || '')}</td></tr>`;
             }
         }
 
