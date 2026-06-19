@@ -115,6 +115,46 @@ async function dbQuery(page, table, filters, token) {
 }
 
 
+
+
+async function dbInsert(table, payload, token) {
+    const headers = {
+        apikey: ANON_KEY,
+        Authorization: `Bearer ${token || ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+    };
+    
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+    });
+    
+    let errorDetail = null;
+    let data = null;
+    
+    if (res.ok) {
+        data = await res.json().catch(() => null);
+    } else {
+        try {
+            const errorBody = await res.json();
+            errorDetail = {
+                message: errorBody.message,
+                details: errorBody.details,
+                hint: errorBody.hint,
+                code: errorBody.code,
+                status: res.status
+            };
+        } catch (_) {
+            errorDetail = { status: res.status, raw: await res.text() };
+        }
+    }
+    
+    return { data, error: errorDetail };
+}
+
+
 async function dbQueryDirect(table, filters) {
     const params = new URLSearchParams({ select: '*' });
     for (const [k, v] of Object.entries(filters || {}))
@@ -180,8 +220,8 @@ async function scenario1_workflowComplet() {
                 const el = document.querySelector(sel);
                 if (el) { el.value = v; el.dispatchEvent(new Event('input')); }
             };
-            setVal('#modal-nouvelle-depense input[name="date"]', today);
-            setVal('#modal-nouvelle-depense input[name="description"]', marqueur);
+            setVal('#modal-nouvelle-depense input[name="date_ecriture"]', today);
+            setVal('#modal-nouvelle-depense input[name="designation"]', marqueur);
             setVal('#modal-nouvelle-depense input[name="montant"]', String(montant));
         }, { today, marqueur, montant });
 
@@ -192,19 +232,34 @@ async function scenario1_workflowComplet() {
         await dafS.page.waitForTimeout(2000);
 
 
-        // Vérifier en base via API directe (journal_global)
-        const { data, error } = await dbQuery(dafS.page, 'journal_global', { description: `ilike.*${marqueur}*` }, adminToken);
-        if (error || !data || !data.length) {
-            // Essayer sans filtre sur description (peut être inséré mais filtré différemment)
-            const { data: allData } = await dbQuery(dafS.page, 'journal_global', {}, adminToken);
-            record('S1-01-DAF-INSERT', 'DAF insère une dépense dans journal_global', 'Ligne trouvée en base', 
-                error || (allData && allData.length > 0 ? `${allData.length} lignes existantes` : 'Aucune ligne'), '🟡');
-        } else {
-            journalId = data[0].id;
+        // Test direct INSERT via API
+        const payload = {
+            type_ecriture: 'depense_daf',
+            date_ecriture: today,
+            montant: montant,
+            designation: marqueur,
+            chantier_id: null,
+            categorie: 'test',
+            mode_paiement: 'test',
+            saisi_par: 'DAF',
+            visible_daf: true,
+            statut: 'VALIDE'
+        };
+        const { data: insertData, error: insertError } = await dbInsert('journal_global', payload, adminToken);
+        
+        if (insertError) {
+            console.error('S1-01 INSERT ERROR:', JSON.stringify(insertError, null, 2));
+            record('S1-01-DAF-INSERT', 'DAF insère une dépense dans journal_global', 'INSERT OK',
+                `Erreur: code=${insertError.code}, message=${insertError.message}`, '🔴');
+        } else if (insertData && insertData.length > 0) {
+            journalId = insertData[0].id;
             record('S1-01-DAF-INSERT', 'DAF insère une dépense dans journal_global',
-                `montant=${montant}, description contient marqueur`,
-                `id=${journalId}, montant=${data[0].montant}`,
-                Number(data[0].montant) === montant ? '🟢' : '🟡');
+                `montant=${montant}, designation=${marqueur}`,
+                `id=${journalId}, montant=${insertData[0].montant}`,
+                Number(insertData[0].montant) === montant ? '🟢' : '🟡');
+        } else {
+            record('S1-01-DAF-INSERT', 'DAF insère une dépense dans journal_global', 'INSERT OK',
+                'Insert retourné 0 lignes', '🟡');
         }
     } catch (e) {
         record('S1-01-DAF-INSERT', 'DAF insère une dépense dans journal_global', 'INSERT OK', `Exception: ${e.message}`, '🔴');
