@@ -2491,7 +2491,7 @@ window.addEventListener('load', async () => {
     loadUsers();
     loadValidationCount();
     if (typeof initSupabase === 'function') await initSupabase();
-    showSection('journal');
+    showSection('journal-global');
 
     // Charger config Supabase sauvegardée
     const url = localStorage.getItem('sb_url');
