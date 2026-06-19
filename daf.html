@@ -1077,8 +1077,8 @@ window.showSection = function showSection(name, evt) {
     };
     if (loaders[name]) { try { loaders[name](); } catch(e) { console.error('[daf] Erreur section', name, e); } }
 };
-window.openModal = function(id)  { var m = document.getElementById(id); if (m) m.style.display = 'flex'; };
-window.closeModal = function(id) { var m = document.getElementById(id); if (m) m.style.display = 'none'; };
+window.openModal = function(id)  { var m = document.getElementById(id); if (m) m.classList.add('active'); };
+window.closeModal = function(id) { var m = document.getElementById(id); if (m) m.classList.remove('active'); };
 window.notify = function(msg, type = 'info') {
     const n = document.createElement('div');
     n.className = `notif notif-${type}`;
@@ -1116,8 +1116,8 @@ function fmtM(n) { if (!n) return '0 Ar'; if (Math.abs(n) >= 1e6) return (n/1e6)
 function esc(s)  { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function today() { return new Date().toISOString().split('T')[0]; }
 
-function openModal(id)  { const m=document.getElementById(id); if(m){m.style.display='flex';} }
-function closeModal(id) { const m=document.getElementById(id); if(m){m.style.display='none';} }
+function openModal(id)  { const m=document.getElementById(id); if(m){m.classList.add('active');} }
+function closeModal(id) { const m=document.getElementById(id); if(m){m.classList.remove('active');} }
 
 // ─────────────────────────────────────────────────────────────────
 // CHARGEMENT DES CHANTIERS
