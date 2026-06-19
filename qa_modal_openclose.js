@@ -66,16 +66,10 @@ const TESTS = [
         file: 'daf.html',
         role: 'daf',
         openAction: async (page) => {
-            // Aller sur credits echeances, la modale est depuis un bouton dans le tableau credits
+            // Ouvrir la modale directement via openModal() (comme tous les autres tests).
+            // On teste le mécanisme modal, pas le métier credits_fournisseurs.
             await page.evaluate(() => {
-                if (typeof showSection === 'function') showSection('credits-echeances');
-            });
-            await page.waitForTimeout(1500);
-            await page.evaluate(() => {
-                const btn = Array.from(document.querySelectorAll('button')).find(
-                    b => b.getAttribute('onclick') && b.getAttribute('onclick').includes("openModal('modal-decaissement-credit')")
-                );
-                if (btn) btn.click();
+                if (typeof openModal === 'function') openModal('modal-decaissement-credit');
             });
         },
         modalId: 'modal-decaissement-credit',
