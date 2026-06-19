@@ -469,8 +469,17 @@
             if (!tbody) return;
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#adb5bd"><i class="fas fa-spinner fa-spin"></i> Chargement...</td></tr>';
             try {
+                // D'abord essayer avec la colonne 'taches' (si elle existe)
                 const { data: chantiersData, error } = await db.from('chantiers').select('nom, taches').limit(100);
-                if (error) throw error;
+                if (error) {
+                    // Si erreur 42703 (colonne n'existe pas), utiliser fallback
+                    if (error.code === '42703') {
+                        console.warn('Colonne taches non trouvée, affichage vide');
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#adb5bd">Aucune tâche enregistrée</td></tr>';
+                        return;
+                    }
+                    throw error;
+                }
                 const rows = [];
                 (chantiersData || []).forEach(c => {
                     let taches = c.taches;
@@ -501,16 +510,24 @@
         async function loadTechnicienData() {
             try {
                 const { data: chantiers } = await db.from('chantiers').select('*').eq('actif', true);
-                const { data: tachesAll } = await db.from('chantiers').select('taches').limit(100);
+                
+                // Essayer de récupérer les tâches, avec gestion d'erreur si colonne n'existe pas
+                let total = 0, done = 0;
+                try {
+                    const { data: tachesAll } = await db.from('chantiers').select('taches').limit(100);
+                    if (tachesAll) {
+                        tachesAll.forEach(c => { if (c.taches) { const t = typeof c.taches === 'string' ? JSON.parse(c.taches) : c.taches; if (Array.isArray(t)) { t.forEach(task => { total++; if (task.termine || task.statut === 'Terminé') done++; }); } } });
+                    }
+                } catch (tachesError) {
+                    // Ignorer si la colonne n'existe pas (code 42703)
+                    if (tachesError.code !== '42703') console.warn('Erreur tâches:', tachesError.message);
+                }
+                
                 if (chantiers) {
                     document.getElementById('stat-projets').textContent = chantiers.length;
                 }
-                if (tachesAll) {
-                    let total = 0, done = 0;
-                    tachesAll.forEach(c => { if (c.taches) { const t = typeof c.taches === 'string' ? JSON.parse(c.taches) : c.taches; if (Array.isArray(t)) { t.forEach(task => { total++; if (task.termine || task.statut === 'Terminé') done++; }); } } });
-                    document.getElementById('stat-taches-terminees').textContent = done;
-                    document.getElementById('stat-taches-cours').textContent = total - done;
-                }
+                document.getElementById('stat-taches-terminees').textContent = done;
+                document.getElementById('stat-taches-cours').textContent = total - done;
                 initializeTechnicienCharts(chantiers);
             } catch(_) { initializeTechnicienCharts(); }
         }
