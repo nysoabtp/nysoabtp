@@ -843,7 +843,7 @@
                     statusCell.className = 'status warning';
                     statusCell.textContent = 'En attente Admin';
                 }
-                showNotification('Demande transmise à l\'Admin pour approbation ✓', 'info');
+                showNotification("Demande transmise à l'Admin pour approbation \u2713", 'info');
             } catch(e) { showNotification('Erreur: ' + e.message, 'error'); }
         }
 
@@ -994,9 +994,16 @@
             tbody.innerHTML = '';
             if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#adb5bd">Aucune demande de congé</td></tr>'; return; }
             data.forEach(c => {
-                const statusClass = c.statut === 'approuve' ? 'success' : c.statut === 'refuse' ? 'error' : 'warning';
+                const statusClass = c.statut === 'approuve' ? 'success' : (c.statut === 'refuse' || c.statut === 'rejete') ? 'error' : 'warning';
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${esc(c.employe_nom||'—')}</td><td>${esc(c.date_debut||'—')}</td><td>${esc(c.date_fin||'—')}</td><td>${esc(String(c.duree||'—'))} j</td><td>${esc(c.motif||'—')}</td><td><span class="status ${statusClass}">${esc(c.statut||'en_attente')}</span></td>`;
+                tr.dataset.employe = c.employe_nom || '';
+                tr.dataset.debut = c.date_debut || '';
+                const enAttente = !c.statut || c.statut === 'en_attente';
+                const actions = enAttente
+                    ? `<button class="btn-small" onclick="approveLeave(this)" title="Transmettre à l'Admin pour validation"><i class="fas fa-check"></i></button>
+                       <button class="btn-small" onclick="rejectLeave(this)" title="Refuser"><i class="fas fa-times"></i></button>`
+                    : '';
+                tr.innerHTML = `<td>${esc(c.employe_nom||'—')}</td><td>${esc(c.date_debut||'—')}</td><td>${esc(c.date_fin||'—')}</td><td>${esc(String(c.duree||'—'))} j</td><td>${esc(c.motif||'—')}</td><td><span class="status ${statusClass}">${esc(c.statut||'en_attente')}</span></td><td>${actions}</td>`;
                 tbody.appendChild(tr);
             });
         }
