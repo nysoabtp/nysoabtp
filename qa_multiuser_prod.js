@@ -40,14 +40,7 @@ const SUPABASE_URL = 'https://djncsybvloyyesllfxhq.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbmNzeWJ2bG95eWVzbGxmeGhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NDI1OTksImV4cCI6MjA5MzMxODU5OX0.o4MOSg6axYoNdl0XgidLi0eNukR-KwnKvecZxchkcP8';
 
 
-const ACCOUNTS = {
-    admin:       { email: 'admin@nysoa.mg',       password: 'admin123',      page: 'admin.html' },
-    daf:         { email: 'daf@nysoa.mg',          password: 'daf123',        page: 'daf.html' },
-    rh:          { email: 'rh@nysoa.mg',           password: 'rh123',         page: 'rh.html' },
-    chef:        { email: 'chef@nysoa.mg',         password: 'chef123',       page: 'chef-chantier.html' },
-    controleur:  { email: 'controleur@nysoa.mg',   password: 'controleur123', page: 'controleur.html' },
-    technicien:  { email: 'technicien@nysoa.mg',   password: 'tech123',       page: 'technicien.html' },
-};
+const { ACCOUNTS } = require('./qa-credentials.local.js');
 
 
 // Chantiers réels en base prod
@@ -469,6 +462,10 @@ async function scenario3_stressRLS() {
 
                 // Approche: extraire le texte en excluant les disclaimer/info-box
                 const evalResult = await s.page.evaluate(() => {
+                    // Texte ORIGINAL, capturé avant tout nettoyage (sert à savoir si un terme
+                    // n'existait QUE dans un disclaimer, en comparant avec le texte nettoyé)
+                    const originalText = document.body.innerText.toLowerCase();
+
                     // Clone le body pour ne pas modifier l'original
                     const clone = document.body.cloneNode(true);
                     
@@ -517,57 +514,47 @@ async function scenario3_stressRLS() {
                         tableText += ' ' + table.innerText.toLowerCase();
                     });
                     
-                    // Vérifier si des disclaimers existent dans le DOM original
-                    const disclaimerFound = 
-                        document.body.innerText.toLowerCase().includes('disclaimer') ||
-                        document.body.innerText.toLowerCase().includes('gérée exclusivement') ||
-                        document.body.innerText.toLowerCase().includes('réservé au') ||
-                        document.body.innerText.toLowerCase().includes('restriction') ||
-                        document.body.innerText.toLowerCase().includes('vue partielle') ||
-                        document.body.innerText.toLowerCase().includes('vue filtrée') ||
-                        document.body.innerText.toLowerCase().includes('ne voyez pas') ||
-                        document.body.innerText.toLowerCase().includes('pas visible');
-                    
                     return {
+                        originalText,
                         dataText,
-                        tableText,
-                        disclaimerFound
+                        tableText
                     };
-                }).catch(() => ({ dataText: '', tableText: '', disclaimerFound: false }));
+                }).catch(() => ({ originalText: '', dataText: '', tableText: '' }));
 
 
                 for (const terme of interdits) {
                     const termeLower = terme.toLowerCase();
-                    
-                    // Chercher dans le DOM nettoyé ET dans les tableaux de données
+
+                    // Chercher dans le DOM nettoyé (= en dehors de tout disclaimer) ET dans les tableaux
                     const fuiteDOM = evalResult.dataText.includes(termeLower);
                     const fuiteTable = evalResult.tableText.includes(termeLower);
-                    
-                    // Fuite réelle = terme trouvé DANS les données, pas dans les disclaimers
-                    const fuite = fuiteDOM && !evalResult.disclaimerFound;
-                    
+                    const presentOriginal = evalResult.originalText.includes(termeLower);
+
                     let status = '🟢';
                     let note = '';
                     let obtained = 'Absent (OK)';
-                    
-                    if (fuiteDOM && !evalResult.disclaimerFound) {
+
+                    if (fuiteDOM) {
+                        // Le terme survit au nettoyage du disclaimer le plus proche de lui
+                        // => il apparaît ailleurs que dans un bandeau d'avertissement = vraie fuite potentielle
                         status = '🔴';
-                        obtained = `FUITE DÉTECTÉE dans le DOM (hors disclaimers)`;
+                        obtained = 'FUITE DÉTECTÉE (hors disclaimer)';
                         note = 'Vérifier si ce terme devrait être masqué pour ce rôle';
-                    } else if (fuiteDOM && evalResult.disclaimerFound) {
-                        status = '🟡';
-                        obtained = `Trouvé dans disclaimer (OK si explique restriction)`;
-                        note = 'Terme trouvé dans un disclaimer UI, pas une fuite';
+                    } else if (presentOriginal) {
+                        // Le terme n'existe que dans le texte original, jamais dans le texte nettoyé
+                        // => il vivait uniquement à l'intérieur d'un élément disclaimer/restriction, supprimé avec lui
+                        status = '🟢';
+                        obtained = 'Trouvé uniquement dans disclaimer (faux positif évité)';
+                        note = '';
                     }
-                    
+
                     if (fuiteTable) {
-                        obtained += ` + trouvé dans tableau`;
-                        if (status === '🟢') {
-                            status = '🔴';
-                            note = 'Terme trouvé dans un tableau de données!';
-                        }
+                        // Un tableau de données est toujours une vraie fuite, peu importe le contexte
+                        status = '🔴';
+                        obtained += ' + trouvé dans tableau';
+                        note = 'Terme trouvé dans un tableau de données!';
                     }
-                    
+
                     record(
                         `S3-RLS-${role.toUpperCase()}-${terme.replace(/\s/g, '-').toUpperCase()}`,
                         `[${role}] N'a pas accès à "${terme}"`,

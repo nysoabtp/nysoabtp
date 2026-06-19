@@ -1,3 +1,7 @@
 node_modules/
 *.zip
 supabase/.temp/
+
+# QA credentials (NEVER COMMIT)
+qa-credentials.local.js
+
