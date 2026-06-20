@@ -15,6 +15,39 @@
 
 ---
 
+
+---
+
+## ÉTAT DES CORRECTIONS — Sprint 2026-06-20
+
+> Toutes les corrections ont été appliquées dans le commit `0671be8`.
+
+### Bugs P0 — Corrigés ✅
+
+| Bug | Fichier | Correction |
+|-----|---------|-----------|
+| loadDepensesDAF() — KPIs incluent ANNULE | daf.html:1353 | `.eq('statut','VALIDE')` ajouté à la requête + tableau |
+| jg-stat-depenses (admin) — total CEO inclut ANNULE | admin.html:2737 | `if (r.statut !== 'VALIDE') return;` avant les accumulateurs |
+| _soldeFelana — depenses annulées comptées | daf.html:1157 | `.eq('statut','VALIDE')` sur la requête depenses |
+| loadDashboard() depMois/chDep/depenses | daf.html:1273,1297,1926 | 3 filtres `.eq('statut','VALIDE')` ajoutés |
+| exportDepensesExcel() | daf.html:1479 | `.eq('statut','VALIDE')` ajouté |
+| loadJournalDAF() | daf.html:1503 | Fonction réécrite — depense_daf toujours filtré VALIDE |
+
+### Bugs P0 — Hors périmètre (sprint suivant)
+
+| Bug | Impact | Priorité |
+|-----|--------|----------|
+| Journal ESPECE ↔ Caisse | Les écritures ESPECE n'apparaissent pas dans la table `caisse` du tableau de bord | HAUTE |
+
+### Bugs P1 — Non corrigés (sprint séparé)
+
+| Bug | Impact |
+|-----|--------|
+| decaisser_credit RPC ne écrit pas dans journal_global | Paiements invisibles au CEO |
+| Congés RH : pas de solde automatique | Excès de congés possible |
+| Dotation : pas de transaction ACID | Risque d'incohérence silencieuse |
+| Recettes ↔ Devis : aucune liaison | Pas de traçabilité devis → paiement |
+
 ## TÂCHE 1 — CARTOGRAPHIE DES FLUX
 
 ### 1.1 Tables Supabase par page
@@ -393,6 +426,20 @@ if (r.type_ecriture === 'depense_daf') totalDepenses += r.montant || 0;
 | Crédits Fournisseurs | Total Engagé inclut soldés (informatif mais trompeur) | Séparer "Engagé" de "En cours" |
 
 ---
+
+### Nouveaux cas trouvés en T-4
+
+En plus des 4 bugs P0 identifiés dans l'audit, la vérification croisée a révélé 4 cas supplémentaires dans daf.html :
+
+| Fonction | Fichier | Problème | Correction |
+|----------|---------|---------|------------|
+| `loadDashboard()` — depMois | daf.html:1273 | `depense_daf` sans filtre VALIDE | ✅ Corrigé |
+| `loadDashboard()` — chDep | daf.html:1297 | `depense_daf` sans filtre VALIDE | ✅ Corrigé |
+| `loadDashboard()` — depenses by chantier | daf.html:1926 | `depense_daf` sans filtre VALIDE | ✅ Corrigé |
+| `exportDepensesExcel()` | daf.html:1479 | `depense_daf` sans filtre VALIDE | ✅ Corrigé |
+| `loadJournalDAF()` | daf.html:1503-1535 | `depense_daf` dans `.in()` sans filtre VALIDE | ✅ Corrigé (fonction réécrite) |
+
+**Aucune divergence trouvée dans** : rh.html, chef-chantier.html, controleur.html, technicien.html, suivi-chantier.html, index.html — les sums/stats de ces pages ne concernent pas le champ `statut` de `journal_global`.
 
 ### Actions recommandées au sprint suivant
 
