@@ -98,8 +98,8 @@ async function main() {
         montant: 50000,
         designation: marqueur,
         chantier_id: null,
-        categorie: 'test',
-        mode_paiement: 'virement',
+        categorie: 'SERVICE',
+        mode_paiement: 'VIREMENT',
         saisi_par: 'DAF',
         visible_daf: true,
         statut: 'VALIDE'

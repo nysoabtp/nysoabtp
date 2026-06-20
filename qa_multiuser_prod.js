@@ -232,8 +232,8 @@ async function scenario1_workflowComplet() {
             montant: montant,
             designation: marqueur,
             chantier_id: null,
-            categorie: 'test',
-            mode_paiement: 'test',
+            categorie: 'SERVICE',
+            mode_paiement: 'VIREMENT',
             saisi_par: 'DAF',
             visible_daf: true,
             statut: 'VALIDE'
