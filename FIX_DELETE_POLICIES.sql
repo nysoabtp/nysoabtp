@@ -29,7 +29,7 @@ DROP POLICY IF EXISTS delete_validations_admin ON validations;
 CREATE POLICY delete_validations_admin ON validations
   FOR DELETE
   TO authenticated
-  USING (auth.jwt() ->> 'role' = 'admin');
+  USING (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin');
 
 -- ── 2. CONTROLES_INOPINES ─────────────────────────────────────
 -- Admin peut supprimer tout controle inopine.
@@ -37,7 +37,7 @@ DROP POLICY IF EXISTS delete_controles_inopines_admin ON controles_inopines;
 CREATE POLICY delete_controles_inopines_admin ON controles_inopines
   FOR DELETE
   TO authenticated
-  USING (auth.jwt() ->> 'role' = 'admin');
+  USING (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin');
 
 -- ── 3. GANTT_TACHES ─────────────────────────────────────────────
 -- Admin peut supprimer toute tache gantt.
@@ -46,7 +46,7 @@ DROP POLICY IF EXISTS delete_gantt_admin ON gantt_taches;
 CREATE POLICY delete_gantt_admin ON gantt_taches
   FOR DELETE
   TO authenticated
-  USING (auth.jwt() ->> 'role' = 'admin');
+  USING (auth.jwt() -> 'user_metadata' ->> 'role' = 'admin');
 
 -- ── 4. VERIFICATION ────────────────────────────────────────────
 -- Doit retourner 3 lignes (1 policy DELETE par table)
