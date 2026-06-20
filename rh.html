@@ -827,7 +827,7 @@
                 // Créer une entrée dans validations (circuit Admin)
                 const { error: errVal } = await db.from('validations').insert({
                     type:          'approbation_conge',
-                    entite_id:     congeId,
+                    emetteur_id:   congeId,
                     emetteur_role: 'rh',
                     commentaire:   `Demande d'approbation congé — ${employe} à partir du ${debut}`,
                     statut:        'EN_ATTENTE',

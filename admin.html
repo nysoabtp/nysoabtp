@@ -2361,7 +2361,7 @@ async function loadValidations(statutFilter) {
             const typeLabel = {
                 creation_chef: 'Création chef', demande_materiaux: 'Demande matériaux',
                 ecriture_journal: 'Écriture compta', creation_chantier: 'Création chantier',
-                devis: 'Devis/Proforma', conge: 'Demande congé',
+                devis: 'Devis/Proforma', approbation_conge: 'Demande congé',
                 rapport_intervention: 'Rapport intervention', rapport_inspection: 'Rapport inspection',
                 demande_recrutement: 'Demande recrutement'
             }[v.type] || v.type;
@@ -2415,17 +2415,49 @@ async function approuverValidation(id) {
                 .eq('id', validation.emetteur_id);
             if (pErr) throw new Error('Activation compte chef échouée : ' + pErr.message);
         } else if (validation.type === 'demande_materiaux') {
-            // Pas de structure mouvements_stock/stocks_chantier confirmée pour
-            // un INSERT fiable (aucun exemple existant dans le code à ce jour).
-            // On approuve la demande mais on alerte explicitement l'admin
-            // qu'il doit traiter la sortie de stock manuellement, plutôt que
-            // de risquer un insert silencieusement invalide.
-            notify('⚠️ Pensez à enregistrer la sortie de stock manuellement (section Logistique/Stock) — non automatisé pour ce type de demande.', 'info');
+            // CORRECTIF 2026-06-20 : la table réellement utilisée par l'app pour le stock
+            // est `materiels` (cf. stock.js), pas mouvements_stock/stocks/besoins_stock
+            // (tables orphelines, jamais lues/écrites par le front — RLS les bloque car
+            // aucune policy n'existe dessus, ce n'est pas un bug de config à corriger).
+            // `materiels` a déjà des policies admin/daf fonctionnelles (FIX_RLS_ALL_TABLES.sql).
+            // commentaire au format "materiau|quantite unite|Urgence: ...", emetteur_id = chantier.
+            let stockAjuste = false;
+            try {
+                const parts = (validation.commentaire || '').split('|');
+                const materiau = (parts[0] || '').trim();
+                const qteMatch = (parts[1] || '').trim().match(/^([\d.,]+)/);
+                const qteDemandee = qteMatch ? parseFloat(qteMatch[1].replace(',', '.')) : null;
+                const chantier = validation.emetteur_id;
+                if (materiau && qteDemandee) {
+                    const { data: matRows } = await db.from('materiels')
+                        .select('id, quantite, libelle, chantier_actuel')
+                        .ilike('libelle', materiau).eq('chantier_actuel', chantier).limit(1);
+                    const match = matRows && matRows[0];
+                    if (match && Number(match.quantite) >= qteDemandee) {
+                        const { error: mErr } = await db.from('materiels')
+                            .update({ quantite: Number(match.quantite) - qteDemandee }).eq('id', match.id);
+                        if (!mErr) stockAjuste = true;
+                    }
+                }
+            } catch(stockE) { console.warn('[Validation] Sortie stock auto échouée:', stockE); }
+            notify(stockAjuste
+                ? 'Demande approuvée — sortie de stock enregistrée automatiquement ✓'
+                : '⚠️ Sortie de stock NON automatisée (article introuvable sur ce chantier ou quantité insuffisante) — à enregistrer manuellement en section Logistique/Stock.',
+                stockAjuste ? 'success' : 'info');
         } else if (validation.type === 'devis' && validation.emetteur_id) {
             // Le devis passe à SOUMIS avant validation, puis APPROUVE par admin
             const { error: dvErr } = await db.from('devis')
                 .update({ statut: 'APPROUVE' }).eq('id', validation.emetteur_id);
             if (dvErr) throw new Error('Approbation devis échouée : ' + dvErr.message);
+        } else if (validation.type === 'approbation_conge') {
+            // rh.html émet ce type (entite_id historiquement, emetteur_id depuis le fix) —
+            // on lit les deux pour couvrir les demandes déjà en base (bug identifié 2026-06-20).
+            const congeId = validation.emetteur_id || validation.entite_id;
+            if (congeId) {
+                const { error: cgErr } = await db.from('conges')
+                    .update({ statut: 'approuve' }).eq('id', congeId);
+                if (cgErr) throw new Error('Approbation congé échouée : ' + cgErr.message);
+            }
         }
 
         const { error } = await db.from('validations').update({
@@ -2444,6 +2476,12 @@ async function rejeterValidation(id) {
     if (!motif) { notify('Le motif de rejet est obligatoire', 'error'); return; }
     const adminEmail = (typeof getCurrentUser === 'function' && getCurrentUser()?.email) || 'admin';
     try {
+        const { data: validation } = await db.from('validations').select('*').eq('id', id).single();
+        if (validation?.type === 'approbation_conge') {
+            const congeId = validation.emetteur_id || validation.entite_id;
+            if (congeId) await db.from('conges').update({ statut: 'rejete' }).eq('id', congeId);
+        }
+
         const { error } = await db.from('validations').update({
             statut: 'REJETE', motif_rejet: motif,
             decided_at: new Date().toISOString(), decided_by: adminEmail
