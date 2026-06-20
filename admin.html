@@ -1379,7 +1379,7 @@ window.notify = function notify(msg, type = 'info') {
     const n = document.createElement('div');
     n.className = `notif notif-${type}`;
     const icons = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
-    n.innerHTML = `<i class="fas fa-${icons[type] || 'info-circle'}"></i> ${msg}`;
+    n.innerHTML = `<i class="fas fa-${icons[type] || 'info-circle'}"></i> ${esc(msg)}`;
     document.body.appendChild(n);
     setTimeout(() => n.style.opacity = '0', 3000);
     setTimeout(() => n.remove(), 3300);
@@ -1419,10 +1419,10 @@ function handleFiles(files) {
     Array.from(files).forEach(file => {
         const item = document.createElement('div');
         item.className = 'file-item';
-        item.id = 'file-' + file.name;
+        item.id = 'file-' + esc(file.name||'');
         item.innerHTML = `<i class="fas fa-file-excel"></i>
-            <span class="fname">${file.name}</span>
-            <span class="fstatus status-loading" id="status-${file.name}">Lecture...</span>`;
+            <span class="fname">${esc(file.name||'')}</span>
+            <span class="fstatus status-loading" id="status-${esc(file.name||'')}">Lecture...</span>`;
         list.appendChild(item);
         parseExcel(file);
     });
@@ -1713,8 +1713,8 @@ function addBackupHistory(fname, date) {
     if (hist.querySelector('[style*="Aucune"]')) hist.innerHTML = '';
     hist.innerHTML = `<div class="backup-item">
         <i class="fas fa-file-excel"></i>
-        <div class="bname"><strong>${fname}</strong><small>Exporté depuis Supabase</small></div>
-        <div class="bdate">${date}</div>
+        <div class="bname"><strong>${esc(fname||'')}</strong><small>Exporté depuis Supabase</small></div>
+        <div class="bdate">${esc(date||'')}</div>
     </div>` + hist.innerHTML;
 
     // Sauver dans localStorage
@@ -1796,7 +1796,7 @@ async function loadChantierSelect() {
     try {
         const { data } = await db.from('chantiers').select('nom').eq('actif', true).order('nom');
         const sel = document.getElementById('cu-chantier');
-        sel.innerHTML = '<option value="">-- Choisir --</option>' + (data||[]).map(c => `<option value="${c.nom}">${c.nom}</option>`).join('');
+        sel.innerHTML = '<option value="">-- Choisir --</option>' + (data||[]).map(c => `<option value="${esc(c.nom||'')}">${esc(c.nom||'—')}</option>`).join('');
     } catch(e) { console.warn('loadChantierSelect:', e); }
 }
 
@@ -1960,11 +1960,11 @@ async function loadRapports() {
                     const meteoIcon = {soleil:'☀️',nuageux:'⛅',pluie:'🌧️',orage:'⛈️'}[r.meteo] || '—';
                     const hasProb = r.problemes && r.problemes.trim();
                     return `<tr style="border-bottom:1px solid #f7f7f7;cursor:pointer" onclick="showRapportDetail(${JSON.stringify(JSON.stringify(r))})">
-                        <td style="padding:10px 12px;font-size:13px;font-weight:600">${r.date}</td>
-                        <td style="padding:10px 12px;font-size:13px">${r.chantier}</td>
+                        <td style="padding:10px 12px;font-size:13px;font-weight:600">${esc(r.date||'')}</td>
+                        <td style="padding:10px 12px;font-size:13px">${esc(r.chantier||'')}</td>
                         <td style="padding:10px 12px;font-size:16px">${meteoIcon}</td>
                         <td style="padding:10px 12px;text-align:center;font-size:13px">${r.ouvriers||0}</td>
-                        <td style="padding:10px 12px;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.travaux||'—'}</td>
+                        <td style="padding:10px 12px;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.travaux||'—')}</td>
                         <td style="padding:10px 12px;text-align:center">${hasProb ? '<span style="background:#ffebee;color:#c62828;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">OUI</span>' : '<span style="color:#adb5bd;font-size:12px">—</span>'}</td>
                         <td style="padding:10px 12px;text-align:center"><button class="btn btn-secondary" style="padding:5px 12px;font-size:12px" onclick="event.stopPropagation();showRapportDetail(${JSON.stringify(JSON.stringify(r))})"><i class="fas fa-eye"></i></button></td>
                     </tr>`;
@@ -1983,12 +1983,12 @@ function showRapportDetail(jsonStr) {
     const photos = Array.isArray(r.photos) ? r.photos : typeof r.photos === 'string' ? (JSON.parse(r.photos)||[]) : [];
     const meteoLabels = {soleil:'☀️ Soleil',nuageux:'⛅ Nuageux',pluie:'🌧️ Pluie',orage:'⛈️ Orage'};
     document.getElementById('rp-modal-content').innerHTML = `
-        <h2 style="font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px">Rapport du ${r.date}</h2>
-        <p style="color:#636e72;font-size:13px;margin-bottom:20px">${r.chantier} — ${meteoLabels[r.meteo]||r.meteo||'—'} — ${r.ouvriers||0} ouvrier(s)</p>
+        <h2 style="font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px">Rapport du ${esc(r.date||'')}</h2>
+        <p style="color:#636e72;font-size:13px;margin-bottom:20px">${esc(r.chantier||'')} — ${meteoLabels[r.meteo]||esc(r.meteo||'—')} — ${r.ouvriers||0} ouvrier(s)</p>
         <hr style="border:none;border-top:1px solid #f0f0f0;margin-bottom:20px">
         <div style="margin-bottom:16px">
             <div style="font-size:12px;font-weight:700;color:#636e72;margin-bottom:6px">TRAVAUX RÉALISÉS</div>
-            <p style="font-size:14px;color:#2d3436">${r.travaux||'—'}</p>
+            <p style="font-size:14px;color:#2d3436">${esc(r.travaux||'—')}</p>
         </div>
         ${taches.length ? `<div style="margin-bottom:16px">
             <div style="font-size:12px;font-weight:700;color:#636e72;margin-bottom:8px">TÂCHES (${taches.length})</div>
@@ -1996,7 +1996,7 @@ function showRapportDetail(jsonStr) {
                 const av=t.avancement||0;
                 const col=av===100?'var(--green)':av>50?'#0066cc':'var(--orange)';
                 return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-                    <div style="flex:1;font-size:13px">${t.nom}</div>
+                    <div style="flex:1;font-size:13px">${esc(t.nom||'—')}</div>
                     <div style="width:120px;background:#f0f0f0;border-radius:10px;height:8px;overflow:hidden">
                         <div style="width:${av}%;background:${col};height:100%;border-radius:10px"></div>
                     </div>
@@ -2079,9 +2079,9 @@ async function loadControles() {
                     const scBg = sc>=80?'#e8f5e9':sc>=60?'#fff8e1':'#ffebee';
                     const dt = r.datetime ? new Date(r.datetime).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
                     return `<tr style="border-bottom:1px solid #f7f7f7;cursor:pointer" onclick="showControleDetail(${JSON.stringify(JSON.stringify(r))})">
-                        <td style="padding:10px 12px;font-size:13px;font-weight:600">${dt}</td>
-                        <td style="padding:10px 12px;font-size:13px">${r.chantier}</td>
-                        <td style="padding:10px 12px;font-size:13px">${r.controleur||'—'}</td>
+                        <td style="padding:10px 12px;font-size:13px;font-weight:600">${esc(dt)}</td>
+                        <td style="padding:10px 12px;font-size:13px">${esc(r.chantier||'')}</td>
+                        <td style="padding:10px 12px;font-size:13px">${esc(r.controleur||'—')}</td>
                         <td style="padding:10px 12px;text-align:center">${r.chef_present==='oui'?'<span style="color:var(--green)">✓ Oui</span>':'<span style="color:var(--red)">✗ Non</span>'}</td>
                         <td style="padding:10px 12px;text-align:center"><span style="background:${scBg};color:${scColor};padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700">${sc}%</span></td>
                         <td style="padding:10px 12px;text-align:center"><button class="btn btn-secondary" style="padding:5px 12px;font-size:12px" onclick="event.stopPropagation();showControleDetail(${JSON.stringify(JSON.stringify(r))})"><i class="fas fa-eye"></i></button></td>
@@ -2115,8 +2115,8 @@ function showControleDetail(jsonStr) {
         </div>`;
     };
     document.getElementById('ct-modal-content').innerHTML = `
-        <h2 style="font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px">Contrôle — ${r.chantier}</h2>
-        <p style="color:#636e72;font-size:13px;margin-bottom:16px">${dt} — Contrôleur : ${r.controleur||'—'}</p>
+        <h2 style="font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px">Contrôle — ${esc(r.chantier||'')}</h2>
+        <p style="color:#636e72;font-size:13px;margin-bottom:16px">${dt} — Contrôleur : ${esc(r.controleur||'—')}</p>
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:#f8f9fa;border-radius:12px">
             <div style="font-size:42px;font-weight:900;color:${scColor}">${sc}%</div>
             <div>
@@ -2498,13 +2498,13 @@ async function voirDetailValidation(id) {
     if (!data) return;
     document.getElementById('vd-title').textContent = 'Demande #' + data.id + ' — ' + (data.type || '');
     document.getElementById('vd-body').innerHTML = `
-        <div class="detail-field"><label>Type</label><span>${data.type || '—'}</span></div>
-        <div class="detail-field"><label>Émetteur</label><span>${data.emetteur_role || '—'} (${data.emetteur_id || '—'})</span></div>
+        <div class="detail-field"><label>Type</label><span>${esc(data.type||'—')}</span></div>
+        <div class="detail-field"><label>Émetteur</label><span>${esc(data.emetteur_role||'—')} (${esc(data.emetteur_id||'—')})</span></div>
         <div class="detail-field"><label>Date</label><span>${new Date(data.created_at).toLocaleString('fr-FR')}</span></div>
-        <div class="detail-field"><label>Statut</label><span class="status ${data.statut === 'APPROUVE' ? 'success' : data.statut === 'REJETE' ? 'error' : 'warning'}">${data.statut}</span></div>
-        ${data.commentaire ? `<div class="detail-field"><label>Commentaire</label><span>${data.commentaire}</span></div>` : ''}
-        ${data.motif_rejet ? `<div class="detail-field"><label>Motif rejet</label><span style="color:#ef4444">${data.motif_rejet}</span></div>` : ''}
-        ${data.decided_at ? `<div class="detail-field"><label>Décision le</label><span>${new Date(data.decided_at).toLocaleString('fr-FR')} par ${data.decided_by}</span></div>` : ''}
+        <div class="detail-field"><label>Statut</label><span class="status ${esc(data.statut)==='APPROUVE'?'success':esc(data.statut)==='REJETE'?'error':'warning'}">${esc(data.statut||'')}</span></div>
+        ${data.commentaire ? `<div class="detail-field"><label>Commentaire</label><span>${esc(data.commentaire)}</span></div>` : ''}
+        ${data.motif_rejet ? `<div class="detail-field"><label>Motif rejet</label><span style="color:#ef4444">${esc(data.motif_rejet)}</span></div>` : ''}
+        ${data.decided_at ? `<div class="detail-field"><label>Décision le</label><span>${new Date(data.decided_at).toLocaleString('fr-FR')} par ${esc(data.decided_by||'')}</span></div>` : ''}
     `;
     document.getElementById('vd-footer').innerHTML = `
         ${data.statut === 'EN_ATTENTE' ? `
@@ -2666,7 +2666,7 @@ async function populateCEOChantierSelects() {
     try {
         const { data, error } = await db.from('chantiers').select('id, nom').order('nom');
         if (error) throw error;
-        const opts = (data || []).map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
+        const opts = (data || []).map(c => `<option value="${esc(c.id||'')}">${esc(c.nom||'—')}</option>`).join('');
 
         const targets = [
             { sel: '#form-budget-global select[name="chantier_id"]',    prefix: '— Sélectionner un chantier —' },
@@ -2682,7 +2682,7 @@ async function populateCEOChantierSelects() {
             // Neutraliser onchange pendant la mise à jour pour éviter les appels parasites
             const savedOC = el.onchange;
             el.onchange = null;
-            el.innerHTML = `<option value="">${prefix}</option>` + opts;
+            el.innerHTML = `<option value="">${esc(prefix)}</option>` + opts;
             el.onchange = savedOC;
         });
         // Option hors-chantier pour le filtre recettes (sans déclencher onchange)
@@ -3221,13 +3221,23 @@ async function submitCreditFournisseur(e) {
     if (montant <= 0) { notifyCEO('Montant invalide', 'error'); return false; }
     if (!fd.get('fournisseur')?.trim()) { notifyCEO('Fournisseur requis', 'error'); return false; }
 
+    // A-001 : date_echeance doit être dans le futur
+    const rawEcheance = fd.get('date_echeance');
+    if (rawEcheance) {
+        const echeanceDate = new Date(rawEcheance + 'T00:00:00');
+        if (echeanceDate <= new Date()) {
+            notifyCEO('La date d\'échéance doit être dans le futur', 'error');
+            return false;
+        }
+    }
+
     const payload = {
         date:          fd.get('date')          || todayISO(),
         fournisseur:   fd.get('fournisseur'),
         chantier_id:   parseInt(fd.get('chantier_id')) || null,
         designation:   fd.get('designation'),
         montant_total: montant,
-        date_echeance: fd.get('date_echeance') || null,
+        date_echeance: rawEcheance || null,
         // BLOCAGE DUR : statut toujours EN_ATTENTE à la création — seul le CEO
         // peut ensuite passer à AUTORISE_DAF via le bouton dédié (autoriserDafCredit).
         statut:        'EN_ATTENTE',

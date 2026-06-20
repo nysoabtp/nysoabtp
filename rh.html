@@ -717,13 +717,21 @@
             const body = document.getElementById('payslip-modal-body');
             if (!body) return;
             const mois = new Date().toLocaleString('fr-FR',{month:'long',year:'numeric'});
-            body.innerHTML = `
+            <div id="payslip-modal-body"></div>
+        </div>
+        <div id="payslip-table-container"></div>
+        </div>
+        </div>
+    </div>
+</div>
+/div>
+        body.innerHTML = `
                 <div style="border:2px solid var(--primary);border-radius:8px;padding:20px;margin-bottom:12px;text-align:center;background:var(--bg-card)">
                     <h2 style="color:var(--primary);margin:0 0 4px">NYSOA BTP</h2>
                     <p style="margin:0;color:var(--text-secondary);font-size:12px">${mois}</p>
                 </div>
                 <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
-                    <tr><td style="padding:6px;font-weight:600">Employé</td><td style="padding:6px">${p.nom||'—'}</td></tr>
+                    <tr><td style="padding:6px;font-weight:600">Employé</td><td style="padding:6px">${esc(p.nom||'—')}</td></tr>
                     <tr><td style="padding:6px;font-weight:600;background:var(--bg-hover)">Type</td><td style="padding:6px;background:var(--bg-hover)">${p.type||'Mensuel'}</td></tr>
                     <tr><td style="padding:6px;font-weight:600">Jours travaillés</td><td style="padding:6px">${p.jours||0}</td></tr>
                     <tr><td style="padding:6px;font-weight:600;background:var(--bg-hover)">Taux journalier</td><td style="padding:6px;background:var(--bg-hover)">${formatAriary(p.taux||0)}</td></tr>
@@ -957,7 +965,15 @@
                     <td><span class="status success">${esc(f.statut||'Planifiée')}</span></td>
                 </tr>`).join('');
             } catch(err) {
-                tbody.innerHTML = `<tr><td colspan="6" style="color:#ef4444;text-align:center;padding:20px">${err.message}</td></tr>`;
+                t<div id="payslip-modal-body"></div>
+        </div>
+        <div id="payslip-table-container"></div>
+        </div>
+        </div>
+    </div>
+</div>
+/div>
+        body.innerHTML = `<tr><td colspan="6" style="color:#ef4444;text-align:center;padding:20px">${err.message}</td></tr>`;
             }
         }
 
@@ -1184,7 +1200,7 @@
             if (sel) {
                 const { data } = await db.from('personnel').select('chantier').eq('actif', true);
                 const chantiers = [...new Set((data||[]).map(p=>p.chantier).filter(Boolean))];
-                sel.innerHTML = '<option value="">Tous les chantiers</option>' + chantiers.map(c => `<option value="${c}">${c}</option>`).join('');
+                sel.innerHTML = '<option value="">Tous les chantiers</option>' + chantiers.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
             }
             openModal('modal-indexation');
         }
@@ -1218,7 +1234,7 @@
             if (!sel) return;
             const { data } = await db.from('personnel').select('chantier').eq('actif', true);
             const chantiers = [...new Set((data||[]).map(p=>p.chantier).filter(Boolean))];
-            sel.innerHTML = '<option value="">Tous les chantiers</option>' + chantiers.map(c => `<option value="${c}">${c}</option>`).join('');
+            sel.innerHTML = '<option value="">Tous les chantiers</option>' + chantiers.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
         }
 
         function filtrerTablePaieParChantier() {

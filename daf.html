@@ -1083,7 +1083,7 @@ window.notify = function(msg, type = 'info') {
     const n = document.createElement('div');
     n.className = `notif notif-${type}`;
     const icons = { success:'check-circle', error:'exclamation-circle', info:'info-circle', warning:'exclamation-triangle' };
-    n.innerHTML = `<i class="fas fa-${icons[type]||'info-circle'}"></i> ${msg}`;
+    n.innerHTML = `<i class="fas fa-${icons[type]||'info-circle'}"></i> ${esc(msg)}`;
     document.body.appendChild(n);
     setTimeout(() => n.style.opacity = '0', 3500);
     setTimeout(() => n.remove(), 3800);
@@ -1874,7 +1874,7 @@ async function loadBudgetFelana() {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${esc(r.chantiers?.nom||'—')}</td>
-                <td>${posteLabels[r.poste]||r.poste}</td>
+                <td>${posteLabels[r.poste]||esc(r.poste||'—')}</td>
                 <td>${r.mois}/${r.annee}</td>
                 <td>${(r.montant_prevu||0).toLocaleString()}</td>
                 <td>${(r.montant_reel||0).toLocaleString()}</td>
@@ -2076,7 +2076,7 @@ async function loadDevisDAF() {
                 <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.objet||d.projet||'—')}</td>
                 <td style="font-weight:600">${(d.montant_ht||d.total||0).toLocaleString()} Ar</td>
                 <td>${d.date_devis||'—'}</td>
-                <td><span class="badge ${statusCls}">${d.statut||'—'}</span></td>
+                <td><span class="badge ${statusCls}">${esc(d.statut||'—')}</span></td>
                 <td style="white-space:nowrap">
                     <button class="btn-small btn-secondary" onclick="ouvrirEditeurDevis(${d.id})" style="margin-right:4px"><i class="fas fa-edit"></i></button>
                     <button class="btn-small btn-secondary" onclick="if(typeof imprimerDevis==='function')imprimerDevis(${d.id})"><i class="fas fa-print"></i></button>

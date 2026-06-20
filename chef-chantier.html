@@ -663,7 +663,7 @@
             if (!data) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#888">Chantier introuvable</td></tr>'; return; }
             const statCls = { 'EN COURS':'success', 'EN PAUSE':'warning', 'TERMINÉ':'info' };
             tbody.innerHTML = `<tr>
-                <td>${data.code||'—'}</td><td>${data.nom}</td><td>${data.client||'—'}</td>
+                <td>${data.code||'—'}</td><td>${esc(data.nom||'—')}</td><td>${data.client||'—'}</td>
                 <td>${data.budget ? data.budget.toLocaleString()+' Ar' : '—'}</td>
                 <td>${data.debut||'—'}</td><td>${data.fin||'—'}</td>
                 <td><div class="progress-bar" style="width:80px;display:inline-block;vertical-align:middle"><div class="progress" style="width:${data.progression||0}%"></div></div> ${data.progression||0}%</td>
@@ -708,7 +708,7 @@
                     const embauche = emp.date_embauche ? new Date(emp.date_embauche).toLocaleDateString('fr-FR') : '—';
                     const anciennete = emp.date_embauche ? Math.floor((Date.now() - new Date(emp.date_embauche)) / (864e5 * 30)) + ' mois' : '—';
                     return `<tr>
-                        <td>${emp.matricule || '—'}</td><td>${emp.nom}</td><td>${emp.metier || '—'}</td>
+                        <td>${emp.matricule || '—'}</td><td>${esc(emp.nom||'—')}</td><td>${emp.metier || '—'}</td>
                         <td>${emp.chantier || '—'}</td><td>${embauche}</td><td>${anciennete}</td>
                         <td>${emp.salaire_journalier ? emp.salaire_journalier.toLocaleString() + ' Ar/j' : '—'}</td>
                         <td><span class="status success">Actif</span></td>
@@ -788,7 +788,7 @@
             const h = document.getElementById('employee-details');
             if (!h) return;
             h.innerHTML = `<table style="width:100%;border-collapse:collapse">
-                ${['Matricule',data.matricule||'—','Nom',data.nom,'Métier',data.metier||'—','Chantier',data.chantier||'—',
+                ${['Matricule',esc(data.matricule||'—'),'Nom',esc(data.nom||'—'),'Métier',esc(data.metier||'—'),'Chantier',esc(data.chantier||'—'),
                   'Date embauche',data.date_embauche?new Date(data.date_embauche).toLocaleDateString('fr-FR'):'—',
                   'Salaire',data.salaire_journalier?data.salaire_journalier.toLocaleString()+' Ar/j':'—'
                 ].map((v,i)=>i%2===0?`<tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">${v}</td>`:`<td style="padding:8px;border-bottom:1px solid #ddd">${v}</td></tr>`).join('')}</table>`;
@@ -919,7 +919,7 @@
                 employe_id: emp.id, salaire_journalier: emp.salaire_journalier
             });
             if (error) { result.innerHTML = '<span style="color:var(--red)">Erreur: '+error.message+'</span>'; return; }
-            result.innerHTML = `<span style="color:var(--green);font-weight:700"><i class="fas fa-check-circle"></i> ${emp.nom} pointé ✓</span>`;
+            result.innerHTML = `<span style="color:var(--green);font-weight:700"><i class="fas fa-check-circle"></i> ${esc(emp.nom)} pointé ✓</span>`;
             loadPointageToday();
             setTimeout(() => { result.innerHTML = ''; }, 3000);
         }
@@ -945,7 +945,7 @@
             if (!tasks.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888">Aucune tâche planifiée</td></tr>'; return; }
             tasks.forEach(t => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${t.tache||'—'}</td><td>${t.chantier||'—'}</td><td>${t.date||'—'}</td><td>${t.equipe||'—'}</td><td><span class="status warning">${t.priorite||'—'}</span></td><td><span class="status info">${t.statut||'Planifié'}</span></td>`;
+                tr.innerHTML = `<td>${esc(t.tache||'—')}</td><td>${esc(t.chantier||'—')}</td><td>${esc(t.date||'—')}</td><td>${esc(t.equipe||'—')}</td><td><span class="status warning">${t.priorite||'—'}</span></td><td><span class="status info">${t.statut||'Planifié'}</span></td>`;
                 tbody.appendChild(tr);
             });
         }
@@ -1069,13 +1069,13 @@
             const matosMatch = r.travaux?.match(/\n\n\[Matériaux\] (.*?)(?:\n\n\[Notes\]|$)/s);
             const travauxClean = r.travaux?.replace(/\n\n\[(Matériaux|Notes)\].*/s, '').trim()||r.travaux||'—';
             h.innerHTML = `<div style="padding:4px">
-                <p><strong>Date :</strong> ${r.date}</p>
-                <p><strong>Météo :</strong> ${r.meteo||'—'}</p>
+                <p><strong>Date :</strong> ${esc(r.date||'')}</p>
+                <p><strong>Météo :</strong> ${esc(r.meteo||'—')}</p>
                 <p><strong>Effectif :</strong> ${r.ouvriers||'?'} ouvriers</p>
-                <p><strong>Travaux :</strong> ${travauxClean}</p>
-                ${matosMatch ? `<p><strong>Matériaux :</strong> ${matosMatch[1]}</p>` : ''}
-                ${notesMatch ? `<p><strong>Notes :</strong> ${notesMatch[1]}</p>` : ''}
-                <p><strong>Incidents :</strong> ${r.problemes||'Aucun'}</p>
+                <p><strong>Travaux :</strong> ${esc(travauxClean)}</p>
+                ${matosMatch ? `<p><strong>Matériaux :</strong> ${esc(matosMatch[1]||'')}</p>` : ''}
+                ${notesMatch ? `<p><strong>Notes :</strong> ${esc(notesMatch[1]||'')}</p>` : ''}
+                <p><strong>Incidents :</strong> ${esc(r.problemes||'Aucun')}</p>
             </div>`;
             openModal('modal-rapport-detail');
         }
