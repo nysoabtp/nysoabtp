@@ -453,3 +453,63 @@ En plus des 4 bugs P0 identifiés dans l'audit, la vérification croisée a rév
 ---
 
 *Rapport généré par audit automatisé + vérification manuelle du code source — 2026-06-20*
+
+
+---
+
+## Validation runtime — 2026-06-20 (API REST Supabase via anon key + compte DAF)
+
+### T-1 : Filtres statut=VALIDE — Résultat ✅ CONFIRMÉ
+
+**Protocole :** créer dépense 999 Ar → lire total → annuler → relire total.
+
+| Étape | Lignes VALIDE | Total |
+|-------|--------------|-------|
+| AVANT insert | 28 | 2 025 000 Ar |
+| APRÈS insert 999 Ar | 29 | 2 025 999 Ar |
+| APRÈS ANNULE | 28 | 2 025 000 Ar |
+
+**Différence sans filtre (bug existant avant correction) :**
+- Total SANS filtre : 2 057 999 Ar (33 lignes)
+- Total VALIDE only : 2 025 000 Ar
+- **32 999 Ar comptés à tort** (lignes ANNULE + rejete)
+
+**Nouveaux statuts découverts en base :**
+- `VALIDE` : 2 025 000 Ar
+- `ANNULE` : 30 999 Ar
+- `rejete` : 2 000 Ar
+
+**Conclusion :** Les filtres `.eq('statut','VALIDE')` du commit `0671be8` fonctionnent
+correctement. Le bug initial est confirmé avec des données réelles.
+
+### T-2 : Lignes statut NULL — Résultat ✅ AUCUN PROBLÈME
+
+| Vérification | Résultat |
+|-------------|----------|
+| `statut = NULL` | 0 lignes |
+| `statut = ''` (chaîne vide) | 0 lignes |
+| Distribution | VALIDE / ANNULE / rejete uniquement |
+
+**Conclusion :** Aucune ligne NULL ou vide dans `journal_global`. Les filtres
+`.eq('statut','VALIDE')` ne laissent passer que VALIDE — comportement correct.
+
+### T-3 : A-001 date_echeance — API REST — 结果 GAP CRITIQUE
+
+L'API REST accepte TOUTES les dates d'échéance (HTTP 201) :
+- hier (2026-06-19) → 201 accepté ❌
+- aujourd'hui (2026-06-20) → 201 accepté ✅
+- demain (2026-06-21) → 201 accepté ✅
+
+**GAP CRITIQUE :** Aucune CHECK constraint côté base de données.
+La validation `date_echeance >= today` n'existe que dans le JS client.
+Proposal SQL :
+```sql
+ALTER TABLE credits_fournisseurs
+  ADD CONSTRAINT date_echeance_future
+  CHECK (date_echeance IS NULL OR date_echeance >= CURRENT_DATE);
+```
+
+### T-4 : XSS — Reporter (browser requis)
+
+Bloqué — sandbox OpenHands HS (work-1/work-2 = 502).
+Fix `esc()`/`textContent` (commit `0c85c84`) non validé en conditions réelles.

@@ -205,13 +205,47 @@ CREATE POLICY admin_delete_gantt ON gantt_taches FOR DELETE TO public ...
 - Dashboard Supabase → SQL Editor → coler le contenu de `FIX_DELETE_POLICIES.sql`
 - Ou `psql` avec les credentials du projet
 
+
+
 ---
 
-## Commit Final
+## Validation runtime — 2026-06-20 (API REST Supabase via anon key + compte DAF)
 
-```
-$ git log --oneline origin/main -1
-0c85c84 fix(security): XSS stocké + DELETE policies + validation date échéance
-```
+> Tests exécutés via API REST authentifiée (`POST /auth/v1/token?grant_type=password`,
+> compte `daf@nysoa.mg`). Pas de navigateur — sandbox OpenHands HS (work-1/work-2 = 502).
 
-**Prêt à merger** sur la branche principale (main).
+### T-3 : A-001 date_echeance —结果
+
+| Cas | date_echeance | API REST | Comportement attendu | Résultat |
+|-----|---------------|----------|---------------------|----------|
+| 1 | 2026-06-19 (hier) | HTTP 201 ✅ | REFUSÉ (dans le passé) | ✅ API accepte (bug: pas de contrainte DB) |
+| 2 | 2026-06-20 (aujourd'hui) | HTTP 201 ✅ | ACCEPTÉ (Option B) | ✅ API accepte |
+| 3 | 2026-06-21 (demain) | HTTP 201 ✅ | ACCEPTÉ | ✅ API accepte |
+
+**Constat :** La validation `date_echeance >= today` n'existe que côté JS (`admin.html:3230`).
+L'API REST accepte TOUTES les dates. N'importe qui avec le JWT DAF peut insérer une
+échéance passée via `curl` — contournement trivial de la protection.
+
+**GAP CRITIQUE (nouveau) :** Aucune CHECK constraint côté base de données.
+Proposal de correction :
+```sql
+ALTER TABLE credits_fournisseurs
+  ADD CONSTRAINT date_echeance_future
+  CHECK (date_echeance IS NULL OR date_echeance >= CURRENT_DATE);
+```
+→ Affecte aussi `devis_lignes` si la même logique s'y applique.
+
+### T-4 : XSS — Reporter
+
+**Bloqué** : nécessite un vrai navigateur pour tester le rendu DOM.
+Le fix `esc()` / `textContent` appliqué dans le commit `0c85c84` n'a pas pu être
+validé en conditions réelles.
+
+**Instructions pour test manuel (5 min) :**
+1. Se connecter en RH → Créer un employé avec nom = `<script>alert('XSS')</script>`
+2. Recharger la page → aucune popup ne doit apparaître, texte affiché littéralement
+3. Idem avec `<img src=x onerror=alert(1)>` dans un rapport journalier (chef-chantier)
+4. Idem avec notification DAF (daf.html)
+
+*Ce test sera répété dès que work-1/work-2 seront disponibles.*
+
