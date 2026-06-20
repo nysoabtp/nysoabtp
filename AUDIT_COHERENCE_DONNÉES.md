@@ -32,6 +32,12 @@
 
 | Bug | Fichier | Impact | Correction |
 |-----|---------|--------|------------|
+| **B-01** — DELETE policies manquantes | validations, controles_inopines, gantt_taches | RLS silencieuse bloque DELETE admin | FIX_DELETE_POLICIES.sql — **CHEMIN JWT CORRIGÉ** (commit 8c143bf). Exécuter via Supabase Dashboard. |
+
+### Bugs découverts en validation runtime — 2026-06-20
+
+| Bug | Fichier | Impact | Correction |
+|-----|---------|--------|------------|
 | **A-001-DB** — validation `date_echeance` côté JS seulement | `admin.html:3230` | API REST accepte les dates passées (HTTP 201). Contournable via curl. | `FIX_DATE_CONSTRAINT.sql` — CHECK constraint côté DB. Exécuter manuellement via Supabase Dashboard. |
 
 
