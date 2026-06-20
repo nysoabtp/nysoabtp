@@ -226,7 +226,11 @@ CREATE POLICY admin_delete_gantt ON gantt_taches FOR DELETE TO public ...
 L'API REST accepte TOUTES les dates. N'importe qui avec le JWT DAF peut insérer une
 échéance passée via `curl` — contournement trivial de la protection.
 
-**GAP CRITIQUE (nouveau) :** Aucune CHECK constraint côté base de données.
+**GAP CRITIQUE (nouveau) — A-001-DB :** Aucune CHECK constraint côté base de données.
+Script de correction prêt : `FIX_DATE_CONSTRAINT.sql` (commit `6843c30`).
+À exécuter via Supabase Dashboard → SQL Editor (service_role requis).
+**Prévenu :** audit confirmé — 0 lignes existantes avec date_echeance passée,
+la contrainte peut être appliquée sans `NOT VALID`.
 Proposal de correction :
 ```sql
 ALTER TABLE credits_fournisseurs
