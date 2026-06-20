@@ -2421,6 +2421,11 @@ async function approuverValidation(id) {
             // qu'il doit traiter la sortie de stock manuellement, plutôt que
             // de risquer un insert silencieusement invalide.
             notify('⚠️ Pensez à enregistrer la sortie de stock manuellement (section Logistique/Stock) — non automatisé pour ce type de demande.', 'info');
+        } else if (validation.type === 'devis' && validation.emetteur_id) {
+            // Le devis passe à SOUMIS avant validation, puis APPROUVE par admin
+            const { error: dvErr } = await db.from('devis')
+                .update({ statut: 'APPROUVE' }).eq('id', validation.emetteur_id);
+            if (dvErr) throw new Error('Approbation devis échouée : ' + dvErr.message);
         }
 
         const { error } = await db.from('validations').update({
