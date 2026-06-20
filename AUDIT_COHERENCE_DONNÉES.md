@@ -24,6 +24,18 @@
 
 ### Bugs P0 — Corrigés ✅
 
+| ~~loadDepensesDAF()~~ — KPIs incluent `ANNULE` | `daf.html:1343` → ✅ Corrigé (commit `0671be8`) | `dep-kpi-total` + table : `.eq('statut','VALIDE')` ajouté |
+| ~~jg-stat-depenses~~ (admin) — total CEO inclut `ANNULE` | `admin.html:2737` → ✅ Corrigé (commit `0671be8`) | KPIs CEO filtrent maintenant `r.statut === 'VALIDE'` |
+| ~~_soldeFelana~~ — depenses annulées comptées | `daf.html:1157` → ✅ Corrigé (commit `0671be8`) | `calculerSoldeFelana()` фильтрует VALIDE only |
+
+### Bugs découverts en validation runtime — 2026-06-20
+
+| Bug | Fichier | Impact | Correction |
+|-----|---------|--------|------------|
+| **A-001-DB** — validation `date_echeance` côté JS seulement | `admin.html:3230` | API REST accepte les dates passées (HTTP 201). Contournable via curl. | `FIX_DATE_CONSTRAINT.sql` — CHECK constraint côté DB. Exécuter manuellement via Supabase Dashboard. |
+
+
+
 | Bug | Fichier | Correction |
 |-----|---------|-----------|
 | loadDepensesDAF() — KPIs incluent ANNULE | daf.html:1353 | `.eq('statut','VALIDE')` ajouté à la requête + tableau |
