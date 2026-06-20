@@ -2731,8 +2731,10 @@ async function loadJournalGlobal() {
         const rows = data || [];
 
         // KPIs CEO — SEUL à voir recettes ET bénéfice net
+        // COHERENCE FIX: ne compter que les écritures VALIDE (les ANNULE sont exclues)
         let totalRecettes = 0, totalDepenses = 0, totalCredits = 0;
         rows.forEach(r => {
+            if (r.statut !== 'VALIDE') return;
             if (r.type_ecriture === 'recette_client')   totalRecettes += r.montant || 0;
             if (r.type_ecriture === 'depense_daf')      totalDepenses += r.montant || 0;
             if (r.type_ecriture === 'credit_fournisseur') totalCredits += r.montant || 0;
@@ -3221,12 +3223,12 @@ async function submitCreditFournisseur(e) {
     if (montant <= 0) { notifyCEO('Montant invalide', 'error'); return false; }
     if (!fd.get('fournisseur')?.trim()) { notifyCEO('Fournisseur requis', 'error'); return false; }
 
-    // A-001 : date_echeance doit être dans le futur
+    // A-001 FIX: date_echeance = aujourd'hui est acceptable (fin de journée = encore payable)
     const rawEcheance = fd.get('date_echeance');
     if (rawEcheance) {
         const echeanceDate = new Date(rawEcheance + 'T00:00:00');
-        if (echeanceDate <= new Date()) {
-            notifyCEO('La date d\'échéance doit être dans le futur', 'error');
+        if (echeanceDate < new Date()) {
+            notifyCEO('La date d\'échéance ne peut pas être dans le passé', 'error');
             return false;
         }
     }

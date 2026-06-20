@@ -1150,10 +1150,12 @@ async function calculerSoldeFelana() {
             .eq('visible_daf', true);  // Seules les dotations marquées visibles par le DAF
 
         // Dépenses : écritures de type depense_daf créées par le DAF
+        // COHERENCE FIX: ne compter que les écritures VALIDE (les ANNULE ne sont pas des vraies dépenses)
         const { data: depenses } = await db
             .from('journal_global')
             .select('montant')
-            .eq('type_ecriture', 'depense_daf');
+            .eq('type_ecriture', 'depense_daf')
+            .eq('statut', 'VALIDE');
 
         _totalDotations = (dotations||[]).reduce((s,r) => s + (r.montant||0), 0);
         _totalDepenses  = (depenses||[]).reduce((s,r)  => s + (r.montant||0), 0);
@@ -1269,7 +1271,7 @@ async function loadDashboard() {
         const moisDebutStr = moisDebut.toISOString().split('T')[0];
         try {
             const { data: depMois } = await db.from('journal_global').select('montant')
-                .eq('type_ecriture','depense_daf').gte('date_ecriture', moisDebutStr);
+                .eq('type_ecriture','depense_daf').eq('statut','VALIDE').gte('date_ecriture', moisDebutStr);
             const totalMois = (depMois||[]).reduce((s,r) => s+(r.montant||0), 0);
             const elDepMois = document.getElementById('db-depenses-mois');
             if (elDepMois) elDepMois.textContent = fmtM(totalMois);
@@ -1292,7 +1294,7 @@ async function loadDashboard() {
 
         // Chantiers actifs
         try {
-            const { data: chDep } = await db.from('journal_global').select('chantier_id').eq('type_ecriture','depense_daf').not('chantier_id','is',null);
+            const { data: chDep } = await db.from('journal_global').select('chantier_id').eq('type_ecriture','depense_daf').eq('statut','VALIDE').not('chantier_id','is',null);
             const nbCh = new Set((chDep||[]).map(r=>r.chantier_id)).size;
             const elNbCh = document.getElementById('db-nb-chantiers');
             if (elNbCh) elNbCh.textContent = nbCh || '—';
@@ -1353,6 +1355,7 @@ async function loadDepensesDAF() {
         let q = db.from('journal_global')
             .select('*, chantiers(nom)')
             .eq('type_ecriture', 'depense_daf')
+            .eq('statut', 'VALIDE')
             .order('date_ecriture', { ascending: false })
             .limit(500);
 
@@ -1473,7 +1476,7 @@ async function deleteDepense(id) {
 }
 
 async function exportDepensesExcel() {
-    const { data } = await db.from('journal_global').select('*').eq('type_ecriture','depense_daf').order('date_ecriture',{ascending:false});
+    const { data } = await db.from('journal_global').select('*').eq('type_ecriture','depense_daf').eq('statut','VALIDE').order('date_ecriture',{ascending:false});
     if (!data) return;
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -1496,39 +1499,49 @@ async function loadJournalDAF() {
     try {
         // RÈGLE STRICTE : le DAF ne peut voir que dotation_felana (visible_daf=true) et depense_daf
         // JAMAIS : recette, credit_fournisseur (enregistrement), ni les notes CEO
-        let q = db.from('journal_global')
-            .select('id, date_ecriture, type_ecriture, montant, designation, chantier_id, mode_paiement, categorie, saisi_par, chantiers(nom)')
-            .in('type_ecriture', ['dotation_felana', 'depense_daf', 'paiement_credit'])
-            .order('date_ecriture', { ascending: false })
-            .limit(500);
+        // COHERENCE FIX: depense_daf toujours filtré VALIDE (les ANNULE sont exclues)
+        let rows = [];
 
-        // Pour les dotations, ne montrer que celles marquées visible_daf=true
-        if (filterType === 'dotation_felana') {
-            q = db.from('journal_global')
-                .select('id, date_ecriture, type_ecriture, montant, designation, chantier_id, mode_paiement, saisi_par, chantiers(nom)')
-                .eq('type_ecriture', 'dotation_felana')
-                .eq('visible_daf', true)
-                .order('date_ecriture', { ascending: false })
-                .limit(500);
-        } else if (filterType) {
-            q = q.eq('type_ecriture', filterType);
+        if (!filterType) {
+            const [dotRows, depRows] = await Promise.all([
+                db.from('journal_global')
+                    .select('id, date_ecriture, type_ecriture, montant, designation, chantier_id, mode_paiement, categorie, saisi_par, statut,chantiers(nom)')
+                    .eq('type_ecriture', 'dotation_felana').eq('visible_daf', true)
+                    .order('date_ecriture', { ascending: false }).limit(500),
+                db.from('journal_global')
+                    .select('id, date_ecriture, type_ecriture, montant, designation, chantier_id, mode_paiement, categorie, saisi_par, statut,chantiers(nom)')
+                    .eq('type_ecriture', 'depense_daf').eq('statut', 'VALIDE')
+                    .order('date_ecriture', { ascending: false }).limit(500),
+            ]);
+            rows = [...(dotRows.data||[]), ...(depRows.data||[])];
+        } else if (filterType === 'depense_daf') {
+            const { data } = await db
+                .from('journal_global')
+                .select('id, date_ecriture, type_ecriture, montant, designation, chantier_id, mode_paiement, categorie, saisi_par, statut,chantiers(nom)')
+                .eq('type_ecriture', 'depense_daf').eq('statut', 'VALIDE')
+                .order('date_ecriture', { ascending: false }).limit(500);
+            rows = data || [];
+        } else if (filterType === 'dotation_felana') {
+            const { data } = await db
+                .from('journal_global')
+                .select('id, date_ecriture, type_ecriture, montant, designation, chantier_id, mode_paiement, saisi_par, statut,chantiers(nom)')
+                .eq('type_ecriture', 'dotation_felana').eq('visible_daf', true)
+                .order('date_ecriture', { ascending: false }).limit(500);
+            rows = data || [];
+        } else {
+            const { data } = await db
+                .from('journal_global')
+                .select('id, date_ecriture, type_ecriture, montant, designation, chantier_id, mode_paiement, categorie, saisi_par, statut,chantiers(nom)')
+                .eq('type_ecriture', filterType)
+                .order('date_ecriture', { ascending: false }).limit(500);
+            rows = (data || []).filter(r => r.visible_daf !== false);
         }
 
-        if (filterChantier) q = q.eq('chantier_id', filterChantier);
-        if (dateFrom)       q = q.gte('date_ecriture', dateFrom);
-        if (dateTo)         q = q.lte('date_ecriture', dateTo);
+        if (filterChantier) rows = rows.filter(r => String(r.chantier_id) === filterChantier);
+        if (dateFrom)       rows = rows.filter(r => r.date_ecriture >= dateFrom);
+        if (dateTo)         rows = rows.filter(r => r.date_ecriture <= dateTo);
 
-        const { data, error } = await q;
-        if (error) throw error;
-
-        // Double-protection client-side : filtrer les dotations non visibles DAF
-        // (la RLS Supabase le fait déjà côté serveur — ceci est une défense en profondeur)
-        const rows = (data || []).filter(r => {
-            if (r.type_ecriture === 'dotation_felana') return r.visible_daf === true;
-            if (r.type_ecriture === 'recette_client')  return false;  // JAMAIS visible DAF
-            if (r.type_ecriture === 'credit_fournisseur') return false;  // JAMAIS visible DAF
-            return true;
-        });
+        rows.sort((a,b) => (b.date_ecriture||'').localeCompare(a.date_ecriture||''));
 
         if (!rows.length) {
             container.innerHTML = '<div style="text-align:center;padding:40px;color:#adb5bd"><i class="fas fa-inbox fa-2x"></i><br><br>Aucune écriture</div>';
@@ -1919,8 +1932,8 @@ async function loadSuiviChantiers() {
 
         // Dotations par chantier (visibles DAF)
         const { data: dotations } = await db.from('journal_global').select('chantier_id, montant').eq('type_ecriture','dotation_felana').eq('visible_daf',true);
-        // Dépenses par chantier
-        const { data: depenses } = await db.from('journal_global').select('chantier_id, montant').eq('type_ecriture','depense_daf');
+        // Dépenses par chantier (COHERENCE FIX: VALIDE only)
+        const { data: depenses } = await db.from('journal_global').select('chantier_id, montant').eq('type_ecriture','depense_daf').eq('statut','VALIDE');
 
         const dotByChantier = {};
         (dotations||[]).forEach(d => { if(d.chantier_id) dotByChantier[d.chantier_id] = (dotByChantier[d.chantier_id]||0) + (d.montant||0); });
