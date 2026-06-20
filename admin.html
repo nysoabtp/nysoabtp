@@ -2395,11 +2395,37 @@ async function loadValidationCount() {
 }
 
 async function approuverValidation(id) {
+    const { data: validation } = await db.from('validations').select('*').eq('id', id).single();
+    if (!validation) { notify('Demande introuvable', 'error'); return; }
+
     const motif = prompt('Commentaire (optionnel) :') || '';
+    const adminEmail = (typeof getCurrentUser === 'function' && getCurrentUser()?.email) || 'admin';
+
     try {
+        // Déclenche l'action métier réelle correspondant au type de validation,
+        // avant de marquer la demande comme APPROUVE — sinon l'approbation
+        // n'a aucun effet au-delà du badge visuel (bug identifié 2026-06-20).
+        if (validation.type === 'creation_chantier' && validation.emetteur_id) {
+            const { error: chErr } = await db.from('chantiers')
+                .update({ actif: true }).eq('id', validation.emetteur_id);
+            if (chErr) throw new Error('Activation chantier échouée : ' + chErr.message);
+        } else if (validation.type === 'creation_chef' && validation.emetteur_id) {
+            const { error: pErr } = await db.from('personnel')
+                .update({ compte_actif: true, statut_validation: 'APPROUVE' })
+                .eq('id', validation.emetteur_id);
+            if (pErr) throw new Error('Activation compte chef échouée : ' + pErr.message);
+        } else if (validation.type === 'demande_materiaux') {
+            // Pas de structure mouvements_stock/stocks_chantier confirmée pour
+            // un INSERT fiable (aucun exemple existant dans le code à ce jour).
+            // On approuve la demande mais on alerte explicitement l'admin
+            // qu'il doit traiter la sortie de stock manuellement, plutôt que
+            // de risquer un insert silencieusement invalide.
+            notify('⚠️ Pensez à enregistrer la sortie de stock manuellement (section Logistique/Stock) — non automatisé pour ce type de demande.', 'info');
+        }
+
         const { error } = await db.from('validations').update({
             statut: 'APPROUVE', commentaire: motif,
-            decided_at: new Date().toISOString(), decided_by: 'admin'
+            decided_at: new Date().toISOString(), decided_by: adminEmail
         }).eq('id', id);
         if (error) throw error;
         notify('Demande approuvée ✓', 'success');
@@ -2411,10 +2437,11 @@ async function approuverValidation(id) {
 async function rejeterValidation(id) {
     const motif = prompt('Motif de rejet (obligatoire) :');
     if (!motif) { notify('Le motif de rejet est obligatoire', 'error'); return; }
+    const adminEmail = (typeof getCurrentUser === 'function' && getCurrentUser()?.email) || 'admin';
     try {
         const { error } = await db.from('validations').update({
             statut: 'REJETE', motif_rejet: motif,
-            decided_at: new Date().toISOString(), decided_by: 'admin'
+            decided_at: new Date().toISOString(), decided_by: adminEmail
         }).eq('id', id);
         if (error) throw error;
         notify('Demande rejetée', 'info');
